@@ -2,22 +2,34 @@ appId: com.newline.app
 productName: Newline
 
 directories:
-  buildResources: resources
+  buildResources: build
   output: dist
 
 files:
   - out/**/*
+  - "!**/*.map"
 
 mac:
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - universal
+    - target: zip
+      arch:
+        - universal
   artifactName: ${name}-${version}-${arch}.${ext}
   category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
 
 win:
   target:
-    - nsis
+    - target: nsis
+      arch:
+        - x64
   artifactName: ${name}-${version}-setup.${ext}
 
 nsis:

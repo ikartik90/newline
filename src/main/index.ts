@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, protocol, net } from 'electron'
+import { app, BrowserWindow, shell, protocol, net, dialog } from 'electron'
 import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
@@ -7,6 +7,28 @@ import { getImagePath } from './services/images'
 import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
+
+function setupAutoUpdater(): void {
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Update ready',
+        message: `Version ${info.version} has been downloaded. Restart to apply?`,
+        buttons: ['Restart now', 'Later']
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.quitAndInstall()
+        }
+      })
+  })
+
+  autoUpdater.checkForUpdatesAndNotify()
+}
 
 function registerLocalProtocol(): void {
   protocol.handle('local', (request) => {
@@ -59,7 +81,7 @@ app.whenReady().then(() => {
   createWindow()
 
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify()
+    setupAutoUpdater()
   }
 
   app.on('activate', () => {
