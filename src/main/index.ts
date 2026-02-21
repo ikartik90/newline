@@ -1,10 +1,24 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, protocol, net } from 'electron'
 import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc'
+import { getImagePath } from './services/images'
+import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
+
+function registerLocalProtocol(): void {
+  protocol.handle('local', (request) => {
+    const filename = request.url.replace('local://', '')
+    const filePath = getImagePath(filename)
+
+    if (filePath) {
+      return net.fetch(pathToFileURL(filePath).href)
+    }
+    return new Response('Not found', { status: 404 })
+  })
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -38,6 +52,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerLocalProtocol()
   initDatabase()
   registerIpcHandlers()
 

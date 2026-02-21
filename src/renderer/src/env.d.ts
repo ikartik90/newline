@@ -51,6 +51,9 @@ declare global {
         set: (key: string, value: string) => Promise<void>
         get: (key: string) => Promise<string | null>
       }
+      images: {
+        save: (base64Data: string, ext: string, noteId: string) => Promise<string>
+      }
     }
   }
 }

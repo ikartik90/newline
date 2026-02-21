@@ -11,12 +11,52 @@ import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown'
 
 interface EditorProps {
   note: Note
-  onUpdate: (fields: { body: string; title?: string; tags?: string[] }) => void
+  onUpdate: (fields: { body: string; title?: string }) => void
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function getExtension(file: File): string {
+  const mime = file.type
+  const map: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg'
+  }
+  return map[mime] ?? 'png'
 }
 
 export default function NoteEditor({ note, onUpdate }: EditorProps) {
   const titleRef = useRef<HTMLInputElement>(null)
   const skipNextUpdate = useRef(false)
+  const noteIdRef = useRef(note.id)
+  noteIdRef.current = note.id
+
+  const handleImageInsert = useCallback(
+    async (file: File, editor: ReturnType<typeof useEditor>) => {
+      if (!editor) return
+
+      const base64 = await fileToBase64(file)
+      const ext = getExtension(file)
+      const filename = await window.api.images.save(base64, ext, noteIdRef.current)
+      const localUrl = `local://${filename}`
+
+      editor.chain().focus().setImage({ src: localUrl }).run()
+    },
+    []
+  )
 
   const editor = useEditor({
     extensions: [
@@ -43,7 +83,35 @@ export default function NoteEditor({ note, onUpdate }: EditorProps) {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-neutral dark:prose-invert max-w-none outline-none min-h-[calc(100vh-8rem)] px-1'
+        class:
+          'prose prose-neutral dark:prose-invert max-w-none outline-none min-h-[calc(100vh-8rem)] px-1'
+      },
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files
+        if (files?.length) {
+          for (const file of Array.from(files)) {
+            if (file.type.startsWith('image/')) {
+              event.preventDefault()
+              handleImageInsert(file, editor)
+              return true
+            }
+          }
+        }
+        return false
+      },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items
+        if (items) {
+          for (const item of Array.from(items)) {
+            if (item.type.startsWith('image/')) {
+              event.preventDefault()
+              const file = item.getAsFile()
+              if (file) handleImageInsert(file, editor)
+              return true
+            }
+          }
+        }
+        return false
       }
     }
   })

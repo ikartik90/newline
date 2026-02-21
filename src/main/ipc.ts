@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import * as notesService from './services/notes'
 import { getSyncStatus } from './services/sync-status'
+import { saveImageLocally, enqueueImageUpload } from './services/images'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
@@ -60,4 +61,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('meta:get', (_event, key: string) => {
     return notesService.getAppMeta(key)
   })
+
+  ipcMain.handle(
+    'images:save',
+    (_event, base64Data: string, ext: string, noteId: string) => {
+      const buffer = Buffer.from(base64Data, 'base64')
+      const result = saveImageLocally(buffer, ext)
+      enqueueImageUpload(result.localPath, noteId)
+      return result.localPath
+    }
+  )
 }

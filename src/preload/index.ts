@@ -23,5 +23,9 @@ contextBridge.exposeInMainWorld('api', {
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)
+  },
+  images: {
+    save: (base64Data: string, ext: string, noteId: string) =>
+      ipcRenderer.invoke('images:save', base64Data, ext, noteId)
   }
 })
