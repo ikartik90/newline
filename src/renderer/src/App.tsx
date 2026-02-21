@@ -2,15 +2,14 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import NoteEditor from '@/components/Editor'
 import ThemeToggle from '@/components/ThemeToggle'
-import SyncIndicator from '@/components/SyncIndicator'
+import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
 import AuthScreen from '@/components/auth/AuthScreen'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useKeyboard } from '@/hooks/useKeyboard'
-import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { extractTags, deriveTitle } from '@/lib/markdown'
-import { startSyncService, stopSyncService } from '@/lib/sync-service'
+import { startSyncService, stopSyncService, pushNoteNow } from '@/lib/sync-service'
 
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
@@ -29,7 +28,10 @@ function App() {
 
   const { theme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useKeyboard({
     onNewNote: createNote,
@@ -54,13 +56,6 @@ function App() {
     }
   }, [user, refresh])
 
-  const debouncedSave = useDebouncedCallback(
-    (id: string, fields: { body?: string; title?: string; tags?: string[] }) => {
-      updateNote(id, fields)
-    },
-    500
-  )
-
   const handleNoteUpdate = useCallback(
     (fields: { body: string; title?: string }) => {
       if (!activeNote) return
@@ -68,14 +63,36 @@ function App() {
       const tags = extractTags(fields.body)
       const title = fields.title !== undefined ? fields.title : activeNote.title
       const displayTitle = deriveTitle(title, fields.body)
+      const payload = { body: fields.body, title: displayTitle, tags }
 
-      debouncedSave(activeNote.id, {
-        body: fields.body,
-        title: displayTitle,
-        tags
-      })
+      setSaveState('saving')
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+
+      debounceTimerRef.current = setTimeout(async () => {
+        const updatedNote = await updateNote(activeNote.id, payload)
+
+        setSaveState('syncing')
+
+        const noteForPush = updatedNote ?? {
+          ...activeNote,
+          ...payload,
+          updatedAt: Date.now()
+        }
+        const synced = await pushNoteNow(noteForPush)
+
+        if (synced) {
+          setSaveState('saved')
+        } else if (!navigator.onLine) {
+          setSaveState('offline')
+        } else {
+          setSaveState('error')
+        }
+
+        fadeTimerRef.current = setTimeout(() => setSaveState('idle'), 3000)
+      }, 300)
     },
-    [activeNote, debouncedSave]
+    [activeNote, updateNote]
   )
 
   if (authLoading) {
@@ -111,7 +128,7 @@ function App() {
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
           <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            <SyncIndicator />
+            <SyncIndicator saveState={saveState} />
           </div>
           <div
             className="flex items-center gap-2"

@@ -27,5 +27,9 @@ contextBridge.exposeInMainWorld('api', {
   images: {
     save: (base64Data: string, ext: string, noteId: string) =>
       ipcRenderer.invoke('images:save', base64Data, ext, noteId)
+  },
+  auth: {
+    googleSignIn: (clientId: string, authDomain: string) =>
+      ipcRenderer.invoke('auth:google', clientId, authDomain)
   }
 })

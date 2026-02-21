@@ -1,26 +1,29 @@
-import { useState, useEffect } from 'react'
+export type SaveState = 'idle' | 'saving' | 'syncing' | 'saved' | 'offline' | 'error'
 
-export default function SyncIndicator() {
-  const [status, setStatus] = useState<SyncStatus | null>(null)
+interface SyncIndicatorProps {
+  saveState: SaveState
+}
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const s = await window.api.sync.status()
-        setStatus(s)
-      } catch {
-        /* noop if not available */
-      }
-    }
+export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
+  if (saveState === 'saving') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-600">
+        <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-pulse" />
+        Saving…
+      </div>
+    )
+  }
 
-    poll()
-    const interval = setInterval(poll, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  if (saveState === 'syncing') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-600">
+        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+        Syncing…
+      </div>
+    )
+  }
 
-  if (!status) return null
-
-  if (status.pendingCount === 0 && status.failedCount === 0) {
+  if (saveState === 'saved') {
     return (
       <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-600">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -29,19 +32,23 @@ export default function SyncIndicator() {
     )
   }
 
-  if (status.failedCount > 0) {
+  if (saveState === 'offline') {
     return (
       <div className="flex items-center gap-1.5 text-xs text-amber-500">
         <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-        {status.failedCount} failed
+        Offline
       </div>
     )
   }
 
-  return (
-    <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-600">
-      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-      {status.pendingCount} pending
-    </div>
-  )
+  if (saveState === 'error') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-red-500">
+        <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+        Sync failed
+      </div>
+    )
+  }
+
+  return null
 }

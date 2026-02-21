@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithCredential,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -10,7 +10,8 @@ import {
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 
-const googleProvider = new GoogleAuthProvider()
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? ''
+const AUTH_DOMAIN = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? ''
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -25,7 +26,9 @@ export function useAuth() {
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
-    await signInWithPopup(auth, googleProvider)
+    const idToken = await window.api.auth.googleSignIn(GOOGLE_CLIENT_ID, AUTH_DOMAIN)
+    const credential = GoogleAuthProvider.credential(idToken)
+    await signInWithCredential(auth, credential)
   }, [])
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {

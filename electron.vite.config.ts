@@ -4,7 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
 export default defineConfig({
-  main: {},
+  main: {
+    build: {
+      externalizeDeps: {
+        exclude: ['uuid']
+      }
+    }
+  },
   preload: {},
   renderer: {
     resolve: {

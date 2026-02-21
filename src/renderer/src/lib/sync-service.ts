@@ -41,6 +41,28 @@ export function stopSyncService(): void {
   currentUid = null
 }
 
+export async function pushNoteNow(note: Note): Promise<boolean> {
+  if (!currentUid || !navigator.onLine) return false
+
+  try {
+    const notesRef = collection(firestore, 'users', currentUid, 'notes')
+    await setDoc(doc(notesRef, note.id), {
+      title: note.title,
+      body: note.body,
+      tags: note.tags,
+      createdAt: Timestamp.fromMillis(note.createdAt),
+      updatedAt: serverTimestamp(),
+      isDeleted: note.isDeleted
+    } satisfies FirestoreNote)
+
+    await window.api.notes.markSynced(note.id)
+    return true
+  } catch (err) {
+    console.error(`[sync] immediate push failed for ${note.id}:`, err)
+    return false
+  }
+}
+
 async function syncCycle(): Promise<void> {
   if (!navigator.onLine || !currentUid) return
 

@@ -54,6 +54,9 @@ declare global {
       images: {
         save: (base64Data: string, ext: string, noteId: string) => Promise<string>
       }
+      auth: {
+        googleSignIn: (clientId: string, authDomain: string) => Promise<string>
+      }
     }
   }
 }
