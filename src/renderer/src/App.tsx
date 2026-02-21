@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import NoteEditor from '@/components/Editor'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -7,6 +7,7 @@ import AuthScreen from '@/components/auth/AuthScreen'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
+import { useKeyboard } from '@/hooks/useKeyboard'
 import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { extractTags, deriveTitle } from '@/lib/markdown'
 import { startSyncService, stopSyncService } from '@/lib/sync-service'
@@ -28,6 +29,16 @@ function App() {
 
   const { theme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useKeyboard({
+    onNewNote: createNote,
+    onSearch: () => {
+      if (sidebarCollapsed) setSidebarCollapsed(false)
+      setTimeout(() => searchInputRef.current?.focus(), 100)
+    },
+    onToggleSidebar: () => setSidebarCollapsed((c) => !c)
+  })
 
   useEffect(() => {
     if (user) {
@@ -91,6 +102,7 @@ function App() {
         onDelete={deleteNote}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        searchInputRef={searchInputRef}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -128,6 +140,10 @@ function App() {
               </h2>
               <p className="mt-2 text-sm text-neutral-400 dark:text-neutral-600">
                 Select a note or create a new one
+              </p>
+              <p className="mt-1 text-xs text-neutral-300 dark:text-neutral-700">
+                {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}N to create,{' '}
+                {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}F to search
               </p>
               <button
                 onClick={createNote}
