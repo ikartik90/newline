@@ -143,6 +143,66 @@ export function searchNotes(query: string): Note[] {
   return rows.map(rowToNote)
 }
 
+export function upsertFromRemote(
+  id: string,
+  fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
+): void {
+  const db = getDb()
+  const now = Date.now()
+
+  const existing = db.prepare('SELECT id FROM notes WHERE id = ?').get(id) as
+    | { id: string }
+    | undefined
+
+  if (existing) {
+    db.prepare(
+      `UPDATE notes SET title = ?, body = ?, tags = ?, is_deleted = ?, updated_at = ?, last_synced_at = ?
+       WHERE id = ?`
+    ).run(fields.title, fields.body, JSON.stringify(fields.tags), fields.isDeleted ? 1 : 0, now, now, id)
+  } else {
+    db.prepare(
+      `INSERT INTO notes (id, title, body, tags, created_at, updated_at, last_synced_at, is_deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, fields.title, fields.body, JSON.stringify(fields.tags), fields.createdAt, now, now, fields.isDeleted ? 1 : 0)
+  }
+}
+
+export function markSynced(id: string): void {
+  const db = getDb()
+  const now = Date.now()
+  db.prepare('UPDATE notes SET last_synced_at = ? WHERE id = ?').run(now, id)
+
+  db.prepare(
+    "DELETE FROM sync_queue WHERE entity_type = 'note' AND entity_id = ? AND status = 'pending'"
+  ).run(id)
+}
+
+export function getDirtyNotes(): Note[] {
+  const db = getDb()
+  const rows = db
+    .prepare(
+      `SELECT DISTINCT n.* FROM notes n
+       INNER JOIN sync_queue sq ON sq.entity_id = n.id
+       WHERE sq.entity_type = 'note' AND sq.status = 'pending'`
+    )
+    .all() as NoteRow[]
+
+  return rows.map(rowToNote)
+}
+
+export function setAppMeta(key: string, value: string): void {
+  const db = getDb()
+  db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)').run(key, value)
+}
+
+export function getAppMeta(key: string): string | null {
+  const db = getDb()
+  const row = db.prepare('SELECT value FROM app_meta WHERE key = ?').get(key) as
+    | { value: string }
+    | undefined
+  return row?.value ?? null
+}
+
 function enqueueSyncAction(entityId: string, action: string): void {
   const db = getDb()
 

@@ -30,7 +30,34 @@ export function registerIpcHandlers(): void {
     return notesService.searchNotes(query)
   })
 
+  ipcMain.handle(
+    'notes:upsertFromRemote',
+    (
+      _event,
+      id: string,
+      fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
+    ) => {
+      notesService.upsertFromRemote(id, fields)
+    }
+  )
+
+  ipcMain.handle('notes:markSynced', (_event, id: string) => {
+    notesService.markSynced(id)
+  })
+
+  ipcMain.handle('notes:dirty', () => {
+    return notesService.getDirtyNotes()
+  })
+
   ipcMain.handle('sync:status', () => {
     return getSyncStatus()
+  })
+
+  ipcMain.handle('meta:set', (_event, key: string, value: string) => {
+    notesService.setAppMeta(key, value)
+  })
+
+  ipcMain.handle('meta:get', (_event, key: string) => {
+    return notesService.getAppMeta(key)
   })
 }

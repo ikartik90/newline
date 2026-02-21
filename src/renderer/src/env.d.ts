@@ -31,9 +31,25 @@ declare global {
         get: (id: string) => Promise<Note | null>
         list: () => Promise<Note[]>
         search: (query: string) => Promise<Note[]>
+        upsertFromRemote: (
+          id: string,
+          fields: {
+            title: string
+            body: string
+            tags: string[]
+            createdAt: number
+            isDeleted: boolean
+          }
+        ) => Promise<void>
+        markSynced: (id: string) => Promise<void>
+        dirty: () => Promise<Note[]>
       }
       sync: {
         status: () => Promise<SyncStatus>
+      }
+      meta: {
+        set: (key: string, value: string) => Promise<void>
+        get: (key: string) => Promise<string | null>
       }
     }
   }
