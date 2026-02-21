@@ -1,0 +1,29 @@
+appId: com.newline.app
+productName: Newline
+
+directories:
+  buildResources: resources
+  output: dist
+
+files:
+  - out/**/*
+
+mac:
+  target:
+    - dmg
+    - zip
+  artifactName: ${name}-${version}-${arch}.${ext}
+  category: public.app-category.productivity
+
+win:
+  target:
+    - nsis
+  artifactName: ${name}-${version}-setup.${ext}
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+
+publish:
+  provider: github
