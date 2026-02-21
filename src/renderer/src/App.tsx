@@ -2,8 +2,10 @@ import { useState, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import NoteEditor from '@/components/Editor'
 import ThemeToggle from '@/components/ThemeToggle'
+import SyncIndicator from '@/components/SyncIndicator'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
+import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { extractTags, deriveTitle } from '@/lib/markdown'
 
 function App() {
@@ -22,6 +24,13 @@ function App() {
   const { theme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  const debouncedSave = useDebouncedCallback(
+    (id: string, fields: { body?: string; title?: string; tags?: string[] }) => {
+      updateNote(id, fields)
+    },
+    500
+  )
+
   const handleNoteUpdate = useCallback(
     (fields: { body: string; title?: string }) => {
       if (!activeNote) return
@@ -30,13 +39,13 @@ function App() {
       const title = fields.title !== undefined ? fields.title : activeNote.title
       const displayTitle = deriveTitle(title, fields.body)
 
-      updateNote(activeNote.id, {
+      debouncedSave(activeNote.id, {
         body: fields.body,
         title: displayTitle,
         tags
       })
     },
-    [activeNote, updateNote]
+    [activeNote, debouncedSave]
   )
 
   return (
@@ -55,9 +64,12 @@ function App() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <div
-          className="h-12 flex items-center justify-end px-4 shrink-0"
+          className="h-12 flex items-center justify-between px-4 shrink-0"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
+          <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <SyncIndicator />
+          </div>
           <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             <ThemeToggle theme={theme} onChange={setTheme} />
           </div>

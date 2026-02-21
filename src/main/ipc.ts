@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import * as notesService from './services/notes'
+import { getSyncStatus } from './services/sync-status'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
@@ -27,5 +28,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('notes:search', (_event, query: string) => {
     return notesService.searchNotes(query)
+  })
+
+  ipcMain.handle('sync:status', () => {
+    return getSyncStatus()
   })
 }

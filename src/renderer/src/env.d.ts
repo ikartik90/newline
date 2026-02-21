@@ -11,6 +11,12 @@ interface Note {
   isDeleted: boolean
 }
 
+interface SyncStatus {
+  pendingCount: number
+  failedCount: number
+  lastSyncedAt: number | null
+}
+
 declare global {
   interface Window {
     api: {
@@ -25,6 +31,9 @@ declare global {
         get: (id: string) => Promise<Note | null>
         list: () => Promise<Note[]>
         search: (query: string) => Promise<Note[]>
+      }
+      sync: {
+        status: () => Promise<SyncStatus>
       }
     }
   }
