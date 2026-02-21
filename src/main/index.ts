@@ -1,6 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
+import { initDatabase, closeDatabase } from './db/database'
+import { registerIpcHandlers } from './ipc'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -36,6 +38,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  initDatabase()
+  registerIpcHandlers()
+
   createWindow()
 
   if (app.isPackaged) {
@@ -49,4 +54,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  closeDatabase()
 })
