@@ -21,7 +21,13 @@
       "@shared/*": [
         "src/shared/*"
       ]
-    }
+    },
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
   "include": [
     "src/renderer/src/**/*",

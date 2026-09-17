@@ -1,4 +1,5 @@
-import { beforeEach } from 'vitest'
+import { afterEach, beforeEach } from 'vitest'
+import { cleanup } from '@testing-library/react'
 
 // jsdom ships none of these; the editor's popovers, sliders and the sidenote
 // layer ask for all of them.
@@ -61,4 +62,10 @@ if (typeof window !== 'undefined' && !('api' in window)) {
 
 beforeEach(() => {
   window.localStorage?.clear()
+})
+
+// Vitest globals are off, so React Testing Library does not unmount between
+// tests on its own.
+afterEach(() => {
+  cleanup()
 })
