@@ -350,6 +350,315 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Prose marks and blocks (kartik.to's `article*` recipes). Named utilities
+   rather than inline classes because the editor embeds them in HTML strings
+   and queries them back by selector — see components/editor/inline-html.ts.
+--------------------------------------------------------------------------- */
+@utility inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-surface);
+  padding-inline: 4px;
+  padding-block: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* The underline is two stacked background bars, not text-decoration, so the
+   hover state can be the brand gradient. */
+@utility article-link {
+  text-decoration-line: none;
+  color: var(--fg-default);
+  padding-bottom: 2px;
+  background-image:
+    var(--bg-branded-emphasis),
+    linear-gradient(
+      color-mix(in srgb, var(--fg-body) 50%, transparent),
+      color-mix(in srgb, var(--fg-body) 50%, transparent)
+    );
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size:
+    100% 0,
+    100% 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition:
+    color 150ms ease,
+    background-size 150ms ease;
+  &:hover {
+    color: var(--fg-title);
+    background-size:
+      100% 1px,
+      100% 1px;
+  }
+}
+
+@utility article-underline {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-underline-offset: 0.15em;
+}
+
+@utility article-strikethrough {
+  text-decoration-line: line-through;
+}
+
+/* The brand accent at 15% behind the accent at full strength. */
+@utility article-highlight {
+  background-color: var(--bg-highlight);
+  color: var(--fg-highlight);
+  padding-inline: 1px;
+  padding-block: 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  & :is(strong, b, em, i, u, s, code, a) {
+    color: inherit;
+  }
+}
+
+@utility article-sidenote {
+  cursor: default;
+  & :is(strong, b, em, i, u, s, code, a) {
+    color: inherit;
+  }
+}
+
+/* The dotted underline lives here, not on the wrapper, so it never runs
+   beneath the ordinal superscript. */
+@utility article-sidenote-text {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, var(--fg-body) 50%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* The digit is read from `data-sidenote-number`; a CSS counter would not
+   decrement live when a preceding note is removed. */
+@utility article-sidenote-ref {
+  vertical-align: super;
+  margin-inline-start: 0.5px;
+  font-size: 0.7em;
+  font-weight: 500;
+  user-select: none;
+  display: inline;
+  &::after {
+    content: attr(data-sidenote-number);
+    background: var(--bg-branded-emphasis);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Only clip the gradient once there is text, or an empty editor field turns
+   its own placeholder transparent. */
+@utility article-subheading-caption {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 2;
+  letter-spacing: 0.005em;
+  width: fit-content;
+  word-break: break-word;
+  &:not(:empty):not([data-empty]) {
+    background: var(--bg-branded-emphasis);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@utility article-metric-value {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+  width: fit-content;
+  max-width: 100%;
+  word-break: break-word;
+  &:not(:empty):not([data-empty]) {
+    background: var(--bg-branded-emphasis);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* The 52px quote mark: the gradient body at 15% under a 1px full-strength
+   edge, both masked off the same glyph path. */
+@utility article-blockquote-mark {
+  position: relative;
+  width: var(--size-quote-mark);
+  height: var(--size-quote-mark);
+  flex-shrink: 0;
+  pointer-events: none;
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+  }
+  &::before {
+    background: var(--bg-branded-emphasis);
+    opacity: 0.15;
+    mask-image: var(--quote-glyph-fill);
+    -webkit-mask-image: var(--quote-glyph-fill);
+  }
+  &::after {
+    background: var(--bg-branded-emphasis);
+    mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
+    mask-composite: intersect;
+    -webkit-mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
+    -webkit-mask-composite: source-in;
+  }
+}
+
+/* The column every list marker occupies: a fixed 24px box centring the ink
+   on the first text line ((28px line box - 24) / 2 = 2px down). */
+@utility list-marker-box {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-list-marker);
+  min-width: var(--size-list-marker);
+  width: var(--size-list-marker);
+  margin-block-start: 2px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* The ordinal pill: gradient clipped to the digits over a chip clipped to the
+   padding box — two background layers on one element. */
+@utility list-marker {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  min-width: 16px;
+  padding-inline: 2px;
+  /* Optical centring for digits, which have no descender. */
+  padding-block-end: 0.107em;
+  border-radius: var(--radius-lg);
+  background-image: var(--bg-branded-emphasis), linear-gradient(var(--bg-list-marker) 0 0);
+  background-clip: text, padding-box;
+  -webkit-background-clip: text, padding-box;
+  -webkit-text-fill-color: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 2;
+  letter-spacing: 0.005em;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* The 8px gradient dot. */
+@utility list-bullet {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-list-marker);
+  min-width: var(--size-list-marker);
+  margin-block-start: 2px;
+  user-select: none;
+  pointer-events: none;
+  &::before {
+    content: '';
+    display: block;
+    width: var(--size-list-bullet);
+    height: var(--size-list-bullet);
+    border-radius: 50%;
+    background: var(--bg-branded-emphasis);
+  }
+}
+
+@utility list-bullet-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-list-marker);
+  min-width: var(--size-list-marker);
+  margin-block-start: 2px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* The 16px chip holding a brand-gradient check or cross, masked from the
+   glyph's alpha because currentColor can only ever be a flat colour. */
+@utility list-bullet-circle {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--bg-list-marker);
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--size-list-bullet-glyph);
+    height: var(--size-list-bullet-glyph);
+    transform: translate(-50%, -50%);
+    background: var(--bg-branded-emphasis);
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    pointer-events: none;
+  }
+}
+@utility list-bullet-circle-check {
+  &::after {
+    mask-image: var(--check-glyph);
+    -webkit-mask-image: var(--check-glyph);
+  }
+}
+@utility list-bullet-circle-cross {
+  &::after {
+    mask-image: var(--cross-glyph);
+    -webkit-mask-image: var(--cross-glyph);
+  }
+}
+
+/* An editable field's placeholder while it holds nothing. */
+@utility editor-placeholder {
+  &:empty::before,
+  &[data-empty]::before {
+    content: attr(data-placeholder);
+    color: color-mix(in srgb, var(--fg-default) 40%, transparent);
+    pointer-events: none;
+  }
+}
+
+:root {
+  --check-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.05994 10.1813L9.14253 12.6249L12.9396 7.62488' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --cross-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.5 7.5L7.5 12.5M12.5 12.5L7.5 7.5' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* blockquote.svg as two masks off the same path: fill for the body, a 2px
+     stroke (intersected with the body) for the 1px inner edge. */
+  --quote-glyph-fill: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='white'/%3E%3C/svg%3E");
+  --quote-glyph-stroke: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------------------
    Base
 --------------------------------------------------------------------------- */
 @layer base {
@@ -388,7 +697,15 @@
 
   /* Focus rings only once the keyboard is driving — see hooks/use-keyboard-focus. */
   html[data-keyboard-focus]
-    :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+    :where(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      summary,
+      [tabindex]:not([tabindex='-1'])
+    ):focus-visible {
     box-shadow: 0 0 0 1.5px var(--border-focus-ring);
     border-radius: var(--radius-xs);
   }

@@ -4,7 +4,7 @@ import { cleanup } from '@testing-library/react'
 // jsdom ships none of these; the editor's popovers, sliders and the sidenote
 // layer ask for all of them.
 
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

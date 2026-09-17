@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { InlineNode, Mark } from '../nodes'
 import {
   DocumentSchema,
   EMPTY_DOCUMENT,
@@ -10,7 +11,7 @@ import {
   serializeDocument
 } from '../document'
 
-const text = (t: string, marks?: unknown[]) => ({ type: 'text', text: t, marks })
+const text = (t: string, marks?: Mark[]): InlineNode => ({ type: 'text', text: t, marks })
 
 describe('DocumentSchema', () => {
   it('accepts a valid document', () => {
