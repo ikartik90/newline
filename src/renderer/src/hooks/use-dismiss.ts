@@ -1,0 +1,164 @@
+import { useEffect, useId, type RefObject } from 'react'
+
+// The open dismissable surfaces, in the order they opened. Escape closes ONE
+// thing — the one on top — and every surface listens at the document, so
+// without this a press meant for the combobox on a properties panel would take
+// the panel with it. `stopPropagation` cannot sort them out: listeners on the
+// SAME node in the same phase all run regardless, and the one registered first
+// (the surface underneath) would win anyway.
+//
+// Opening order, not DOM nesting, because a portalled popover is a sibling of
+// everything else under <body> — there is no containment left to read. The two
+// agree wherever it matters: a surface opened FROM another one mounts second.
+const layers: string[] = []
+
+/**
+ * What a modal dialog looks like from here. A native `<dialog open>`, or the
+ * app's own `Dialog` — Base UI's, a `div[role=dialog]` that marks itself with
+ * `data-modal-dialog` for exactly this check. The properties panel is a
+ * `role="dialog"` too and must NOT match: it is a layer in the stack above,
+ * and a combobox opened from it is portalled outside it.
+ */
+const MODAL_DIALOG = 'dialog[open], [data-modal-dialog]'
+
+// The dialog the press was made in, or null. A modal dialog stands over every
+// surface on this page and is not in the stack above — it is opened from
+// outside — so a rail left open behind one is still the TOPMOST layer while
+// being the thing the reader can no longer touch, and it would take the Escape
+// meant for the dialog over it.
+//
+// The answer has to be taken here, before the press is dispatched anywhere,
+// because the dialog is gone by the time the surfaces are asked: React
+// delegates keydown from its root, so the dialog's own handler has already run
+// and closed it, and the page looks as though there was never a dialog at all.
+// `window` is the first stop in the capture phase, ahead of React's root and
+// ahead of every surface's listener — and it is first in a test renderer too,
+// where React's root is a div and the rest of the order reverses.
+let dialogAtPress: Element | null = null
+let watching = false
+function watchPresses(): void {
+  if (watching) return
+  watching = true
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      dialogAtPress = (e.target as Element | null)?.closest?.(MODAL_DIALOG) ?? null
+    },
+    { capture: true }
+  )
+}
+
+export interface UseDismissOptions {
+  /** The popover container — pointer-downs outside it dismiss. */
+  ref: RefObject<HTMLElement | null>
+  onDismiss: () => void
+  /**
+   * Also dismiss on scroll/resize — for popovers anchored to a click-captured
+   * rect that goes stale on reflow (the list-marker menus).
+   */
+  dismissOnReflow?: boolean
+  /**
+   * A CSS selector for the control that OPENED this popover, so a press on it
+   * is not treated as a press outside.
+   *
+   * Without it a trigger that toggles cannot close: the outside-pointerdown
+   * dismiss lands first, and the click that follows finds the popover already
+   * gone and re-opens it. Matched with `closest`, so marking the trigger
+   * itself is enough however it wraps its icon.
+   */
+  ignoreSelector?: string
+  /**
+   * Whether a pointer-down outside dismisses at all (default true).
+   *
+   * Off for a surface that is not transient — one opened deliberately and
+   * closed deliberately, standing over the very thing it configures, where
+   * every press on that thing would otherwise take it away. Escape and the
+   * surface's own controls still close it; only the ambient press is withdrawn.
+   */
+  dismissOnOutsidePointer?: boolean
+  /** Turn all listeners off (default true). */
+  enabled?: boolean
+}
+
+/**
+ * The dismiss behaviour shared by every floating menu: Escape (captured so it
+ * beats the editor's keymaps — and beats Base UI's own bubble-phase Escape
+ * listener, so a Base UI-positioned Popover still closes one layer at a
+ * time), pointer-down outside the container, and — optionally — scroll/resize.
+ * Extracted so the Popover shell and any menu that manages its own container
+ * reuse one implementation.
+ */
+export function useDismiss({
+  ref,
+  onDismiss,
+  dismissOnReflow = false,
+  ignoreSelector,
+  dismissOnOutsidePointer = true,
+  enabled = true
+}: UseDismissOptions): void {
+  // This surface's place in the stack above. An identity, nothing more, and
+  // registered in an effect of its OWN so that a re-render (which re-runs the
+  // Escape effect, `onDismiss` being an inline arrow at every call site) cannot
+  // pop this surface and push it back on top of the ones opened after it.
+  const layer = useId()
+  useEffect(() => {
+    if (!enabled) return
+    layers.push(layer)
+    return () => {
+      const at = layers.indexOf(layer)
+      if (at !== -1) layers.splice(at, 1)
+    }
+  }, [enabled, layer])
+
+  // Escape closes the TOPMOST surface. Capture + stopPropagation so it
+  // dismisses the popover rather than reaching an editor-level Escape handler
+  // first, and preventDefault so the browser doesn't also run its own Escape
+  // action. Both are the top surface's to do: a press swallowed by a surface
+  // underneath would be one the surface on top never got.
+  useEffect(() => {
+    if (!enabled) return
+    watchPresses()
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape' || layers[layers.length - 1] !== layer) return
+      // A dialog over this surface has the press — unless this surface is one
+      // standing on the dialog itself, which is the ordinary case again.
+      if (dialogAtPress && !dialogAtPress.contains(ref.current)) return
+      e.preventDefault()
+      e.stopPropagation()
+      onDismiss()
+    }
+    document.addEventListener('keydown', handleKeyDown, { capture: true })
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true })
+  }, [enabled, onDismiss, layer, ref])
+
+  // Dismiss when a pointer goes down outside the container.
+  useEffect(() => {
+    if (!enabled || !dismissOnOutsidePointer) return
+    function handlePointerDown(e: PointerEvent) {
+      const el = ref.current
+      if (!el || el.contains(e.target as Node)) return
+      // The trigger closes by TOGGLING, so it must reach its own click with
+      // the popover still open — see `ignoreSelector`.
+      const target = e.target as Element | null
+      if (ignoreSelector && target?.closest?.(ignoreSelector)) return
+      onDismiss()
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [enabled, dismissOnOutsidePointer, onDismiss, ref, ignoreSelector])
+
+  // A click-captured anchor rect goes stale on scroll/resize — dismiss rather
+  // than let the popover drift from its target.
+  useEffect(() => {
+    if (!enabled || !dismissOnReflow) return
+    function handleReflow() {
+      onDismiss()
+    }
+    window.addEventListener('scroll', handleReflow, true)
+    window.addEventListener('resize', handleReflow)
+    return () => {
+      window.removeEventListener('scroll', handleReflow, true)
+      window.removeEventListener('resize', handleReflow)
+    }
+  }, [enabled, dismissOnReflow, onDismiss])
+}

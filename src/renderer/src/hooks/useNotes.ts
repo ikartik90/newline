@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { EMPTY_DOCUMENT, serializeDocument } from '@shared/domain/document'
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([])
@@ -18,7 +19,7 @@ export function useNotes() {
   }, [refresh])
 
   const createNote = useCallback(async () => {
-    const note = await window.api.notes.create('', '# ')
+    const note = await window.api.notes.create('', serializeDocument(EMPTY_DOCUMENT))
     await refresh()
     setActiveId(note.id)
     return note

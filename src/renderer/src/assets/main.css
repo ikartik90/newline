@@ -725,6 +725,23 @@
     backdrop-filter: blur(8px);
   }
 
+  /* The article: a centred column at the showcase width, whose prose children
+     are held to the text measure. Positioned so the toolbar anchors and the
+     sidenote rail can be laid out against it. */
+  article {
+    width: min(100%, var(--size-article-showcase));
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+  }
+
+  article > * {
+    width: min(100%, var(--size-article-content));
+  }
+
   /* One-level indent (Tab in the editor): a list marker plus its gap. */
   article [data-indented] {
     padding-inline-start: 32px;
