@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiBaseUrl, apiFetch, apiJson, isApiConfigured } from '../api'
+import { ApiError, DEFAULT_API_URL, apiBaseUrl, apiFetch, apiJson } from '../api'
 import { getSessionToken } from '../session'
 
 vi.mock('../session', () => ({ getSessionToken: vi.fn((): string | null => null) }))
@@ -31,25 +31,24 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('apiBaseUrl / isApiConfigured', () => {
-  it('reads the URL from the environment and trims trailing slashes', () => {
-    expect(apiBaseUrl()).toBeNull()
-    expect(isApiConfigured()).toBe(false)
+describe('apiBaseUrl', () => {
+  it('is the deployed Worker unless the environment overrides it', () => {
+    expect(apiBaseUrl()).toBe(DEFAULT_API_URL)
     vi.stubEnv('MAIN_VITE_API_URL', 'https://api.example.com///')
     expect(apiBaseUrl()).toBe('https://api.example.com')
-    expect(isApiConfigured()).toBe(true)
   })
 
-  it('treats an empty value as unset', () => {
+  it('treats an empty override as unset', () => {
     vi.stubEnv('MAIN_VITE_API_URL', '')
-    expect(isApiConfigured()).toBe(false)
+    expect(apiBaseUrl()).toBe(DEFAULT_API_URL)
   })
 })
 
 describe('apiFetch', () => {
-  it('refuses to run unconfigured, without touching the network', async () => {
-    await expect(apiFetch('/auth/me')).rejects.toThrow(/not configured/)
-    expect(fetchMock).not.toHaveBeenCalled()
+  it('reaches the deployed Worker with no configuration at all', async () => {
+    fetchMock.mockResolvedValue(json({ error: 'unauthorized' }, 401))
+    await apiFetch('/auth/me').catch(() => undefined)
+    expect(lastRequest().url).toBe(`${DEFAULT_API_URL}/auth/me`)
   })
 
   it('joins the base URL and the path, passing the init through', async () => {

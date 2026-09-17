@@ -80,7 +80,7 @@ SQLite `notes.body` holds the document as JSON text; `notes.plain_text` holds th
 ## Sign-in and the Worker
 
 - Sign-in: main opens Google's consent window (OpenID Connect implicit flow, `services/auth.ts`), trades the ID token with the Worker's `POST /auth/google` for a session, and stores it (`services/session.ts`). The renderer receives the ID token too and still signs into Firebase with it, because Firestore sync needs that until the notes cutover.
-- `services/api.ts` is the one door to the Worker: base URL from `MAIN_VITE_API_URL` (`.env`; `http://127.0.0.1:8787` against `npm run dev` in `worker/`), bearer attached, non-2xx raised as `ApiError` with the Worker's error code.
+- `services/api.ts` is the one door to the Worker: the deployed URL by default, `MAIN_VITE_API_URL` in `.env` to override it (`http://127.0.0.1:8787` against `npm run dev` in `worker/`), bearer attached, non-2xx raised as `ApiError` with the Worker's error code.
 - Routes, limits, error codes and the D1 schema: `worker/README.md`. Change the contract there first, then both sides.
 
 ## Media pipeline

@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, apiJson, isApiConfigured } from './api'
+import { ApiError, apiFetch, apiJson } from './api'
 import { getSessionToken } from './session'
 
 // ---------------------------------------------------------------------------
@@ -46,9 +46,9 @@ export function posterKeyFor(mediaKey: string): string | null {
   return `${POSTER_PREFIX}${dot === -1 ? name : name.slice(0, dot)}.jpg`
 }
 
-/** A base URL and a session: without both, an upload has nowhere to go. */
+/** Signed in: without a session, an upload has nowhere to go. */
 export function isMediaApiAvailable(): boolean {
-  return isApiConfigured() && getSessionToken() !== null
+  return getSessionToken() !== null
 }
 
 /**

@@ -50,12 +50,9 @@ afterEach(() => {
 })
 
 describe('isMediaApiAvailable', () => {
-  it('needs the base URL and a session both', () => {
+  it('means signed in', () => {
     expect(isMediaApiAvailable()).toBe(true)
     vi.mocked(getSessionToken).mockReturnValue(null)
-    expect(isMediaApiAvailable()).toBe(false)
-    vi.mocked(getSessionToken).mockReturnValue('session-token')
-    vi.stubEnv('MAIN_VITE_API_URL', undefined)
     expect(isMediaApiAvailable()).toBe(false)
   })
 })

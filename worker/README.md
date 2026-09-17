@@ -6,18 +6,18 @@ Newline's only backend: one Cloudflare Worker with three bindings. D1 `DB` holds
 - Tests: `npm test` in `worker/` runs vitest inside workerd with real bindings.
 - Deploy: `npm run deploy` in `worker/` (needs a Cloudflare login).
 
-The desktop app reads the base URL from `MAIN_VITE_API_URL` in `.env`.
+The desktop app calls the deployed Worker by default and honours `MAIN_VITE_API_URL` in `.env` as an override (`src/main/services/api.ts`).
 
 ## Auth
 
 Google is the identity provider. The app obtains a Google ID token through its own sign-in window (OpenID Connect implicit flow with the existing OAuth client) and trades it for a session. The Worker verifies the token itself: signature against Google's JWKS (`https://www.googleapis.com/oauth2/v3/certs`), `iss` in `https://accounts.google.com` / `accounts.google.com`, `aud` equal to `GOOGLE_CLIENT_ID`, unexpired, `email_verified` true.
 
-| Route                | Auth   | Body            | Response                                    |
-| -------------------- | ------ | --------------- | ------------------------------------------- |
-| `POST /auth/google`  | none   | `{ idToken }`   | `200 { token, user }`, `401 invalid_token`  |
-| `GET /auth/me`       | Bearer |                 | `200 { user }`, `401 unauthorized`          |
-| `POST /auth/signout` | Bearer |                 | `204` (an unknown token is also `204`)      |
-| `GET /auth/callback` | none   |                 | `200` HTML: "You can close this window"     |
+| Route                | Auth   | Body          | Response                                   |
+| -------------------- | ------ | ------------- | ------------------------------------------ |
+| `POST /auth/google`  | none   | `{ idToken }` | `200 { token, user }`, `401 invalid_token` |
+| `GET /auth/me`       | Bearer |               | `200 { user }`, `401 unauthorized`         |
+| `POST /auth/signout` | Bearer |               | `204` (an unknown token is also `204`)     |
+| `GET /auth/callback` | none   |               | `200` HTML: "You can close this window"    |
 
 - `user = { id, email, name?, picture? }`. `id` is a uuid minted on first sign-in; users are keyed by Google `sub`, and `email`, `name`, `picture` are refreshed on every sign-in.
 - The session token is 32 random bytes, base64url. D1 stores only its SHA-256 hex. Sessions expire 180 days after last use; `last_used_at` and `expires_at` move forward at most once a day.
@@ -29,15 +29,15 @@ Keys are the app's own: `media/<uuid>-<safe-name>` for library objects and `post
 
 The public URL of an object is `${MEDIA_PUBLIC_BASE_URL}/u/<userId>/<key>`, and `MEDIA_PUBLIC_BASE_URL` defaults to the Worker's own origin plus `/m`, so bytes are served by the Worker straight from the binding and the bucket needs no public access of its own.
 
-| Route                                 | Body / query                                                   | Response                                                                                     |
-| ------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `PUT /media/objects/<key>`            | bytes; `Content-Type`; optional `X-Media-Metadata` JSON object | `200 MediaObject`, `400 invalid_key` / `invalid_content_type`, `413 too_large`, `507 quota_exceeded` |
-| `GET /media/objects/<key>`            |                                                                | `200 MediaObject`, `404 not_found`                                                            |
-| `PATCH /media/objects/<key>`          | `{ metadata: { filename?, alt?, width?, height?, poster? } }`  | `200 MediaObject` (merged), `404 not_found`                                                  |
-| `DELETE /media/objects/<key>`         |                                                                | `204`, also when missing                                                                     |
-| `GET /media/objects?prefix=media/`    | `prefix` optional, default `media/`                            | `200 { objects: MediaObject[] }`, newest first                                               |
-| `GET /media/usage`                    |                                                                | `200 { bytes, quotaBytes }`                                                                  |
-| `GET /m/u/<userId>/<key>`             | public, no auth; `Range` honoured with `206`                   | the bytes with `Content-Type` and `Cache-Control: public, max-age=31536000, immutable`; `404` |
+| Route                              | Body / query                                                   | Response                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `PUT /media/objects/<key>`         | bytes; `Content-Type`; optional `X-Media-Metadata` JSON object | `200 MediaObject`, `400 invalid_key` / `invalid_content_type`, `413 too_large`, `507 quota_exceeded` |
+| `GET /media/objects/<key>`         |                                                                | `200 MediaObject`, `404 not_found`                                                                   |
+| `PATCH /media/objects/<key>`       | `{ metadata: { filename?, alt?, width?, height?, poster? } }`  | `200 MediaObject` (merged), `404 not_found`                                                          |
+| `DELETE /media/objects/<key>`      |                                                                | `204`, also when missing                                                                             |
+| `GET /media/objects?prefix=media/` | `prefix` optional, default `media/`                            | `200 { objects: MediaObject[] }`, newest first                                                       |
+| `GET /media/usage`                 |                                                                | `200 { bytes, quotaBytes }`                                                                          |
+| `GET /m/u/<userId>/<key>`          | public, no auth; `Range` honoured with `206`                   | the bytes with `Content-Type` and `Cache-Control: public, max-age=31536000, immutable`; `404`        |
 
 ```ts
 type MediaObject = {
@@ -61,13 +61,13 @@ Every error is JSON `{ error: string }` with the status. Wrong method is `405`; 
 
 ## Bindings and vars
 
-| Name                    | Kind   | Purpose                                                    |
-| ----------------------- | ------ | ---------------------------------------------------------- |
-| `DB`                    | D1     | `users`, `sessions`, `media_objects` (see `migrations/`)   |
-| `MEDIA`                 | R2     | object bytes under `u/<userId>/…`                          |
-| `GOOGLE_CLIENT_ID`      | var    | the OAuth client the app signs in with                     |
-| `MEDIA_QUOTA_BYTES`     | var    | optional, default `8589934592`                             |
-| `MEDIA_PUBLIC_BASE_URL` | var    | optional, default the Worker origin + `/m`                 |
+| Name                    | Kind | Purpose                                                  |
+| ----------------------- | ---- | -------------------------------------------------------- |
+| `DB`                    | D1   | `users`, `sessions`, `media_objects` (see `migrations/`) |
+| `MEDIA`                 | R2   | object bytes under `u/<userId>/…`                        |
+| `GOOGLE_CLIENT_ID`      | var  | the OAuth client the app signs in with                   |
+| `MEDIA_QUOTA_BYTES`     | var  | optional, default `8589934592`                           |
+| `MEDIA_PUBLIC_BASE_URL` | var  | optional, default the Worker origin + `/m`               |
 
 ## Schema
 
