@@ -163,7 +163,6 @@ export function ArticleEditor({
     return () => useEditorStore.getState().reset()
     // Keyed on identity: re-seeding on every new prop reference would wipe
     // in-progress edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId])
 
   // Hand every change back to the app, debounced, and mark the store clean

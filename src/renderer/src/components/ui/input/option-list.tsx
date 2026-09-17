@@ -100,19 +100,28 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
         : 'text-field-fg border-b-field placeholder:text-field-fg-placeholder',
       size === 'sm' ? 'h-7 text-style-body-sm' : 'h-10 text-style-body-lg'
     ),
-    list: cx(
-      'flex flex-col overflow-x-hidden overflow-y-auto',
-      // 7 full rows + a half-row peek that says there is more to scroll; the
-      // dense list fits 9 shorter rows in the same idea.
-      size === 'sm'
-        ? 'gap-0.5 px-1 py-1 max-h-[calc(9*var(--size-option-row-sm)+8*2px+2*4px+12px)]'
-        : 'gap-0 p-1 max-h-[calc(7*var(--size-option-row)+2*4px+12px)]',
-      fit === 'content' && 'max-h-[calc(100dvh-80px)]',
-      direction === 'inline' &&
-        'flex-row items-center gap-0.5 max-h-none overflow-visible w-max p-0'
-    ),
+    // The two layouts are written as alternatives rather than as a base with
+    // overrides: same-property utilities resolve by stylesheet order, not by
+    // position in the class list, so an inline row's `p-0` would lose to the
+    // column's `p-1` and keep its inset.
+    list:
+      direction === 'inline'
+        ? 'flex flex-row items-center gap-0.5 p-0 w-max max-h-none overflow-visible'
+        : cx(
+            'flex flex-col overflow-x-hidden overflow-y-auto',
+            // 7 full rows + a half-row peek that says there is more to scroll;
+            // the dense list fits 9 shorter rows in the same idea.
+            size === 'sm'
+              ? 'gap-0.5 px-1 py-1 max-h-[calc(9*var(--size-option-row-sm)+8*2px+2*4px+12px)]'
+              : 'gap-0 p-1 max-h-[calc(7*var(--size-option-row)+2*4px+12px)]',
+            fit === 'content' && 'max-h-[calc(100dvh-80px)]'
+          ),
     option: cx(
-      'flex items-center gap-2 w-full shrink-0 rounded-sm relative border-none bg-transparent appearance-none',
+      // One width or the other, never both: same-property utilities resolve
+      // by stylesheet order, so `w-full` from the block layout beat the
+      // inline row's `w-auto` and every toolbar chip stretched to the rail.
+      direction === 'inline' ? 'w-auto' : 'w-full',
+      'flex items-center gap-2 shrink-0 rounded-sm relative border-none bg-transparent appearance-none',
       'text-left text-style-body-sm cursor-pointer select-none whitespace-nowrap overflow-hidden text-ellipsis',
       'transition-[background-color,color,box-shadow] duration-150',
       '[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block',
@@ -124,8 +133,7 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       brand ? ON_BRAND_STATE : ON_STATE,
       'disabled:text-field-fg-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
       '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--border-focus-ring)]',
-      size === 'sm' ? 'px-1 py-0' : 'p-1',
-      direction === 'inline' && 'w-auto'
+      size === 'sm' ? 'px-1 py-0' : 'p-1'
     ),
     // The bare :hover tint, gated on the live input modality for a LISTBOX
     // row: a cursor parked over a menu opened with `/` would otherwise paint a

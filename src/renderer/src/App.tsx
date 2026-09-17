@@ -72,7 +72,6 @@ function App() {
   const activeNoteId = activeNote?.id ?? null
   const initialDocument = useMemo(
     () => (activeNote ? parseDocument(activeNote.body) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeNoteId]
   )
 

@@ -34,7 +34,6 @@ export function useHasCursor(): boolean {
     if (!query) return
     // The deliberate one-commit-later correction described above: this syncs to
     // the device, which is not a render-derived value.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasCursor(query.matches)
     // Live rather than read once — a tablet with a keyboard case attached
     // mid-session is the same device answering differently.

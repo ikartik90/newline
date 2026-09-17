@@ -23,7 +23,6 @@ import {
   stripEmptySidenoteWrappers
 } from './inline-html'
 import {
-  firstTextNode,
   getCaretSplitHtml,
   getSelectionOffsets,
   getTextBeforeCursor,
@@ -33,7 +32,6 @@ import {
   isCaretAtStart,
   isFocusAtFirstLine,
   isFocusAtLastLine,
-  lastTextNode,
   placeCaret,
   setSelectionRange
 } from './caret'
