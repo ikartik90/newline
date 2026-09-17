@@ -44,8 +44,8 @@ contextBridge.exposeInMainWorld('api', {
     flushPending: () => ipcRenderer.invoke('media:flushPending')
   },
   auth: {
-    googleSignIn: (clientId: string, authDomain: string) =>
-      ipcRenderer.invoke('auth:google', clientId, authDomain),
+    googleSignIn: () => ipcRenderer.invoke('auth:google'),
+    cancelSignIn: () => ipcRenderer.invoke('auth:cancel'),
     current: () => ipcRenderer.invoke('auth:current'),
     signOut: () => ipcRenderer.invoke('auth:signOut')
   }

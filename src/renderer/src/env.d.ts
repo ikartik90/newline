@@ -89,15 +89,17 @@ declare global {
         flushPending: () => Promise<number>
       }
       /**
-       * Sign-in lives in the main process: it runs Google's consent window,
-       * trades the ID token for a Worker session and keeps that session.
-       * The ID token comes back too, for the renderer's Firebase sign-in.
+       * Sign-in lives in the main process: it sends the user's browser to
+       * Google's consent screen, receives the authorization code on a
+       * loopback port, trades it with the Worker for a session and keeps
+       * that session. Google's ID token comes back too, for the renderer's
+       * Firebase sign-in. `googleSignIn` rejects with a message containing
+       * `SIGN_IN_CANCELLED_MESSAGE` (`@shared/domain/auth`) when the user
+       * declines in the browser or `cancelSignIn` ends the attempt.
        */
       auth: {
-        googleSignIn: (
-          clientId: string,
-          authDomain: string
-        ) => Promise<{ idToken: string; user: AuthUser }>
+        googleSignIn: () => Promise<{ idToken: string; user: AuthUser }>
+        cancelSignIn: () => Promise<void>
         current: () => Promise<AuthUser | null>
         signOut: () => Promise<void>
       }

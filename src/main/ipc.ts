@@ -91,8 +91,12 @@ export function registerIpcHandlers(): void {
     return mediaService.flushPending()
   })
 
-  ipcMain.handle('auth:google', (_event, clientId: string, authDomain: string) => {
-    return authService.signInWithGoogle(clientId, authDomain)
+  ipcMain.handle('auth:google', () => {
+    return authService.signInWithGoogle()
+  })
+
+  ipcMain.handle('auth:cancel', () => {
+    authService.cancelSignIn()
   })
 
   ipcMain.handle('auth:current', () => {

@@ -1,108 +1,110 @@
-import { BrowserWindow } from 'electron'
-import { randomUUID } from 'crypto'
-import { AuthSessionSchema, type AuthUser } from '@shared/domain/auth'
+import { app, BrowserWindow, shell } from 'electron'
+import { AuthSessionSchema, GoogleSignInConfigSchema, type AuthUser } from '@shared/domain/auth'
 import { apiFetch, apiJson } from './api'
+import {
+  SignInCancelledError,
+  obtainGoogleAuthorizationCode,
+  type CodeFlow,
+  type ObtainCodeOptions
+} from './google-sign-in'
 import { clearSession, currentUser, getSessionToken, storeSession } from './session'
 
 // ---------------------------------------------------------------------------
-// Sign-in. Google is the identity provider: a window runs the OpenID Connect
-// implicit flow and hands back an ID token, which is traded with the Worker
-// for a session. The session is kept in `session.ts`; the ID token is also
-// handed to the renderer, which still signs into Firebase with it while
-// Firestore sync remains.
+// Sign-in. Google is the identity provider: the user's default browser runs
+// the consent screen and sends an authorization code back to a loopback
+// port (`google-sign-in.ts`); the Worker exchanges the code for a session
+// and hands back Google's ID token as well. The session is kept in
+// `session.ts`; the ID token goes to the renderer, which still signs into
+// Firebase with it while Firestore sync remains.
 // ---------------------------------------------------------------------------
 
 export type { AuthUser }
-export { currentUser, getSessionToken }
+export { currentUser, getSessionToken, SignInCancelledError }
 
-export type GoogleIdTokenProvider = (clientId: string, authDomain: string) => Promise<string>
-
-/** The sign-in window: Google's consent screen, watched for the redirect that carries the token. */
-function obtainGoogleIdTokenInWindow(clientId: string, authDomain: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const nonce = randomUUID()
-    const redirectUri = `https://${authDomain}/__/auth/handler`
-
-    const authUrl =
-      'https://accounts.google.com/o/oauth2/v2/auth?' +
-      new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: 'id_token',
-        scope: 'openid email profile',
-        nonce,
-        prompt: 'select_account'
-      }).toString()
-
-    const authWindow = new BrowserWindow({
-      width: 500,
-      height: 700,
-      parent: BrowserWindow.getFocusedWindow() ?? undefined,
-      modal: true,
-      show: true,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true
-      }
-    })
-
-    authWindow.webContents.on('will-redirect', (_e, url) => {
-      extractToken(url)
-    })
-
-    authWindow.webContents.on('will-navigate', (_e, url) => {
-      extractToken(url)
-    })
-
-    function extractToken(url: string): void {
-      try {
-        const parsed = new URL(url)
-        const fragment = parsed.hash.substring(1)
-        const params = new URLSearchParams(fragment)
-        const idToken = params.get('id_token')
-        if (idToken) {
-          resolve(idToken)
-          authWindow.close()
-        }
-      } catch {
-        // Not the redirect we're looking for
-      }
-    }
-
-    authWindow.on('closed', () => {
-      reject(new Error('Auth window was closed'))
-    })
-
-    authWindow.loadURL(authUrl)
-  })
+/** What a sign-in needs from outside: the browser flow, the browser, and the window. */
+export interface SignInDeps {
+  obtainCode: (clientId: string, options: ObtainCodeOptions) => CodeFlow
+  openExternal: (url: string) => Promise<void>
+  /** Once signed in, the user is in the browser; the app asks for them back. */
+  bringToFront: () => void
 }
 
-let obtainGoogleIdToken: GoogleIdTokenProvider = obtainGoogleIdTokenInWindow
+const defaultDeps: SignInDeps = {
+  obtainCode: obtainGoogleAuthorizationCode,
+  openExternal: (url) => shell.openExternal(url),
+  bringToFront: () => {
+    app.focus({ steal: true })
+    const window = BrowserWindow.getAllWindows()[0]
+    if (!window) return
+    if (window.isMinimized()) window.restore()
+    window.focus()
+  }
+}
 
-/** Swap the window for something else — a test's constant. `null` restores the window. */
-export function setGoogleIdTokenProvider(provider: GoogleIdTokenProvider | null): void {
-  obtainGoogleIdToken = provider ?? obtainGoogleIdTokenInWindow
+let deps = defaultDeps
+
+/** Swap the real browser and window for a test's stand-ins. `null` restores them. */
+export function setSignInDeps(overrides: Partial<SignInDeps> | null): void {
+  deps = overrides ? { ...defaultDeps, ...overrides } : defaultDeps
 }
 
 /**
- * Sign in: Google first, then the Worker. Resolves once the session is
- * stored, with the ID token for the renderer's Firebase sign-in and the user
- * the Worker knows. Rejects, storing nothing, when either side refuses.
+ * The sign-in under way, if any. It exists from the first request onward
+ * so a cancel that lands while the client id is still being fetched is
+ * honoured too, before any browser opens.
  */
-export async function signInWithGoogle(
-  clientId: string,
-  authDomain: string
-): Promise<{ idToken: string; user: AuthUser }> {
-  const idToken = await obtainGoogleIdToken(clientId, authDomain)
-  const session = AuthSessionSchema.parse(
-    await apiJson('/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken })
-    })
-  )
-  storeSession(session.token, session.user)
-  return { idToken, user: session.user }
+interface Attempt {
+  cancelled: boolean
+  flow: CodeFlow | null
+}
+
+let pending: Attempt | null = null
+
+function cancel(attempt: Attempt): void {
+  attempt.cancelled = true
+  attempt.flow?.cancel()
+  if (pending === attempt) pending = null
+}
+
+/**
+ * Sign in: Google in the browser, then the Worker. Resolves once the session
+ * is stored, with the ID token for the renderer's Firebase sign-in and the
+ * user the Worker knows. Rejects, storing nothing, when either side refuses;
+ * with `SignInCancelledError` when the user declines in the browser, when
+ * `cancelSignIn` is called, or when a newer sign-in supersedes this one.
+ */
+export async function signInWithGoogle(): Promise<{ idToken: string; user: AuthUser }> {
+  if (pending) cancel(pending)
+  const attempt: Attempt = { cancelled: false, flow: null }
+  pending = attempt
+
+  try {
+    const { clientId } = GoogleSignInConfigSchema.parse(await apiJson('/auth/google/config'))
+    if (attempt.cancelled) throw new SignInCancelledError()
+
+    attempt.flow = deps.obtainCode(clientId, { openExternal: deps.openExternal })
+    const { code, codeVerifier, redirectUri } = await attempt.flow.promise
+
+    const session = AuthSessionSchema.parse(
+      await apiJson('/auth/google/code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, codeVerifier, redirectUri })
+      })
+    )
+    if (attempt.cancelled) throw new SignInCancelledError()
+
+    storeSession(session.token, session.user)
+    deps.bringToFront()
+    return { idToken: session.idToken, user: session.user }
+  } finally {
+    if (pending === attempt) pending = null
+  }
+}
+
+/** End the sign-in under way, if there is one; the browser flow's port closes with it. */
+export function cancelSignIn(): void {
+  if (pending) cancel(pending)
 }
 
 /**

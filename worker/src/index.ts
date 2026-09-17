@@ -1,5 +1,6 @@
 import { createApp } from './app'
 import { googleJwks, verifyGoogleIdToken, type GoogleIdentity } from './auth/google'
+import { exchangeGoogleCode } from './auth/google-code'
 import type { AppEnv } from './env'
 
 // Created on first use and kept for the isolate's life, so jose can cache Google's keys.
@@ -10,7 +11,9 @@ function verifyWithGoogle(token: string, clientId: string): Promise<GoogleIdenti
   return verifyGoogleIdToken(token, { clientId, jwks })
 }
 
-const app = createApp({ verifyGoogleIdToken: verifyWithGoogle })
+const app = createApp({
+  google: { exchangeCode: exchangeGoogleCode, verifyIdToken: verifyWithGoogle }
+})
 
 export default {
   fetch: (request, env, ctx) => app.fetch(request, env, ctx)

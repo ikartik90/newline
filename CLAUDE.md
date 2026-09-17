@@ -79,7 +79,7 @@ SQLite `notes.body` holds the document as JSON text; `notes.plain_text` holds th
 
 ## Sign-in and the Worker
 
-- Sign-in: main opens Google's consent window (OpenID Connect implicit flow, `services/auth.ts`), trades the ID token with the Worker's `POST /auth/google` for a session, and stores it (`services/session.ts`). The renderer receives the ID token too and still signs into Firebase with it, because Firestore sync needs that until the notes cutover.
+- Sign-in is the OAuth native-app flow, because Google refuses passkeys inside embedded windows: main opens the default browser at Google's consent screen with PKCE, listens on a loopback port for the one redirect (`services/google-sign-in.ts`), hands the code to the Worker's `POST /auth/google/code`, and stores the session it answers with (`services/session.ts`). The Worker holds the OAuth client secret; the app holds no Google configuration and asks `GET /auth/google/config` for the client id. The renderer receives the ID token too and still signs into Firebase with it, because Firestore sync needs that until the notes cutover.
 - `services/api.ts` is the one door to the Worker: the deployed URL by default, `MAIN_VITE_API_URL` in `.env` to override it (`http://127.0.0.1:8787` against `npm run dev` in `worker/`), bearer attached, non-2xx raised as `ApiError` with the Worker's error code.
 - Routes, limits, error codes and the D1 schema: `worker/README.md`. Change the contract there first, then both sides.
 

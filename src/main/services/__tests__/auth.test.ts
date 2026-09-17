@@ -1,12 +1,13 @@
-import { safeStorage } from 'electron'
+import { app, BrowserWindow, safeStorage, shell } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api'
 import { getDb } from '../../db/database'
+import { SignInCancelledError, type AuthorizationCode, type CodeFlow } from '../google-sign-in'
 import * as auth from '../auth'
 
 // ---------------------------------------------------------------------------
-// Sign-in against a mocked Worker: the Google ID token comes from an injected
-// provider rather than a window, `fetch` is a stub, and the session lands in
+// Sign-in against a mocked Worker: the browser flow is an injected stand-in
+// that hands back a code on cue, `fetch` is a stub, and the session lands in
 // the in-memory database through a stand-in for the OS keychain.
 // ---------------------------------------------------------------------------
 
@@ -17,8 +18,9 @@ vi.mock('electron', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'newline-auth-'))
   const PREFIX = 'enc:'
   return {
-    app: { getPath: () => userData },
-    BrowserWindow: class {},
+    app: { getPath: () => userData, focus: vi.fn() },
+    BrowserWindow: { getAllWindows: vi.fn(() => []) },
+    shell: { openExternal: vi.fn(async () => {}) },
     safeStorage: {
       isEncryptionAvailable: vi.fn(() => true),
       encryptString: vi.fn((text: string) => Buffer.from(`${PREFIX}${text}`)),
@@ -39,6 +41,11 @@ vi.mock('../../db/database', async () => {
 
 const fetchMock = vi.fn<typeof fetch>()
 const user = { id: 'u-1', email: 'me@example.com', name: 'Me' }
+const code: AuthorizationCode = {
+  code: 'abc',
+  codeVerifier: 'verifier',
+  redirectUri: 'http://127.0.0.1:4242/callback'
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -47,9 +54,13 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function lastRequest(): { url: string; init: RequestInit; headers: Headers } {
-  const [url, init] = fetchMock.mock.calls.at(-1) as [string, RequestInit]
+function request(index: number): { url: string; init: RequestInit; headers: Headers } {
+  const [url, init = {}] = fetchMock.mock.calls[index] as [string, RequestInit | undefined]
   return { url, init, headers: new Headers(init.headers) }
+}
+
+function lastRequest(): { url: string; init: RequestInit; headers: Headers } {
+  return request(fetchMock.mock.calls.length - 1)
 }
 
 function meta(key: string): string | null {
@@ -59,41 +70,117 @@ function meta(key: string): string | null {
   return row?.value ?? null
 }
 
+/** A browser flow the test settles by hand. */
+interface FakeFlow extends CodeFlow {
+  resolve: (code: AuthorizationCode) => void
+  reject: (error: unknown) => void
+  cancel: ReturnType<typeof vi.fn<() => void>>
+}
+
+function fakeFlow(): FakeFlow {
+  let resolve!: (code: AuthorizationCode) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<AuthorizationCode>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  const cancel = vi.fn(() => reject(new SignInCancelledError()))
+  return { promise, cancel, resolve, reject }
+}
+
+const flows: FakeFlow[] = []
+const obtainCode = vi.fn((_clientId: string, _options: unknown): CodeFlow => {
+  const flow = fakeFlow()
+  flows.push(flow)
+  return flow
+})
+const bringToFront = vi.fn()
+
+/** The Worker's two answers, queued: the client id, then the session. */
+function answerWorker(): void {
+  fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+  fetchMock.mockResolvedValueOnce(
+    json({ token: 'session-token', user, idToken: 'google-id-token' })
+  )
+}
+
+/** A sign-in whose browser flow answers at once. */
 async function signIn(): Promise<{ idToken: string; user: auth.AuthUser }> {
-  fetchMock.mockResolvedValueOnce(json({ token: 'session-token', user }))
-  return auth.signInWithGoogle('client-id', 'app.firebaseapp.com')
+  answerWorker()
+  const pending = auth.signInWithGoogle()
+  await vi.waitFor(() => expect(flows.length).toBeGreaterThan(0))
+  flows.at(-1)!.resolve(code)
+  return pending
 }
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   vi.stubEnv('MAIN_VITE_API_URL', 'https://api.example.com')
   fetchMock.mockReset()
+  flows.length = 0
+  obtainCode.mockClear()
+  bringToFront.mockClear()
   vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true)
-  auth.setGoogleIdTokenProvider(async () => 'google-id-token')
+  auth.setSignInDeps({ obtainCode, bringToFront })
   getDb().exec('DELETE FROM app_meta')
 })
 
 afterEach(() => {
-  auth.setGoogleIdTokenProvider(null)
+  auth.cancelSignIn()
+  auth.setSignInDeps(null)
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
 describe('signInWithGoogle', () => {
-  it('trades the ID token for a session and answers with both', async () => {
-    const provider = vi.fn(async () => 'google-id-token')
-    auth.setGoogleIdTokenProvider(provider)
+  it('asks the Worker for the client id, runs the browser flow, then posts the code', async () => {
     const result = await signIn()
 
-    expect(provider).toHaveBeenCalledWith('client-id', 'app.firebaseapp.com')
+    const config = request(0)
+    expect(config.url).toBe('https://api.example.com/auth/google/config')
+    expect(config.init.method ?? 'GET').toBe('GET')
+    expect(config.headers.has('Authorization')).toBe(false)
+
+    expect(obtainCode).toHaveBeenCalledTimes(1)
+    expect(obtainCode.mock.calls[0][0]).toBe('client-123')
+
+    const exchange = request(1)
+    expect(exchange.url).toBe('https://api.example.com/auth/google/code')
+    expect(exchange.init.method).toBe('POST')
+    expect(exchange.headers.get('Content-Type')).toBe('application/json')
+    expect(exchange.headers.has('Authorization')).toBe(false)
+    expect(JSON.parse(exchange.init.body as string)).toEqual({
+      code: 'abc',
+      codeVerifier: 'verifier',
+      redirectUri: 'http://127.0.0.1:4242/callback'
+    })
+
     expect(result).toEqual({ idToken: 'google-id-token', user })
-    const { url, init, headers } = lastRequest()
-    expect(url).toBe('https://api.example.com/auth/google')
-    expect(init.method).toBe('POST')
-    expect(headers.get('Content-Type')).toBe('application/json')
-    expect(headers.has('Authorization')).toBe(false)
-    expect(JSON.parse(init.body as string)).toEqual({ idToken: 'google-id-token' })
+    expect(bringToFront).toHaveBeenCalledTimes(1)
+  })
+
+  it('hands the flow the injected browser opener', async () => {
+    const openExternal = vi.fn(async () => {})
+    auth.setSignInDeps({ obtainCode, bringToFront, openExternal })
+    await signIn()
+    const options = obtainCode.mock.calls[0][1] as { openExternal: (url: string) => unknown }
+    await options.openExternal('https://accounts.google.com/x')
+    expect(openExternal).toHaveBeenCalledWith('https://accounts.google.com/x')
+  })
+
+  it('opens the browser with the shell and brings the window forward by default', async () => {
+    auth.setSignInDeps({ obtainCode })
+    const window = { isMinimized: vi.fn(() => true), restore: vi.fn(), focus: vi.fn() }
+    vi.mocked(BrowserWindow.getAllWindows).mockReturnValue([window as never])
+
+    await signIn()
+    const options = obtainCode.mock.calls[0][1] as { openExternal: (url: string) => unknown }
+    await options.openExternal('https://accounts.google.com/x')
+    expect(shell.openExternal).toHaveBeenCalledWith('https://accounts.google.com/x')
+    expect(app.focus).toHaveBeenCalledWith({ steal: true })
+    expect(window.restore).toHaveBeenCalled()
+    expect(window.focus).toHaveBeenCalled()
   })
 
   it('stores the token encrypted, never in the clear, and the user beside it', async () => {
@@ -116,29 +203,143 @@ describe('signInWithGoogle', () => {
     expect(auth.getSessionToken()).toBe('session-token')
   })
 
-  it('stores nothing when the Worker refuses the token', async () => {
-    fetchMock.mockResolvedValueOnce(json({ error: 'invalid_token' }, 401))
-    const error = await auth
-      .signInWithGoogle('client-id', 'app.firebaseapp.com')
-      .catch((e: unknown) => e)
+  it('never opens the browser when the Worker has no client id to give', async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: 'misconfigured' }, 500))
+    const error = await auth.signInWithGoogle().catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 401, code: 'invalid_token' })
+    expect(error).toMatchObject({ status: 500, code: 'misconfigured' })
+    expect(obtainCode).not.toHaveBeenCalled()
+    expect(auth.getSessionToken()).toBeNull()
+  })
+
+  it('refuses a config without a client id', async () => {
+    fetchMock.mockResolvedValueOnce(json({}))
+    await expect(auth.signInWithGoogle()).rejects.toThrow()
+    expect(obtainCode).not.toHaveBeenCalled()
+  })
+
+  it('stores nothing when the Worker refuses the code', async () => {
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    fetchMock.mockResolvedValueOnce(json({ error: 'invalid_code' }, 401))
+    const pending = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+    flows[0].resolve(code)
+    const error = await pending.catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 401, code: 'invalid_code' })
     expect(auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
+    expect(bringToFront).not.toHaveBeenCalled()
   })
 
   it('refuses a session the Worker shaped wrongly', async () => {
-    fetchMock.mockResolvedValueOnce(json({ token: 'x', user: { email: 'no-id@example.com' } }))
-    await expect(auth.signInWithGoogle('client-id', 'app.firebaseapp.com')).rejects.toThrow()
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    fetchMock.mockResolvedValueOnce(json({ token: 'x', user }))
+    const pending = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+    flows[0].resolve(code)
+    await expect(pending).rejects.toThrow()
     expect(auth.currentUser()).toBeNull()
+  })
+
+  it('passes on the browser flow declining, storing nothing', async () => {
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    const pending = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+    flows[0].reject(new SignInCancelledError())
+    await expect(pending).rejects.toBeInstanceOf(SignInCancelledError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(auth.getSessionToken()).toBeNull()
   })
 
   it('replaces an earlier session', async () => {
     await signIn()
-    fetchMock.mockResolvedValueOnce(json({ token: 'second', user: { ...user, name: 'Renamed' } }))
-    await auth.signInWithGoogle('client-id', 'app.firebaseapp.com')
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    fetchMock.mockResolvedValueOnce(
+      json({ token: 'second', user: { ...user, name: 'Renamed' }, idToken: 'id-2' })
+    )
+    const pending = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(2))
+    flows[1].resolve(code)
+    await pending
     expect(auth.getSessionToken()).toBe('second')
     expect(auth.currentUser()?.name).toBe('Renamed')
+  })
+})
+
+describe('cancelSignIn', () => {
+  it('ends a pending sign-in: it rejects as cancelled and stores nothing', async () => {
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    const pending = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+
+    auth.cancelSignIn()
+    expect(flows[0].cancel).toHaveBeenCalledTimes(1)
+    await expect(pending).rejects.toBeInstanceOf(SignInCancelledError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(auth.getSessionToken()).toBeNull()
+    expect(auth.currentUser()).toBeNull()
+    expect(bringToFront).not.toHaveBeenCalled()
+  })
+
+  it('ends a sign-in still waiting for the client id, before any browser opens', async () => {
+    let answerConfig!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        answerConfig = resolve
+      })
+    )
+    const pending = auth.signInWithGoogle()
+    auth.cancelSignIn()
+    answerConfig(json({ clientId: 'client-123' }))
+    await expect(pending).rejects.toBeInstanceOf(SignInCancelledError)
+    expect(obtainCode).not.toHaveBeenCalled()
+  })
+
+  it('is a no-op when nothing is pending', () => {
+    expect(() => auth.cancelSignIn()).not.toThrow()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not touch a sign-in that has already finished', async () => {
+    await signIn()
+    auth.cancelSignIn()
+    expect(flows[0].cancel).not.toHaveBeenCalled()
+    expect(auth.getSessionToken()).toBe('session-token')
+  })
+})
+
+describe('a second sign-in while one is pending', () => {
+  it('cancels the first and carries on with the second', async () => {
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    const first = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+
+    answerWorker()
+    const second = auth.signInWithGoogle()
+    expect(flows[0].cancel).toHaveBeenCalledTimes(1)
+    await expect(first).rejects.toBeInstanceOf(SignInCancelledError)
+
+    await vi.waitFor(() => expect(flows.length).toBe(2))
+    flows[1].resolve(code)
+    await expect(second).resolves.toEqual({ idToken: 'google-id-token', user })
+    expect(auth.getSessionToken()).toBe('session-token')
+    expect(bringToFront).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets the second be cancelled without the first coming back', async () => {
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    const first = auth.signInWithGoogle()
+    await vi.waitFor(() => expect(flows.length).toBe(1))
+    fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
+    const second = auth.signInWithGoogle()
+    await expect(first).rejects.toBeInstanceOf(SignInCancelledError)
+    await vi.waitFor(() => expect(flows.length).toBe(2))
+
+    auth.cancelSignIn()
+    expect(flows[1].cancel).toHaveBeenCalledTimes(1)
+    await expect(second).rejects.toBeInstanceOf(SignInCancelledError)
+    expect(auth.getSessionToken()).toBeNull()
   })
 })
 

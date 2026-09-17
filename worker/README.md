@@ -1,6 +1,6 @@
 # newline-api
 
-Newline's only backend: one Cloudflare Worker with three bindings. D1 `DB` holds users, sessions and the media catalogue; R2 `MEDIA` holds bytes; vars carry the Google client id and the quota. Everything runs inside the Workers Free plan and the D1 and R2 free allowances, and the Worker enforces a storage quota below R2's free allowance so the account never bills.
+Newline's only backend: one Cloudflare Worker with three bindings. D1 `DB` holds users, sessions and the media catalogue; R2 `MEDIA` holds bytes; secrets carry the Google OAuth client, vars the quota. Everything runs inside the Workers Free plan and the D1 and R2 free allowances, and the Worker enforces a storage quota below R2's free allowance so the account never bills.
 
 - Local: `npm run dev` in `worker/` serves `http://127.0.0.1:8787` against local D1 and R2 emulations.
 - Tests: `npm test` in `worker/` runs vitest inside workerd with real bindings.
@@ -10,16 +10,17 @@ The desktop app calls the deployed Worker by default and honours `MAIN_VITE_API_
 
 ## Auth
 
-Google is the identity provider. The app obtains a Google ID token through its own sign-in window (OpenID Connect implicit flow with the existing OAuth client) and trades it for a session. The Worker verifies the token itself: signature against Google's JWKS (`https://www.googleapis.com/oauth2/v3/certs`), `iss` in `https://accounts.google.com` / `accounts.google.com`, `aud` equal to `GOOGLE_CLIENT_ID`, unexpired, `email_verified` true.
+Google is the identity provider, through the OAuth 2.0 flow for native apps. The app opens the user's default browser at Google's consent screen with PKCE and a loopback redirect (`http://127.0.0.1:<port>/callback`, a fresh port per sign-in), receives the authorization code on that loopback, and hands the code to the Worker. The Worker exchanges it with Google using the client secret only it holds, verifies the ID token Google returns (signature against Google's JWKS at `https://www.googleapis.com/oauth2/v3/certs`, `iss` in `https://accounts.google.com` / `accounts.google.com`, `aud` equal to `GOOGLE_CLIENT_ID`, unexpired, `email_verified` true) and mints a session. The OAuth client is of type **Desktop app**, the type Google allows any loopback port for.
 
-| Route                | Auth   | Body          | Response                                   |
-| -------------------- | ------ | ------------- | ------------------------------------------ |
-| `POST /auth/google`  | none   | `{ idToken }` | `200 { token, user }`, `401 invalid_token` |
-| `GET /auth/me`       | Bearer |               | `200 { user }`, `401 unauthorized`         |
-| `POST /auth/signout` | Bearer |               | `204` (an unknown token is also `204`)     |
-| `GET /auth/callback` | none   |               | `200` HTML: "You can close this window"    |
+| Route                     | Auth   | Body                                  | Response                                                                                          |
+| ------------------------- | ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GET /auth/google/config` | none   |                                       | `200 { clientId }`, the public client id the app builds the consent URL with; `500 misconfigured` |
+| `POST /auth/google/code`  | none   | `{ code, codeVerifier, redirectUri }` | `200 { token, user, idToken }`, `401 invalid_code`, `500 misconfigured`                           |
+| `GET /auth/me`            | Bearer |                                       | `200 { user }`, `401 unauthorized`                                                                |
+| `POST /auth/signout`      | Bearer |                                       | `204` (an unknown token is also `204`)                                                            |
 
-- `user = { id, email, name?, picture? }`. `id` is a uuid minted on first sign-in; users are keyed by Google `sub`, and `email`, `name`, `picture` are refreshed on every sign-in.
+- The exchange is `POST https://oauth2.googleapis.com/token`, form-encoded: `client_id`, `client_secret`, `code`, `code_verifier`, `redirect_uri` (the loopback URL the code was issued for, verbatim) and `grant_type=authorization_code`. Google refusing the exchange, an answer without an `id_token`, or a token that fails verification is `401 invalid_code`. An unset `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is `500 misconfigured`.
+- `idToken` is Google's ID token for the user, returned because the renderer still signs into Firebase with it until the notes cutover. `user = { id, email, name?, picture? }`. `id` is a uuid minted on first sign-in; users are keyed by Google `sub`, and `email`, `name`, `picture` are refreshed on every sign-in.
 - The session token is 32 random bytes, base64url. D1 stores only its SHA-256 hex. Sessions expire 180 days after last use; `last_used_at` and `expires_at` move forward at most once a day.
 - Every `/media` route requires `Authorization: Bearer <token>`. A missing, unknown or expired token is `401 { error: 'unauthorized' }`.
 
@@ -61,13 +62,14 @@ Every error is JSON `{ error: string }` with the status. Wrong method is `405`; 
 
 ## Bindings and vars
 
-| Name                    | Kind | Purpose                                                  |
-| ----------------------- | ---- | -------------------------------------------------------- |
-| `DB`                    | D1   | `users`, `sessions`, `media_objects` (see `migrations/`) |
-| `MEDIA`                 | R2   | object bytes under `u/<userId>/…`                        |
-| `GOOGLE_CLIENT_ID`      | var  | the OAuth client the app signs in with                   |
-| `MEDIA_QUOTA_BYTES`     | var  | optional, default `8589934592`                           |
-| `MEDIA_PUBLIC_BASE_URL` | var  | optional, default the Worker origin + `/m`               |
+| Name                    | Kind   | Purpose                                                  |
+| ----------------------- | ------ | -------------------------------------------------------- |
+| `DB`                    | D1     | `users`, `sessions`, `media_objects` (see `migrations/`) |
+| `MEDIA`                 | R2     | object bytes under `u/<userId>/…`                        |
+| `GOOGLE_CLIENT_ID`      | secret | the Desktop-app OAuth client the app signs in with       |
+| `GOOGLE_CLIENT_SECRET`  | secret | that client's secret; only the Worker ever holds it      |
+| `MEDIA_QUOTA_BYTES`     | var    | optional, default `8589934592`                           |
+| `MEDIA_PUBLIC_BASE_URL` | var    | optional, default the Worker origin + `/m`               |
 
 ## Schema
 

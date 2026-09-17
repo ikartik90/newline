@@ -2,12 +2,15 @@ import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { createApp, type App, type AppDeps } from '../app'
 import { InvalidGoogleTokenError, type GoogleIdentity } from '../auth/google'
+import { InvalidGoogleCodeError } from '../auth/google-code'
 import { createSession } from '../auth/session'
 import { upsertUser, type User } from '../auth/users'
 import type { AppEnv } from '../env'
+import type { GoogleDeps } from '../routes/auth'
 
 export const ORIGIN = 'http://api.test'
 export const CLIENT_ID = 'test-client.apps.googleusercontent.com'
+export const CLIENT_SECRET = 'test-client-secret'
 
 /** A fresh Google identity; every call is a different account. */
 export function identity(overrides: Partial<GoogleIdentity> = {}): GoogleIdentity {
@@ -26,8 +29,28 @@ export function goodToken(who: GoogleIdentity): string {
   return `good:${JSON.stringify(who)}`
 }
 
+/** An authorization code the fake exchanger trades for exactly `token`. */
+export function codeFor(token: string): string {
+  return `code:${token}`
+}
+
+/** The code that signs `who` in: the fake exchanger trades it for `goodToken(who)`. */
+export function goodCode(who: GoogleIdentity): string {
+  return codeFor(goodToken(who))
+}
+
+/** Trades codes minted by `codeFor`, refuses everything else the way Google would. */
+export function fakeExchanger(): GoogleDeps['exchangeCode'] {
+  return async ({ code }) => {
+    if (!code.startsWith('code:')) {
+      throw new InvalidGoogleCodeError('rejected by the test exchanger')
+    }
+    return { idToken: code.slice('code:'.length) }
+  }
+}
+
 /** Accepts tokens minted by `goodToken`, rejects everything else the way the real one would. */
-export function fakeVerifier(): AppDeps['verifyGoogleIdToken'] {
+export function fakeVerifier(): GoogleDeps['verifyIdToken'] {
   return async (token) => {
     if (!token.startsWith('good:')) {
       throw new InvalidGoogleTokenError('rejected by the test verifier')
@@ -37,11 +60,20 @@ export function fakeVerifier(): AppDeps['verifyGoogleIdToken'] {
 }
 
 export function testEnv(overrides: Partial<AppEnv> = {}): AppEnv {
-  return { ...env, GOOGLE_CLIENT_ID: CLIENT_ID, ...overrides }
+  return { ...env, GOOGLE_CLIENT_ID: CLIENT_ID, GOOGLE_CLIENT_SECRET: CLIENT_SECRET, ...overrides }
 }
 
-export function testApp(deps: Partial<AppDeps> = {}): App {
-  return createApp({ verifyGoogleIdToken: fakeVerifier(), ...deps })
+export interface TestAppDeps {
+  now?: AppDeps['now']
+  /** Replaces one or both Google fakes. */
+  google?: Partial<GoogleDeps>
+}
+
+export function testApp(deps: TestAppDeps = {}): App {
+  return createApp({
+    ...deps,
+    google: { exchangeCode: fakeExchanger(), verifyIdToken: fakeVerifier(), ...deps.google }
+  })
 }
 
 /** One request through `app`, with the execution context drained afterwards. */

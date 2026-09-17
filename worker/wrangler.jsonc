@@ -17,7 +17,7 @@
       "bucket_name": "newline-assets"
     }
   ]
-  // GOOGLE_CLIENT_ID is a Worker secret (`wrangler secret put GOOGLE_CLIENT_ID`);
-  // locally it comes from `.dev.vars`. MEDIA_QUOTA_BYTES and
-  // MEDIA_PUBLIC_BASE_URL are optional vars, see README.md.
+  // GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are Worker secrets
+  // (`wrangler secret put <NAME>`); locally they come from `.dev.vars`.
+  // MEDIA_QUOTA_BYTES and MEDIA_PUBLIC_BASE_URL are optional vars, see README.md.
 }
