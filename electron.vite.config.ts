@@ -30,7 +30,9 @@ export default defineConfig({
     },
     build: {
       externalizeDeps: {
-        exclude: ['uuid']
+        // ESM-only packages must be bundled: the main process is CommonJS
+        // and cannot `require()` them.
+        exclude: ['uuid', 'marked']
       }
     }
   },

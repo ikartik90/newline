@@ -788,6 +788,19 @@
     animation: var(--animate-shimmer);
   }
 
+  /* A see-through picture on a checkerboard of the app's own two surfaces,
+     so the pattern reads in either theme without competing with the artwork. */
+  [data-checkered] {
+    background-color: var(--bg-canvas);
+    background-image: conic-gradient(
+      var(--bg-surface) 25%,
+      transparent 0 50%,
+      var(--bg-surface) 0 75%,
+      transparent 0
+    );
+    background-size: 16px 16px;
+  }
+
   [data-field]:has([role='slider']),
   [role='slider'] {
     -webkit-user-select: none;

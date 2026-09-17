@@ -5,7 +5,7 @@ import type { LinkCardConfig } from '@shared/domain/link-card'
 import { Button } from '@/components/ui/button'
 import { OptionList } from '@/components/ui/input/option-list'
 import { typographyStyles } from '@/components/ui/typography'
-import { MediaObject } from '@/components/media-object'
+import { MediaObject, mediaObjectRailStyle } from '@/components/media-object'
 import { MediaPropertiesPanel } from '@/components/media-properties-panel'
 import { LinkCard } from '@/components/link-card'
 import { LinkCardPropertiesPanel } from '@/components/link-card-properties-panel'
@@ -1174,7 +1174,7 @@ export function EditableBlock({
         data-block-index={blockIndex}
         data-showcase-block=""
       >
-        <div className={mediaBlockStyles.root}>
+        <div className={`${mediaBlockStyles.root} group/cell`}>
           <div
             tabIndex={0}
             data-showcase-media=""
@@ -1185,7 +1185,7 @@ export function EditableBlock({
           >
             <LinkCard config={block.config} interactive={false} />
           </div>
-          <div className="toolbar media-object-toolbar" data-media-object-toolbar="">
+          <div className={mediaObjectRailStyle}>
             <OptionList direction="inline">
               <OptionList.Toolbar aria-label="Link card actions">
                 <OptionList.Option

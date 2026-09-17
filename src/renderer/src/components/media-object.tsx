@@ -171,7 +171,7 @@ export function MediaObject({
 // cell-relative width cap. Centred on the cell's TOP EDGE, half above it.
 // Down until the cell is reached for: inert as well as invisible, so a
 // control you cannot see is not a control you can hit.
-const railStyle = cx(
+export const mediaObjectRailStyle = cx(
   'flex items-center gap-1 h-10 px-[6px] rounded-md w-max bg-surface [--field-bg:var(--field-bg-on-surface)]',
   'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[3]',
   'border-[0.5px] border-solid border-divider shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
@@ -203,7 +203,7 @@ function MediaToolbar({
   removeLabel
 }: MediaToolbarProps) {
   return (
-    <div className={railStyle}>
+    <div className={mediaObjectRailStyle}>
       <OptionList direction="inline">
         <OptionList.Toolbar aria-label={`${label} actions`}>
           {/* Featured is a POSITION, so the first slot's button is simply

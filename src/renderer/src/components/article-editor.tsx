@@ -386,7 +386,9 @@ export function ArticleEditor({
   // while the user has focus there so we never reset their cursor.
   useEffect(() => {
     if (titleRef.current && document.activeElement !== titleRef.current) {
-      titleRef.current.innerText = title
+      // `textContent`, not `innerHTML`: the title is the author's own text
+      // and must never be parsed as markup.
+      titleRef.current.textContent = title
     }
   }, [title])
 
@@ -1464,7 +1466,7 @@ export function ArticleEditor({
       updateBlocks([mergedBlock, ...blocks.slice(endIdx + 1)])
 
       setTitle(newTitleText)
-      titleRef.current!.innerText = newTitleText
+      titleRef.current!.textContent = newTitleText
       cancelHistoryDebounce()
       pushHistoryNow()
 
@@ -1564,7 +1566,7 @@ export function ArticleEditor({
           data-placeholder="Title"
           className={`${editableBaseStyle} ${typographyStyles({ type: 'title' })}`}
           onInput={(e) => {
-            setTitle(e.currentTarget.innerText)
+            setTitle(e.currentTarget.textContent ?? '')
             pushHistoryDebounced()
           }}
           onPaste={(e) => {
