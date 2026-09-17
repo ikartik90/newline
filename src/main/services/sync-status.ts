@@ -17,9 +17,9 @@ export function getSyncStatus(): SyncStatus {
     .prepare("SELECT COUNT(*) as count FROM sync_queue WHERE status = 'failed'")
     .get() as { count: number }
 
-  const meta = db
-    .prepare("SELECT value FROM app_meta WHERE key = 'last_full_sync'")
-    .get() as { value: string } | undefined
+  const meta = db.prepare("SELECT value FROM app_meta WHERE key = 'last_full_sync'").get() as
+    | { value: string }
+    | undefined
 
   return {
     pendingCount: pending.count,

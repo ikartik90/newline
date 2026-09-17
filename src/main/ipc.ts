@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import * as notesService from './services/notes'
+import * as mediaService from './services/media'
 import { getSyncStatus } from './services/sync-status'
-import { saveImageLocally, enqueueImageUpload } from './services/images'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
@@ -62,13 +62,31 @@ export function registerIpcHandlers(): void {
     return notesService.getAppMeta(key)
   })
 
-  ipcMain.handle(
-    'images:save',
-    (_event, base64Data: string, ext: string, noteId: string) => {
-      const buffer = Buffer.from(base64Data, 'base64')
-      const result = saveImageLocally(buffer, ext)
-      enqueueImageUpload(result.localPath, noteId)
-      return result.localPath
-    }
-  )
+  ipcMain.handle('media:list', () => {
+    return mediaService.listMedia()
+  })
+
+  ipcMain.handle('media:upload', (_event, input: mediaService.MediaUploadInput) => {
+    return mediaService.saveMedia(input)
+  })
+
+  ipcMain.handle('media:updateAlt', (_event, key: string, alt: string) => {
+    return mediaService.updateAlt(key, alt)
+  })
+
+  ipcMain.handle('media:rename', (_event, key: string, filename: string) => {
+    return mediaService.rename(key, filename)
+  })
+
+  ipcMain.handle('media:delete', (_event, key: string) => {
+    return mediaService.deleteMedia(key)
+  })
+
+  ipcMain.handle('media:uploadPoster', (_event, key: string, bytes: Uint8Array) => {
+    return mediaService.uploadPoster(key, bytes)
+  })
+
+  ipcMain.handle('media:flushPending', () => {
+    return mediaService.flushPending()
+  })
 }

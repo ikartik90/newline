@@ -1,0 +1,126 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { EMPTY_DOCUMENT, parseDocument, serializeDocument } from '@shared/domain/document'
+import { getDb } from '../../db/database'
+import * as notes from '../notes'
+
+vi.mock('../../db/database', async () => {
+  const { openMigratedDb } = await import('../../db/__tests__/test-db')
+  const db = openMigratedDb()
+  return { getDb: () => db, initDatabase: () => db, closeDatabase: () => {} }
+})
+
+const paragraph = (text: string) =>
+  serializeDocument({
+    type: 'doc',
+    content: [{ type: 'paragraph', children: [{ type: 'text', text }] }]
+  })
+
+beforeEach(() => {
+  getDb().exec('DELETE FROM notes; DELETE FROM sync_queue; DELETE FROM app_meta')
+})
+
+describe('createNote', () => {
+  it('stores a document body and derives its plain text', () => {
+    const note = notes.createNote('Title', paragraph('Hello there'))
+    expect(note.body).toBe(paragraph('Hello there'))
+    expect(note.plainText).toBe('Hello there')
+    expect(notes.getNote(note.id)).toEqual(note)
+  })
+
+  it('converts a legacy markdown body', () => {
+    const note = notes.createNote('', '# Heading\n\nwords')
+    expect(parseDocument(note.body).content).toEqual([
+      { type: 'heading', level: 1, children: [{ type: 'text', text: 'Heading' }] },
+      { type: 'paragraph', children: [{ type: 'text', text: 'words' }] }
+    ])
+    expect(note.plainText).toBe('Heading\nwords')
+  })
+
+  it('stores the empty document for no body', () => {
+    const note = notes.createNote()
+    expect(note.body).toBe(serializeDocument(EMPTY_DOCUMENT))
+    expect(note.plainText).toBe('')
+  })
+
+  it('queues the note for sync', () => {
+    const note = notes.createNote()
+    expect(notes.getDirtyNotes().map((n) => n.id)).toEqual([note.id])
+  })
+})
+
+describe('updateNote', () => {
+  it('re-derives plain text when the body changes, and only then', () => {
+    const note = notes.createNote('T', paragraph('one'))
+    const renamed = notes.updateNote(note.id, { title: 'Renamed' })
+    expect(renamed?.plainText).toBe('one')
+
+    const edited = notes.updateNote(note.id, { body: paragraph('two') })
+    expect(edited?.plainText).toBe('two')
+    expect(edited?.body).toBe(paragraph('two'))
+  })
+
+  it('tolerates markdown handed in as a body', () => {
+    const note = notes.createNote()
+    const edited = notes.updateNote(note.id, { body: '- item' })
+    expect(parseDocument(edited!.body).content).toEqual([
+      { type: 'bullet_list_item', children: [{ type: 'text', text: 'item' }] }
+    ])
+  })
+})
+
+describe('searchNotes', () => {
+  it('matches title, tags and plain text but never the JSON vocabulary', () => {
+    const a = notes.createNote('Groceries', paragraph('buy milk'))
+    const b = notes.createNote('Work', paragraph('quarterly review'))
+    notes.updateNote(b.id, { tags: ['office'] })
+
+    expect(notes.searchNotes('milk').map((n) => n.id)).toEqual([a.id])
+    expect(notes.searchNotes('Groc').map((n) => n.id)).toEqual([a.id])
+    expect(notes.searchNotes('office').map((n) => n.id)).toEqual([b.id])
+    expect(notes.searchNotes('paragraph')).toEqual([])
+    expect(notes.searchNotes('   ')).toHaveLength(2)
+  })
+})
+
+describe('upsertFromRemote', () => {
+  it('inserts a document body with its plain text', () => {
+    notes.upsertFromRemote('r1', {
+      title: 'Remote',
+      body: paragraph('from the cloud'),
+      tags: [],
+      createdAt: 5,
+      isDeleted: false
+    })
+    const note = notes.getNote('r1')
+    expect(note?.plainText).toBe('from the cloud')
+    expect(note?.createdAt).toBe(5)
+    expect(note?.lastSyncedAt).not.toBeNull()
+  })
+
+  it('converts a legacy markdown body and updates an existing row', () => {
+    notes.createNote('Local', paragraph('local words'))
+    const existing = notes.listNotes()[0]
+    notes.upsertFromRemote(existing.id, {
+      title: 'Local',
+      body: '**bold** remote',
+      tags: ['t'],
+      createdAt: 1,
+      isDeleted: false
+    })
+    const note = notes.getNote(existing.id)
+    expect(note?.plainText).toBe('bold remote')
+    expect(note?.tags).toEqual(['t'])
+    expect(notes.searchNotes('remote').map((n) => n.id)).toEqual([existing.id])
+  })
+})
+
+describe('markSynced / enqueueSyncAction', () => {
+  it('clears the queue for a note and lets it be queued again', () => {
+    const note = notes.createNote()
+    notes.markSynced(note.id)
+    expect(notes.getDirtyNotes()).toEqual([])
+    notes.enqueueSyncAction(note.id, 'upsert')
+    notes.enqueueSyncAction(note.id, 'upsert')
+    expect(notes.getDirtyNotes().map((n) => n.id)).toEqual([note.id])
+  })
+})

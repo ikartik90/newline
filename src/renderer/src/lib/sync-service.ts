@@ -7,8 +7,11 @@ import {
   where,
   orderBy,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  type FieldValue
 } from 'firebase/firestore'
+import { serializeDocument } from '@shared/domain/document'
+import { bodyToDocument, looksLikeDocumentJson } from '@shared/markdown/markdown-to-document'
 import { db as firestore } from './firebase'
 
 interface FirestoreNote {
@@ -19,6 +22,9 @@ interface FirestoreNote {
   updatedAt: Timestamp
   isDeleted: boolean
 }
+
+/** What a write sends: the server stamps `updatedAt`, so it goes up as a sentinel. */
+type FirestoreNoteWrite = Omit<FirestoreNote, 'updatedAt'> & { updatedAt: FieldValue }
 
 let syncIntervalId: ReturnType<typeof setInterval> | null = null
 let currentUid: string | null = null
@@ -53,7 +59,7 @@ export async function pushNoteNow(note: Note): Promise<boolean> {
       createdAt: Timestamp.fromMillis(note.createdAt),
       updatedAt: serverTimestamp(),
       isDeleted: note.isDeleted
-    } satisfies FirestoreNote)
+    } satisfies FirestoreNoteWrite)
 
     await window.api.notes.markSynced(note.id)
     return true
@@ -68,10 +74,21 @@ async function syncCycle(): Promise<void> {
 
   try {
     await pushChanges(currentUid)
+    await flushPendingMedia(currentUid)
     await pullChanges(currentUid)
   } catch (err) {
     console.error('[sync] cycle failed:', err)
   }
+}
+
+/**
+ * Send any media saved while offline. A landed upload rewrites the notes
+ * that point at it, so those go up in this cycle rather than the next.
+ */
+async function flushPendingMedia(uid: string): Promise<void> {
+  if (!navigator.onLine) return
+  const landed = await window.api.media.flushPending()
+  if (landed > 0) await pushChanges(uid)
 }
 
 async function pushChanges(uid: string): Promise<void> {
@@ -89,13 +106,22 @@ async function pushChanges(uid: string): Promise<void> {
         createdAt: Timestamp.fromMillis(note.createdAt),
         updatedAt: serverTimestamp(),
         isDeleted: note.isDeleted
-      } satisfies FirestoreNote)
+      } satisfies FirestoreNoteWrite)
 
       await window.api.notes.markSynced(note.id)
     } catch (err) {
       console.error(`[sync] push failed for ${note.id}:`, err)
     }
   }
+}
+
+/**
+ * A remote body as the store takes it. A body that is not a document is
+ * markdown an older client wrote, converted here so main only ever sees JSON.
+ */
+function storedBody(body: string | undefined): string {
+  const remote = body ?? ''
+  return looksLikeDocumentJson(remote) ? remote : serializeDocument(bodyToDocument(remote))
 }
 
 async function pullChanges(uid: string): Promise<void> {
@@ -118,7 +144,7 @@ async function pullChanges(uid: string): Promise<void> {
     if (!localNote || remoteUpdatedAt > localNote.updatedAt) {
       await window.api.notes.upsertFromRemote(remoteDoc.id, {
         title: remote.title,
-        body: remote.body,
+        body: storedBody(remote.body),
         tags: remote.tags,
         createdAt: remote.createdAt?.toMillis() ?? Date.now(),
         isDeleted: remote.isDeleted ?? false

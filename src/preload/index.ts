@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+/** What the renderer hands main to store a file — mirrors `MediaUploadInput` in env.d.ts. */
+interface MediaUploadInput {
+  filename: string
+  contentType: string
+  bytes: Uint8Array
+  width?: number
+  height?: number
+}
+
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   notes: {
@@ -24,9 +33,15 @@ contextBridge.exposeInMainWorld('api', {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)
   },
-  images: {
-    save: (base64Data: string, ext: string, noteId: string) =>
-      ipcRenderer.invoke('images:save', base64Data, ext, noteId)
+  media: {
+    list: () => ipcRenderer.invoke('media:list'),
+    upload: (input: MediaUploadInput) => ipcRenderer.invoke('media:upload', input),
+    updateAlt: (key: string, alt: string) => ipcRenderer.invoke('media:updateAlt', key, alt),
+    rename: (key: string, filename: string) => ipcRenderer.invoke('media:rename', key, filename),
+    delete: (key: string) => ipcRenderer.invoke('media:delete', key),
+    uploadPoster: (key: string, bytes: Uint8Array) =>
+      ipcRenderer.invoke('media:uploadPoster', key, bytes),
+    flushPending: () => ipcRenderer.invoke('media:flushPending')
   },
   auth: {
     googleSignIn: (clientId: string, authDomain: string) =>

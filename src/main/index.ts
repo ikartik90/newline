@@ -4,73 +4,70 @@ import { randomUUID } from 'crypto'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc'
-import { getImagePath } from './services/images'
+import { flushPending, getMediaPath } from './services/media'
 import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
 
 function registerAuthHandlers(): void {
-  ipcMain.handle(
-    'auth:google',
-    (_event, clientId: string, authDomain: string): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const nonce = randomUUID()
-        const redirectUri = `https://${authDomain}/__/auth/handler`
+  ipcMain.handle('auth:google', (_event, clientId: string, authDomain: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const nonce = randomUUID()
+      const redirectUri = `https://${authDomain}/__/auth/handler`
 
-        const authUrl =
-          'https://accounts.google.com/o/oauth2/v2/auth?' +
-          new URLSearchParams({
-            client_id: clientId,
-            redirect_uri: redirectUri,
-            response_type: 'id_token',
-            scope: 'openid email profile',
-            nonce,
-            prompt: 'select_account'
-          }).toString()
+      const authUrl =
+        'https://accounts.google.com/o/oauth2/v2/auth?' +
+        new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: 'id_token',
+          scope: 'openid email profile',
+          nonce,
+          prompt: 'select_account'
+        }).toString()
 
-        const authWindow = new BrowserWindow({
-          width: 500,
-          height: 700,
-          parent: mainWindow ?? undefined,
-          modal: true,
-          show: true,
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true
-          }
-        })
-
-        authWindow.webContents.on('will-redirect', (_e, url) => {
-          extractToken(url)
-        })
-
-        authWindow.webContents.on('will-navigate', (_e, url) => {
-          extractToken(url)
-        })
-
-        function extractToken(url: string): void {
-          try {
-            const parsed = new URL(url)
-            const fragment = parsed.hash.substring(1)
-            const params = new URLSearchParams(fragment)
-            const idToken = params.get('id_token')
-            if (idToken) {
-              resolve(idToken)
-              authWindow.close()
-            }
-          } catch {
-            // Not the redirect we're looking for
-          }
+      const authWindow = new BrowserWindow({
+        width: 500,
+        height: 700,
+        parent: mainWindow ?? undefined,
+        modal: true,
+        show: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
         }
-
-        authWindow.on('closed', () => {
-          reject(new Error('Auth window was closed'))
-        })
-
-        authWindow.loadURL(authUrl)
       })
-    }
-  )
+
+      authWindow.webContents.on('will-redirect', (_e, url) => {
+        extractToken(url)
+      })
+
+      authWindow.webContents.on('will-navigate', (_e, url) => {
+        extractToken(url)
+      })
+
+      function extractToken(url: string): void {
+        try {
+          const parsed = new URL(url)
+          const fragment = parsed.hash.substring(1)
+          const params = new URLSearchParams(fragment)
+          const idToken = params.get('id_token')
+          if (idToken) {
+            resolve(idToken)
+            authWindow.close()
+          }
+        } catch {
+          // Not the redirect we're looking for
+        }
+      }
+
+      authWindow.on('closed', () => {
+        reject(new Error('Auth window was closed'))
+      })
+
+      authWindow.loadURL(authUrl)
+    })
+  })
 }
 
 function setupAutoUpdater(): void {
@@ -95,16 +92,24 @@ function setupAutoUpdater(): void {
   autoUpdater.checkForUpdatesAndNotify()
 }
 
+/** `local://<file>` — the media library's own files, and the old image paste's. */
 function registerLocalProtocol(): void {
   protocol.handle('local', (request) => {
-    const filename = request.url.replace('local://', '')
-    const filePath = getImagePath(filename)
+    const filename = decodeURIComponent(
+      request.url.slice('local://'.length).split(/[?#]/)[0].replace(/\/$/, '')
+    )
+    const filePath = getMediaPath(filename)
 
     if (filePath) {
       return net.fetch(pathToFileURL(filePath).href)
     }
     return new Response('Not found', { status: 404 })
   })
+}
+
+/** Whatever was saved while offline goes up once now; the renderer asks again when it is online. */
+function flushPendingMedia(): void {
+  flushPending().catch((error) => console.warn('[media] flush failed:', error))
 }
 
 function createWindow(): void {
@@ -145,6 +150,7 @@ app.whenReady().then(() => {
   registerAuthHandlers()
 
   createWindow()
+  flushPendingMedia()
 
   if (app.isPackaged) {
     setupAutoUpdater()
