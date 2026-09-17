@@ -11,11 +11,20 @@
     "strict": true,
     "skipLibCheck": true,
     "baseUrl": ".",
+    "types": [
+      "vite/client"
+    ],
     "paths": {
-      "@/*": ["src/renderer/src/*"]
+      "@/*": [
+        "src/renderer/src/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ]
     }
   },
   "include": [
-    "src/renderer/src/**/*"
+    "src/renderer/src/**/*",
+    "src/shared/**/*"
   ]
 }

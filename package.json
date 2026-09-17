@@ -1,7 +1,7 @@
 {
   "name": "newline",
   "version": "0.1.0",
-  "description": "A minimal markdown note editor",
+  "description": "A local-first rich text note editor",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -13,11 +13,16 @@
     "build:mac": "npm run build && electron-builder --mac --publish never",
     "build:win": "npm run build && electron-builder --win --publish never",
     "release:mac": "npm run build && electron-builder --mac --publish always",
-    "release:win": "npm run build && electron-builder --win --publish always"
+    "release:win": "npm run build && electron-builder --win --publish always",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1134.0",
+    "@base-ui/react": "^1.8.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-code-block-lowlight": "^3.20.0",
     "@tiptap/extension-image": "^3.20.0",
@@ -38,13 +43,18 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-window": "^2.2.7",
+    "refractor": "^5.0.0",
     "tippy.js": "^6.3.7",
     "turndown": "^7.2.2",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.0",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/better-sqlite3": "^7.6.13",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -55,9 +65,12 @@
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "eslint": "^10.0.1",
+    "jsdom": "^30.1.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.0"
+    "typescript-eslint": "^8.56.0",
+    "vite-plugin-svgr": "^5.2.0",
+    "vitest": "^5.0.1"
   }
 }

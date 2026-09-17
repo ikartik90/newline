@@ -1,104 +1,507 @@
 @import 'tailwindcss';
-@plugin '@tailwindcss/typography';
 
-body {
-  margin: 0;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+/* Newline toggles `.dark` on <html> (see hooks/use-theme). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: 'Switzer';
+  src: url('./fonts/Switzer-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
 }
 
-/* TipTap editor overrides */
-.tiptap {
-  &:focus {
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------------------
+   Base tokens. Values come from kartik.to's panda.config.ts (its DESIGN.md is
+   stale). Radii deliberately REPLACE Tailwind's scale so `rounded-md` means
+   the same 8px it means in the source recipes.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Switzer', Helvetica, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --font-weight-medium: 500;
+  --font-weight-bold: 550;
+
+  --color-neutral-100: #eef2f6;
+  --color-neutral-200: #d8dde3;
+  --color-neutral-300: #c3cdd7;
+  --color-neutral-400: #a9bfd6;
+  --color-neutral-500: #576675;
+  --color-neutral-600: #414244;
+  --color-neutral-700: #384047;
+  --color-neutral-800: #2e3338;
+  --color-neutral-900: #1f2123;
+
+  --color-brand-orange: #ffab6f;
+  --color-brand-pink: #ff4d97;
+  /* The bright hue at 15% over its theme's canvas. */
+  --color-brand-rust: color-mix(in srgb, #ffab6f 15%, #1f2123);
+  --color-brand-rosemilk: color-mix(in srgb, #ff4d97 15%, #eef2f6);
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  --breakpoint-md: 820px;
+  --breakpoint-lg: 1200px;
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-panel-in: panel-in 200ms ease-out;
+  --animate-panel-out: panel-out 200ms ease-out;
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes panel-in {
+    from {
+      translate: 100% 0;
+      opacity: 0;
+    }
+    to {
+      translate: 0 0;
+      opacity: 1;
+    }
+  }
+  @keyframes panel-out {
+    from {
+      translate: 0 0;
+      opacity: 1;
+    }
+    to {
+      translate: 100% 0;
+      opacity: 0;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic tokens — light values on :root, dark values under .dark. Exposed
+   to utilities through `@theme inline` below so `bg-canvas` resolves at the
+   element and follows the theme.
+--------------------------------------------------------------------------- */
+:root {
+  --bg-canvas: var(--color-neutral-100);
+  --bg-surface: var(--color-neutral-200);
+  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-200) 75%, transparent);
+  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--color-neutral-200));
+  --bg-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --bg-list-marker: var(--color-neutral-200);
+  --bg-selection: var(--color-brand-orange);
+  --bg-highlight: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
+  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  /* A gradient: use with `background`, never `background-color`. */
+  --bg-branded-emphasis: linear-gradient(
+    135deg,
+    var(--color-brand-orange) 0%,
+    var(--color-brand-pink) 60%
+  );
+
+  --fg-default: var(--color-neutral-700);
+  --fg-title: var(--color-neutral-900);
+  --fg-body: var(--color-neutral-500);
+  --fg-branded: var(--color-neutral-900);
+  --fg-selection: var(--color-neutral-900);
+  --fg-highlight: var(--color-brand-pink);
+
+  --border-divider: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
+  --border-focus-ring: var(--color-brand-pink);
+
+  --field-bg: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  --field-bg-active: var(--color-brand-rosemilk);
+  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
+  --field-bg-popover: var(--color-brand-rosemilk);
+  --field-bg-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
+  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-pink) 10%, transparent);
+  --field-border: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --field-border-active: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
+  --field-fg: var(--color-neutral-600);
+  --field-fg-muted: color-mix(in srgb, var(--color-neutral-600) 50%, var(--color-neutral-200));
+  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-600) 25%, transparent);
+  --field-fg-active: var(--color-brand-pink);
+  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
+
+  --opacity-hairline: 0.25;
+
+  /* Sizes (kartik.to `sizes.*`). Use as `w-(--size-toolbar-button)`. */
+  --size-article-content: 640px;
+  --size-article-showcase: 960px;
+  --size-toolbar-button: 28px;
+  --size-list-marker: 24px;
+  --size-list-bullet: 8px;
+  --size-list-bullet-glyph: 20px;
+  --size-quote-mark: 52px;
+  --size-tooltip-icon: 14px;
+  --size-sidenote-width: 320px;
+  --size-sidenote-offset: 100px;
+  --size-sidenote-stacked-inset: 80px;
+  --size-sidenote-min-width: 320px;
+  --size-sidenote-max-width: 480px;
+  --size-property-row-label: 80px;
+  --size-property-row-field: 212px;
+  --size-property-row-action: var(--size-toolbar-button);
+  /* 12 + 80 + 8 + 212 + 8 + 28 + 12 */
+  --size-properties-panel-width: calc(
+    var(--size-property-row-label) + var(--size-property-row-field) +
+      var(--size-property-row-action) + 2 * 8px + 2 * 12px
+  );
+  --size-option-list-width: 208px;
+  --size-option-row: 32px;
+  --size-option-row-sm: calc(var(--size-option-row) - 2 * 4px);
+  --size-field-value: 60px;
+  --size-dialog-xs: 320px;
+  --size-dialog-sm: 480px;
+  --size-dialog-footer: 44px;
+  --size-insert-dialog-height: 480px;
+  --size-library-sidebar: 200px;
+  --size-image-preview-max: 280px;
+}
+
+.dark {
+  --bg-canvas: var(--color-neutral-900);
+  --bg-surface: var(--color-neutral-800);
+  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
+  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--color-neutral-800));
+  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  --bg-list-marker: var(--color-neutral-800);
+  --bg-selection: var(--color-brand-pink);
+  --bg-highlight: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
+  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --bg-branded-emphasis: linear-gradient(
+    135deg,
+    var(--color-brand-pink) 0%,
+    var(--color-brand-orange) 60%
+  );
+
+  --fg-default: var(--color-neutral-200);
+  --fg-title: var(--color-neutral-100);
+  --fg-body: var(--color-neutral-400);
+  --fg-highlight: var(--color-brand-orange);
+
+  --border-divider: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
+  --border-focus-ring: var(--color-brand-orange);
+
+  --field-bg: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  --field-bg-active: var(--color-brand-rust);
+  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
+  --field-bg-popover: var(--color-brand-rust);
+  --field-bg-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
+  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
+  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-orange) 5%, transparent);
+  --field-border: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --field-border-active: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
+  --field-fg: var(--color-neutral-400);
+  --field-fg-muted: color-mix(in srgb, var(--color-neutral-400) 50%, var(--color-neutral-800));
+  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-400) 25%, transparent);
+  --field-fg-active: var(--color-brand-orange);
+  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
+
+  --opacity-hairline: 0.5;
+}
+
+@theme inline {
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-surface-glass: var(--bg-surface-glass);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-item-hover: var(--bg-item-hover);
+  --color-notice: var(--bg-notice);
+  --color-list-marker: var(--bg-list-marker);
+  --color-selection: var(--bg-selection);
+  --color-highlight: var(--bg-highlight);
+  --color-button-secondary: var(--bg-button-secondary);
+  --color-button-secondary-hover: var(--bg-button-secondary-hover);
+
+  --color-fg: var(--fg-default);
+  --color-fg-title: var(--fg-title);
+  --color-fg-body: var(--fg-body);
+  --color-fg-branded: var(--fg-branded);
+  --color-fg-selection: var(--fg-selection);
+  --color-fg-highlight: var(--fg-highlight);
+
+  --color-divider: var(--border-divider);
+  --color-image-outline: var(--border-image-outline);
+  --color-focus-ring: var(--border-focus-ring);
+
+  --color-field: var(--field-bg);
+  --color-field-on-surface: var(--field-bg-on-surface);
+  --color-field-active: var(--field-bg-active);
+  --color-field-active-veil: var(--field-bg-active-veil);
+  --color-field-popover: var(--field-bg-popover);
+  --color-field-selected: var(--field-bg-selected);
+  --color-field-hover: var(--field-bg-hover);
+  --color-field-pressed: var(--field-bg-pressed);
+  --color-field-hover-brand: var(--field-bg-hover-brand);
+  --color-field-border: var(--field-border);
+  --color-field-border-active: var(--field-border-active);
+  --color-field-fg: var(--field-fg);
+  --color-field-fg-muted: var(--field-fg-muted);
+  --color-field-fg-placeholder: var(--field-fg-placeholder);
+  --color-field-fg-active: var(--field-fg-active);
+  --color-field-fg-active-muted: var(--field-fg-active-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Text styles (kartik.to `textStyles`). Panda's percentage letter-spacing is
+   written here as the em it meant.
+--------------------------------------------------------------------------- */
+@utility text-style-title {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+}
+@utility text-style-subheading {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.8;
+}
+@utility text-style-body-lg {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+@utility text-style-body-sm {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.72;
+}
+@utility text-style-quote {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.8;
+  letter-spacing: -0.01em;
+}
+@utility text-style-caption {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 2;
+  letter-spacing: 0.005em;
+}
+@utility text-style-sidenote {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1.67;
+  letter-spacing: 0.005em;
+}
+@utility text-style-fineprint {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.625rem;
+  line-height: 1.6;
+  letter-spacing: 0.005em;
+}
+@utility text-style-inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+@utility text-style-code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.72;
+}
+
+/* Brand gradient as ink — the sidenote ordinal, the metric value. */
+@utility text-branded {
+  background: var(--bg-branded-emphasis);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+@utility bg-branded {
+  background: var(--bg-branded-emphasis);
+}
+/* The app's one blur strength. */
+@utility backdrop-frost {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--fg-default);
+    background: var(--bg-canvas);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    transition:
+      background 150ms ease,
+      color 150ms ease;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Selection reads like the prose highlight — same two tokens. */
+  ::selection {
+    background-color: var(--bg-highlight);
+    color: var(--fg-highlight);
+  }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus {
     outline: none;
   }
 
-  p.is-editor-empty:first-child::before {
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
+  /* Focus rings only once the keyboard is driving — see hooks/use-keyboard-focus. */
+  html[data-keyboard-focus]
+    :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+    box-shadow: 0 0 0 1.5px var(--border-focus-ring);
+    border-radius: var(--radius-xs);
+  }
+
+  dialog {
+    padding: 0;
+    border: none;
+    background: transparent;
+    overflow: visible;
+    width: fit-content;
+    max-width: calc(100% - 16px * 2);
+    max-height: calc(100dvh - 16px * 2);
+  }
+
+  dialog::backdrop {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* One-level indent (Tab in the editor): a list marker plus its gap. */
+  article [data-indented] {
+    padding-inline-start: 32px;
+  }
+
+  article [data-align='center'] {
+    text-align: center;
+  }
+
+  article :is(strong, b) {
+    font-weight: var(--font-weight-bold);
+    color: var(--fg-default);
+  }
+
+  /* Slash menu anchor — the editor sets this on its own node. */
+  [data-slash-anchor] {
+    anchor-name: --slash-menu;
+  }
+
+  /* Sidenote rail — an invisible box spanning the text column that the
+     sidenote layer measures to place its cards. */
+  [data-sidenote-rail] {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100%, var(--size-article-content));
     pointer-events: none;
-    color: var(--color-neutral-400);
+    visibility: hidden;
   }
 
-  .dark & p.is-editor-empty:first-child::before {
-    color: var(--color-neutral-600);
+  /* A media object with nothing to paint yet. */
+  [data-media-pending] {
+    background-color: var(--bg-surface);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 35%,
+      color-mix(in srgb, var(--bg-canvas) 70%, transparent) 50%,
+      transparent 65%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
   }
 
-  ul[data-type='taskList'] {
-    list-style: none;
-    padding-left: 0;
+  [data-field]:has([role='slider']),
+  [role='slider'] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 
-    li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
+  [data-field]:has([role='slider']) input {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 
-      > label {
-        flex-shrink: 0;
-        margin-top: 0.25rem;
-      }
+  html[data-control-dragging],
+  html[data-control-dragging] * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
 
-      > div {
-        flex: 1;
-      }
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-neutral-300);
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: var(--color-neutral-700);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    [data-media-pending] {
+      animation: none;
     }
   }
-
-  pre {
-    background: var(--color-neutral-100);
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.875rem;
-    overflow-x: auto;
-  }
-
-  .dark & pre {
-    background: var(--color-neutral-900);
-  }
-
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem;
-  }
-
-  hr {
-    border: none;
-    border-top: 1px solid var(--color-neutral-200);
-    margin: 1.5rem 0;
-  }
-
-  .dark & hr {
-    border-top-color: var(--color-neutral-800);
-  }
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--color-neutral-300);
-  border-radius: 3px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background-color: var(--color-neutral-700);
 }
