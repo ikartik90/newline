@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
 import { getSyncStatus } from './services/sync-status'
@@ -88,5 +89,17 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('media:flushPending', () => {
     return mediaService.flushPending()
+  })
+
+  ipcMain.handle('auth:google', (_event, clientId: string, authDomain: string) => {
+    return authService.signInWithGoogle(clientId, authDomain)
+  })
+
+  ipcMain.handle('auth:current', () => {
+    return authService.currentUser()
+  })
+
+  ipcMain.handle('auth:signOut', () => {
+    return authService.signOut()
   })
 }

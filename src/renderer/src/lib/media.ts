@@ -3,7 +3,7 @@ import type { MediaAsset } from '@shared/domain/media'
 // ---------------------------------------------------------------------------
 // The renderer's media client — what kartik.to's `app/actions/media.ts` server
 // actions are here. Every call crosses to the main process over
-// `window.api.media`, which owns the local files and the R2 credentials.
+// `window.api.media`, which owns the local files and the Worker session.
 // ---------------------------------------------------------------------------
 
 export async function listMediaAssets(): Promise<MediaAsset[]> {
@@ -12,8 +12,8 @@ export async function listMediaAssets(): Promise<MediaAsset[]> {
 
 /**
  * Store a file the author picked or pasted. Resolves once it is safe on
- * disk; the returned asset's `url` is the public R2 URL when the upload also
- * landed, or `local://…` when it is queued for later.
+ * disk; the returned asset's `url` is the Worker's public URL when the upload
+ * also landed, or `local://…` when it is queued for later.
  */
 export async function uploadMediaFile(
   file: File,

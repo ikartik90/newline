@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   auth: {
     googleSignIn: (clientId: string, authDomain: string) =>
-      ipcRenderer.invoke('auth:google', clientId, authDomain)
+      ipcRenderer.invoke('auth:google', clientId, authDomain),
+    current: () => ipcRenderer.invoke('auth:current'),
+    signOut: () => ipcRenderer.invoke('auth:signOut')
   }
 })

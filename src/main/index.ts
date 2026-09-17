@@ -1,6 +1,5 @@
-import { app, BrowserWindow, shell, protocol, net, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, protocol, net, dialog } from 'electron'
 import { join } from 'path'
-import { randomUUID } from 'crypto'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc'
@@ -8,67 +7,6 @@ import { flushPending, getMediaPath } from './services/media'
 import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
-
-function registerAuthHandlers(): void {
-  ipcMain.handle('auth:google', (_event, clientId: string, authDomain: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const nonce = randomUUID()
-      const redirectUri = `https://${authDomain}/__/auth/handler`
-
-      const authUrl =
-        'https://accounts.google.com/o/oauth2/v2/auth?' +
-        new URLSearchParams({
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          response_type: 'id_token',
-          scope: 'openid email profile',
-          nonce,
-          prompt: 'select_account'
-        }).toString()
-
-      const authWindow = new BrowserWindow({
-        width: 500,
-        height: 700,
-        parent: mainWindow ?? undefined,
-        modal: true,
-        show: true,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true
-        }
-      })
-
-      authWindow.webContents.on('will-redirect', (_e, url) => {
-        extractToken(url)
-      })
-
-      authWindow.webContents.on('will-navigate', (_e, url) => {
-        extractToken(url)
-      })
-
-      function extractToken(url: string): void {
-        try {
-          const parsed = new URL(url)
-          const fragment = parsed.hash.substring(1)
-          const params = new URLSearchParams(fragment)
-          const idToken = params.get('id_token')
-          if (idToken) {
-            resolve(idToken)
-            authWindow.close()
-          }
-        } catch {
-          // Not the redirect we're looking for
-        }
-      }
-
-      authWindow.on('closed', () => {
-        reject(new Error('Auth window was closed'))
-      })
-
-      authWindow.loadURL(authUrl)
-    })
-  })
-}
 
 function setupAutoUpdater(): void {
   autoUpdater.autoDownload = true
@@ -147,7 +85,6 @@ app.whenReady().then(() => {
   registerLocalProtocol()
   initDatabase()
   registerIpcHandlers()
-  registerAuthHandlers()
 
   createWindow()
   flushPendingMedia()

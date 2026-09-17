@@ -1,6 +1,6 @@
 # Newline
 
-A local-first rich text note editor. Electron (electron-vite) with a React 19 renderer styled in Tailwind v4, SQLite (better-sqlite3) as the on-device store, Firebase Auth + Firestore for sync, and Cloudflare R2 for media. Notes are stored as a structured JSON document (a block AST), not markdown or HTML.
+A local-first rich text note editor. Electron (electron-vite) with a React 19 renderer styled in Tailwind v4, SQLite (better-sqlite3) as the on-device store, and one Cloudflare Worker (`worker/`, D1 + R2) as the backend for sign-in sessions and media. Notes still sync through Firestore until the notes cutover to D1; Google is the identity provider throughout. Notes are stored as a structured JSON document (a block AST), not markdown or HTML.
 
 The editor is a port of the article editor in the sibling repo `../kartik.to`. That repo is a READ-ONLY reference: never edit, build in, or run mutating commands there. Its `DESIGN.md` is stale; token values come from its `panda.config.ts`.
 
@@ -12,14 +12,16 @@ The editor is a port of the article editor in the sibling repo `../kartik.to`. T
 - Typecheck: `npm run typecheck`
 - Look at the editor in a plain browser (no sign-in, no Electron): `npm run dev`, then open http://localhost:5173/harness.html — a dev-only page (`src/renderer/harness.html`) that mounts the editor with a sample document; it is not part of the build.
 - Lint / format: `npm run lint`, `npm run format` (prettier: no semicolons, single quotes, width 100)
+- Worker: `worker/` is its own npm package with its own `node_modules`; run its scripts from inside it (`npm test` there runs vitest inside workerd against real D1 and R2 emulations; `npm run dev` serves it on port 8787; `npm run deploy` needs a wrangler login).
 
 ## Directory map
 
 ```
+worker/                   The Cloudflare Worker (README.md is the API contract; migrations/ is the D1 schema)
 src/
 ├── main/                 Electron main process (Node)
 │   ├── db/               SQLite connection + versioned migrations
-│   ├── services/         notes, media (local files + R2), r2, sync-status; each with __tests__/
+│   ├── services/         notes, media (local files + the Worker), media-api, api, auth, session, sync-status; each with __tests__/
 │   ├── ipc.ts            ipcMain handlers — the renderer's only door to Node
 │   └── index.ts          window, protocols (local://), auth window, auto-update
 ├── preload/index.ts      contextBridge: `window.api.*` (typed in renderer/src/env.d.ts)
@@ -43,7 +45,8 @@ src/
 - **kebab-case file names** for everything new (matches kartik.to and eases cross-referencing). Components export named functions.
 - **Base UI for primitives.** Popover, Tooltip, Dialog, Menu, Select/Combobox, Slider, Switch, Checkbox, Toggle come from `@base-ui/react`, wrapped once in `components/ui/` and styled with Tailwind. Do not hand-roll these.
 - **Local-first.** The renderer never blocks on the network. Writes go to SQLite through `window.api`, then sync.
-- **Security.** R2 credentials live only in the main process. The renderer asks main for uploads over IPC.
+- **Security.** The app holds no Cloudflare credentials. Main keeps the Worker session token in `app_meta`, encrypted with `safeStorage`, and is the only process that calls the Worker; the renderer asks main over IPC.
+- **Free plan.** The Cloudflare account is on the free tier and must stay unbillable: the backend is one plain Worker with a D1 binding and an R2 binding, and the Worker's `MEDIA_QUOTA_BYTES` keeps stored media under R2's free allowance. Anything paid (placement, CPU limits, observability, queues, durable objects, custom domains) is out.
 
 ## Porting from kartik.to (Panda CSS → Tailwind)
 
@@ -74,14 +77,20 @@ Data attributes drive state styling exactly as in kartik.to (`data-active`, `dat
 
 SQLite `notes.body` holds the document as JSON text; `notes.plain_text` holds the derived text for FTS search. Firestore mirrors the same fields.
 
+## Sign-in and the Worker
+
+- Sign-in: main opens Google's consent window (OpenID Connect implicit flow, `services/auth.ts`), trades the ID token with the Worker's `POST /auth/google` for a session, and stores it (`services/session.ts`). The renderer receives the ID token too and still signs into Firebase with it, because Firestore sync needs that until the notes cutover.
+- `services/api.ts` is the one door to the Worker: base URL from `MAIN_VITE_API_URL` (`.env`; `http://127.0.0.1:8787` against `npm run dev` in `worker/`), bearer attached, non-2xx raised as `ApiError` with the Worker's error code.
+- Routes, limits, error codes and the D1 schema: `worker/README.md`. Change the contract there first, then both sides.
+
 ## Media pipeline
 
-- Renderer code never talks to R2. It calls `@/lib/media` (`uploadMediaFile`, `listMediaAssets`, `updateMediaAlt`, `updateMediaFilename`, `deleteMedia`, `uploadPoster`), which crosses to main over `window.api.media` (typed in `src/renderer/src/env.d.ts`).
+- Renderer code never talks to the Worker. It calls `@/lib/media` (`uploadMediaFile`, `listMediaAssets`, `updateMediaAlt`, `updateMediaFilename`, `deleteMedia`, `uploadPoster`), which crosses to main over `window.api.media` (typed in `src/renderer/src/env.d.ts`).
 - Main saves every file to `userData/media/<uuid>-<safe-name>` first and records it in the `media_assets` SQLite table. `local://<file>` is served by the `local` protocol in `src/main/index.ts`.
-- If R2 is configured (`MAIN_VITE_R2_ACCOUNT_ID`, `MAIN_VITE_R2_ACCESS_KEY_ID`, `MAIN_VITE_R2_SECRET_ACCESS_KEY`, `MAIN_VITE_R2_BUCKET_NAME`, `MAIN_VITE_R2_PUBLIC_BASE_URL` in `.env`) and the machine is online, the same call uploads under key `media/<uuid>-<safe-name>` and returns the public URL. Otherwise the asset is returned with its `local://` URL and queued; `media.flushPending` uploads later and rewrites `local://` sources inside note bodies to the public URL.
-- Object metadata (filename, alt, width, height, poster) is stamped after the bytes land, as kartik.to does, because R2 drops metadata on presigned PUTs.
+- When the API is configured and a session exists (`isMediaApiAvailable` in `services/media-api.ts`) and the machine is online, the same call PUTs the bytes and metadata to the Worker in one request under key `media/<uuid>-<safe-name>` and returns the public URL the Worker answers with. Otherwise the asset is returned with its `local://` URL and queued; `media.flushPending` uploads later and rewrites `local://` sources inside note bodies to the public URL.
+- The Worker files objects per user (`u/<userId>/<key>`) and serves bytes itself at `/m/...`; the app never sees the bucket key and treats a URL as opaque.
 
 ## Storage and sync
 
 - SQLite `notes`: `body` is the JSON Document, `plain_text` is derived for FTS (`notes_fts` indexes title, tags, plain_text). Migration v2 converts every markdown body with `@shared/markdown/markdown-to-document` and marks the note dirty so the converted body reaches Firestore.
-- Firestore `users/{uid}/notes/{id}` holds `{ title, body, tags, createdAt, updatedAt, isDeleted }`; `body` is the same JSON string. A remote body that is not valid JSON is legacy markdown and is converted on pull.
+- Firestore `users/{uid}/notes/{id}` holds `{ title, body, tags, createdAt, updatedAt, isDeleted }`; `body` is the same JSON string. A remote body that is not valid JSON is legacy markdown and is converted on pull. Sync is a poll (`lib/sync-service.ts`: push dirty notes, pull those updated since the last sync, every minute), which the planned move to D1 keeps route for route.

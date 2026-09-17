@@ -16,20 +16,21 @@ import {
   MEDIA_PREFIX,
   POSTER_PREFIX,
   deleteObject,
-  headObject,
-  isR2Configured,
-  listMediaKeys,
+  isMediaApiAvailable,
+  listObjects,
+  patchObject,
   posterKeyFor,
-  publicUrlForKey,
   putObject,
-  updateObjectMetadata
-} from './r2'
+  type MediaMetadata,
+  type MediaObject
+} from './media-api'
 
 // ---------------------------------------------------------------------------
 // The media library. Every file lands in `userData/media/` and a row in
-// `media_assets` first; the bucket is a copy that may arrive later. A row's
-// `url` is what a note stores for it — `local://<file>` until the copy lands,
-// the public URL after — and `flushPending` rewrites the notes when it changes.
+// `media_assets` first; the Worker's store is a copy that may arrive later.
+// A row's `url` is what a note stores for it — `local://<file>` until the
+// copy lands, the public URL the Worker answers with after — and
+// `flushPending` rewrites the notes when it changes.
 // ---------------------------------------------------------------------------
 
 export interface MediaUploadInput {
@@ -135,32 +136,24 @@ function numericMetadata(value: string | undefined): number | undefined {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
 }
 
-/** An object only the bucket knows, read the way kartik.to reads every one. */
-async function keyToMediaAsset(key: string): Promise<MediaAsset | null> {
-  const url = publicUrlForKey(key)
-  if (!url) return null
-  const head = await headObject(key)
+/** An object as the Worker describes it, read the way kartik.to reads every one. */
+function objectToAsset(object: MediaObject): MediaAsset {
+  const { metadata } = object
   return MediaAssetSchema.parse({
-    key,
-    url,
-    filename: head.filename || filenameFromMediaKey(key, MEDIA_PREFIX),
-    contentType: head.contentType,
-    size: head.size,
-    alt: head.alt || undefined,
-    width: numericMetadata(head.width),
-    height: numericMetadata(head.height),
-    poster: head.poster || undefined
+    key: object.key,
+    url: object.url,
+    filename: metadata.filename || filenameFromMediaKey(object.key, MEDIA_PREFIX),
+    contentType: object.contentType,
+    size: object.size,
+    alt: metadata.alt || undefined,
+    width: numericMetadata(metadata.width),
+    height: numericMetadata(metadata.height),
+    poster: metadata.poster || undefined
   })
 }
 
-async function remoteAsset(key: string): Promise<MediaAsset> {
-  const asset = await keyToMediaAsset(key)
-  if (!asset) throw new Error('Media asset not found')
-  return asset
-}
-
-/** What the object is stamped with: everything the row knows that is not local-only. */
-function metadataFor(row: MediaRow): Record<string, string> {
+/** What the object carries: everything the row knows that is not local-only. */
+function metadataFor(row: MediaRow): MediaMetadata {
   return {
     filename: row.filename,
     ...(row.width && row.height ? { width: String(row.width), height: String(row.height) } : {}),
@@ -185,18 +178,20 @@ function rewriteNoteSources(from: string, to: string): void {
   for (const { id } of ids) enqueueSyncAction(id, 'upsert')
 }
 
-/** Copy a row's file to the bucket; true once it is addressable there. */
+/**
+ * Copy a row's file to the Worker, metadata and all in the one PUT; true
+ * once it is addressable there. The Worker names the address.
+ */
 async function uploadRow(row: MediaRow): Promise<boolean> {
   if (!row.local_path || !existsSync(row.local_path)) return false
+  let url: string
   try {
-    await putObject(row.key, readFileSync(row.local_path), row.content_type)
-    await updateObjectMetadata(row.key, metadataFor(row))
+    const bytes = readFileSync(row.local_path)
+    url = (await putObject(row.key, bytes, row.content_type, metadataFor(row))).url
   } catch (error) {
     console.warn(`[media] upload failed for ${row.key}:`, error)
     return false
   }
-  const url = publicUrlForKey(row.key)
-  if (!url) return false
   getDb()
     .prepare('UPDATE media_assets SET url = ?, uploaded_at = ? WHERE key = ?')
     .run(url, Date.now(), row.key)
@@ -204,19 +199,18 @@ async function uploadRow(row: MediaRow): Promise<boolean> {
   return true
 }
 
-/** Copy a still to the bucket and stamp its clip with the address; null if it could not. */
+/** Copy a still to the Worker and stamp its clip with the address; null if it could not. */
 async function pushPoster(key: string, bytes: Uint8Array): Promise<string | null> {
   const posterKey = posterKeyFor(key)
-  const url = posterKey && publicUrlForKey(posterKey)
-  if (!posterKey || !url) return null
+  if (!posterKey) return null
   try {
-    await putObject(posterKey, bytes, POSTER_CONTENT_TYPE)
-    await updateObjectMetadata(key, { poster: url })
+    const { url } = await putObject(posterKey, bytes, POSTER_CONTENT_TYPE)
+    await patchObject(key, { poster: url })
+    return url
   } catch (error) {
     console.warn(`[media] poster upload failed for ${key}:`, error)
     return null
   }
-  return url
 }
 
 /** A still taken while its clip was still local: send it after the clip. */
@@ -233,8 +227,8 @@ async function uploadPendingPoster(row: MediaRow): Promise<void> {
 
 /**
  * Store a file the author picked or pasted. Safe on disk before this
- * resolves; in the bucket too when R2 is configured and reachable, in which
- * case the asset already carries its public URL.
+ * resolves; with the Worker too when the app is signed in and it is
+ * reachable, in which case the asset already carries its public URL.
  */
 export async function saveMedia(input: MediaUploadInput): Promise<MediaAsset> {
   const { filename, contentType } = CreateMediaUploadInputSchema.parse({
@@ -268,7 +262,7 @@ export async function saveMedia(input: MediaUploadInput): Promise<MediaAsset> {
       Date.now()
     )
 
-  if (isR2Configured()) await uploadRow(rowFor(key)!)
+  if (isMediaApiAvailable()) await uploadRow(rowFor(key)!)
   return assetFor(key)
 }
 
@@ -277,7 +271,7 @@ export async function saveMedia(input: MediaUploadInput): Promise<MediaAsset> {
  * the copies. Resolves to how many files landed.
  */
 export async function flushPending(): Promise<number> {
-  if (!isR2Configured()) return 0
+  if (!isMediaApiAvailable()) return 0
   const db = getDb()
   const pending = db
     .prepare('SELECT * FROM media_assets WHERE uploaded_at IS NULL ORDER BY created_at')
@@ -295,22 +289,22 @@ export async function flushPending(): Promise<number> {
 
 /**
  * The library: this machine's rows newest first, then whatever else the
- * bucket holds — objects uploaded from another machine, or before there was
- * a table. Offline, the rows alone.
+ * Worker holds — objects uploaded from another machine, or before there was
+ * a table. One listing carries everything; no object is asked about twice.
+ * Offline, the rows alone.
  */
 export async function listMedia(): Promise<MediaAsset[]> {
   const rows = getDb()
     .prepare('SELECT * FROM media_assets ORDER BY created_at DESC, rowid DESC')
     .all() as MediaRow[]
   const assets = rows.map(rowToAsset)
-  if (!isR2Configured()) return assets
+  if (!isMediaApiAvailable()) return assets
   try {
     const known = new Set(rows.map((row) => row.key))
-    const keys = (await listMediaKeys()).filter((key) => !known.has(key))
-    const remote = await Promise.all(keys.map(keyToMediaAsset))
-    return [...assets, ...remote.filter((asset): asset is MediaAsset => asset !== null)]
+    const remote = (await listObjects()).filter((object) => !known.has(object.key))
+    return [...assets, ...remote.map(objectToAsset)]
   } catch (error) {
-    console.warn('[media] could not list the bucket:', error)
+    console.warn('[media] could not list the store:', error)
     return assets
   }
 }
@@ -318,7 +312,8 @@ export async function listMedia(): Promise<MediaAsset[]> {
 /**
  * Change what the row says, and what the object says where there is one.
  * The row is the source of truth for anything this machine holds, so a
- * bucket that cannot be reached is a warning, not a failure.
+ * Worker that cannot be reached is a warning, not a failure. An object only
+ * the Worker knows is what the patch answers with.
  */
 async function updateRowAndObject(
   key: string,
@@ -327,14 +322,11 @@ async function updateRowAndObject(
 ): Promise<MediaAsset> {
   assertLibraryKey(key)
   const row = rowFor(key)
-  if (!row) {
-    await updateObjectMetadata(key, { [column]: value })
-    return remoteAsset(key)
-  }
+  if (!row) return objectToAsset(await patchObject(key, { [column]: value }))
   getDb().prepare(`UPDATE media_assets SET ${column} = ? WHERE key = ?`).run(value, key)
-  if (row.uploaded_at !== null && isR2Configured()) {
+  if (row.uploaded_at !== null && isMediaApiAvailable()) {
     try {
-      await updateObjectMetadata(key, { [column]: value })
+      await patchObject(key, { [column]: value })
     } catch (error) {
       console.warn(`[media] could not stamp ${column} on ${key}:`, error)
     }
@@ -353,17 +345,17 @@ export function rename(key: string, filename: string): Promise<MediaAsset> {
 }
 
 /**
- * Remove an asset everywhere. The bucket goes first: if it refuses, nothing
+ * Remove an asset everywhere. The Worker goes first: if it refuses, nothing
  * here has changed and the caller can try again, rather than a local delete
  * leaving an orphan that the next listing would bring back.
  */
 export async function deleteMedia(key: string): Promise<void> {
   assertLibraryKey(key)
   const row = rowFor(key)
-  if ((!row || row.uploaded_at !== null) && isR2Configured()) {
+  if ((!row || row.uploaded_at !== null) && isMediaApiAvailable()) {
     await deleteObject(key)
     // Unconditionally: a delete of a missing key is a no-op cheaper than
-    // the HEAD it would take to ask.
+    // the GET it would take to ask.
     const posterKey = posterKeyFor(key)
     if (posterKey) await deleteObject(posterKey)
   }
@@ -376,8 +368,8 @@ export async function deleteMedia(key: string): Promise<void> {
 
 /**
  * Store a clip's still beside it. Resolves to the still's URL — public once
- * the clip is in the bucket, `local://` until then — or null for a key that
- * is not a library object's.
+ * the clip is with the Worker, `local://` until then — or null for a key
+ * that is not a library object's.
  */
 export async function uploadPoster(key: string, bytes: Uint8Array): Promise<string | null> {
   const file = posterFileFor(key)
@@ -386,7 +378,7 @@ export async function uploadPoster(key: string, bytes: Uint8Array): Promise<stri
 
   const row = rowFor(key)
   let url = localUrl(file)
-  if (isR2Configured() && (!row || row.uploaded_at !== null)) {
+  if (isMediaApiAvailable() && (!row || row.uploaded_at !== null)) {
     url = (await pushPoster(key, bytes)) ?? url
   }
   if (row) getDb().prepare('UPDATE media_assets SET poster = ? WHERE key = ?').run(url, key)

@@ -33,8 +33,8 @@ const MEDIA_KEY_UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 
 /**
  * The name a stored file was uploaded under, read off the URL the document
- * holds — a public R2 URL or a `local://` one, both of which end in the same
- * stamped key.
+ * holds — the Worker's public URL or a `local://` one, both of which end in
+ * the same stamped key.
  */
 export function filenameFromMediaUrl(url: string): string {
   const path = url.split(/[?#]/)[0]

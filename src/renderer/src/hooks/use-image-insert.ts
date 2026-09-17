@@ -25,8 +25,8 @@ import { measureMediaFile } from '@/utils/measure-media'
 // under a presigned URL and the shape and the still were stamped on
 // afterwards. Here every file crosses to the main process once
 // (`uploadMediaFile`), which stores it locally, records it, and mirrors it to
-// R2 when it can — so there is no signing step, no PUT to watch, and no
-// progress to report beyond which file of the batch is on the wire.
+// the Worker when it can — so there is no signing step, no PUT to watch, and
+// no progress to report beyond which file of the batch is on the wire.
 // ---------------------------------------------------------------------------
 
 export type ImageInsertPhase = 'upload' | 'uploading' | 'library'

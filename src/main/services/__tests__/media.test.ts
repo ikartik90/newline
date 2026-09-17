@@ -7,9 +7,12 @@ import type { MediaAsset } from '@shared/domain/media'
 import { getDb } from '../../db/database'
 import * as media from '../media'
 import * as notes from '../notes'
-import { bucket, failWith, resetFakeS3 } from './fake-s3'
+import { PUBLIC_BASE, failWith, resetFakeMediaApi, setAvailable, store } from './fake-media-api'
 
-vi.mock('@aws-sdk/client-s3', () => import('./fake-s3'))
+vi.mock('../media-api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../media-api')>()),
+  ...(await import('./fake-media-api'))
+}))
 
 vi.mock('electron', async () => {
   const { mkdtempSync } = await import('fs')
@@ -25,16 +28,9 @@ vi.mock('../../db/database', async () => {
   return { getDb: () => db, initDatabase: () => db, closeDatabase: () => {} }
 })
 
-const ENV = {
-  MAIN_VITE_R2_ACCOUNT_ID: 'acct',
-  MAIN_VITE_R2_ACCESS_KEY_ID: 'ak',
-  MAIN_VITE_R2_SECRET_ACCESS_KEY: 'sk',
-  MAIN_VITE_R2_BUCKET_NAME: 'bucket',
-  MAIN_VITE_R2_PUBLIC_BASE_URL: 'https://cdn.example.com'
-}
-
-function configureR2(): void {
-  for (const [name, value] of Object.entries(ENV)) vi.stubEnv(name, value)
+/** The app has a base URL and a session: uploads go to the Worker. */
+function connect(): void {
+  setAvailable(true)
 }
 
 const userData = app.getPath('userData')
@@ -56,13 +52,12 @@ function noteWithSrc(src: string): string {
 }
 
 beforeEach(() => {
-  resetFakeS3()
-  for (const name of Object.keys(ENV)) vi.stubEnv(name, undefined)
+  resetFakeMediaApi()
   getDb().exec('DELETE FROM notes; DELETE FROM sync_queue; DELETE FROM media_assets')
 })
 
 afterEach(() => {
-  vi.unstubAllEnvs()
+  vi.restoreAllMocks()
 })
 
 describe('saveMedia', () => {
@@ -73,7 +68,7 @@ describe('saveMedia', () => {
     )
   })
 
-  it('keeps the file on this machine when R2 is not configured', async () => {
+  it('keeps the file on this machine when the Worker is not available', async () => {
     const asset = await upload()
     expect(asset.key).toMatch(/^media\/[0-9a-f-]{36}-My-Photo\.png$/)
     const file = asset.key.slice('media/'.length)
@@ -95,14 +90,14 @@ describe('saveMedia', () => {
       local_path: join(userData, 'media', file),
       uploaded_at: null
     })
-    expect(bucket.size).toBe(0)
+    expect(store.size).toBe(0)
   })
 
-  it('uploads and stamps the object when R2 is configured', async () => {
-    configureR2()
+  it('uploads the object with its metadata in one PUT when the Worker is available', async () => {
+    connect()
     const asset = await upload()
-    expect(asset.url).toBe(`https://cdn.example.com/${asset.key}`)
-    expect(bucket.get(asset.key)).toMatchObject({
+    expect(asset.url).toBe(`${PUBLIC_BASE}/${asset.key}`)
+    expect(store.get(asset.key)).toEqual({
       body: Buffer.from(png),
       contentType: 'image/png',
       metadata: { filename: 'My-Photo.png', width: '640', height: '480' }
@@ -115,8 +110,9 @@ describe('saveMedia', () => {
   })
 
   it('falls back to the local copy when the upload fails', async () => {
-    configureR2()
+    connect()
     failWith(new Error('offline'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const asset = await upload()
     expect(asset.url).toMatch(/^local:\/\//)
     const row = getDb()
@@ -127,10 +123,10 @@ describe('saveMedia', () => {
 })
 
 describe('flushPending', () => {
-  it('does nothing unconfigured', async () => {
+  it('does nothing while the Worker is not available', async () => {
     await upload()
     expect(await media.flushPending()).toBe(0)
-    expect(bucket.size).toBe(0)
+    expect(store.size).toBe(0)
   })
 
   it('uploads what is still local and rewrites the notes that use it', async () => {
@@ -141,12 +137,12 @@ describe('flushPending', () => {
     notes.markSynced(note.id)
     notes.markSynced(untouched.id)
 
-    configureR2()
+    connect()
     expect(await media.flushPending()).toBe(2)
 
-    expect(bucket.has(asset.key)).toBe(true)
-    expect(bucket.has(other.key)).toBe(true)
-    const publicUrl = `https://cdn.example.com/${asset.key}`
+    expect(store.has(asset.key)).toBe(true)
+    expect(store.has(other.key)).toBe(true)
+    const publicUrl = `${PUBLIC_BASE}/${asset.key}`
     expect(parseDocument(notes.getNote(note.id)!.body).content).toEqual([
       { type: 'media', kind: 'image', src: publicUrl }
     ])
@@ -165,11 +161,29 @@ describe('flushPending', () => {
 
   it('leaves a row local when its upload fails', async () => {
     await upload()
-    configureR2()
+    connect()
     failWith(new Error('offline'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(await media.flushPending()).toBe(0)
     failWith(null)
     expect(await media.flushPending()).toBe(1)
+  })
+
+  it('sends a still taken while its clip was local, after the clip', async () => {
+    const clip = await upload({ filename: 'clip.mp4', contentType: 'video/mp4' })
+    const stillUrl = await media.uploadPoster(clip.key, new Uint8Array([0xff, 0xd8]))
+    const note = notes.createNote('N', noteWithSrc(stillUrl!))
+    notes.markSynced(note.id)
+
+    connect()
+    expect(await media.flushPending()).toBe(1)
+    const posterKey = clip.key.replace('media/', 'posters/').replace(/\.mp4$/, '.jpg')
+    expect(store.get(posterKey)?.contentType).toBe('image/jpeg')
+    expect(store.get(clip.key)?.metadata.poster).toBe(`${PUBLIC_BASE}/${posterKey}`)
+    expect((await media.listMedia())[0].poster).toBe(`${PUBLIC_BASE}/${posterKey}`)
+    expect(parseDocument(notes.getNote(note.id)!.body).content).toEqual([
+      { type: 'media', kind: 'image', src: `${PUBLIC_BASE}/${posterKey}` }
+    ])
   })
 })
 
@@ -184,15 +198,15 @@ describe('listMedia', () => {
     expect((await media.listMedia()).map((a) => a.key)).toEqual([second.key, first.key])
   })
 
-  it('merges objects the bucket holds that this machine never saw', async () => {
-    configureR2()
+  it('merges objects the Worker holds that this machine never saw', async () => {
+    connect()
     const mine = await upload()
-    bucket.set('media/0b1d0e0c-1111-4222-8333-444444444444-remote.png', {
+    store.set('media/0b1d0e0c-1111-4222-8333-444444444444-remote.png', {
       body: new Uint8Array(7),
       contentType: 'image/png',
       metadata: { filename: 'Remote picture', alt: 'R', width: '10', height: 'nope' }
     })
-    bucket.set('posters/0b1d0e0c-1111-4222-8333-444444444444-remote.jpg', {
+    store.set('posters/0b1d0e0c-1111-4222-8333-444444444444-remote.jpg', {
       body: new Uint8Array(1),
       contentType: 'image/jpeg',
       metadata: {}
@@ -201,7 +215,7 @@ describe('listMedia', () => {
       mine,
       {
         key: 'media/0b1d0e0c-1111-4222-8333-444444444444-remote.png',
-        url: 'https://cdn.example.com/media/0b1d0e0c-1111-4222-8333-444444444444-remote.png',
+        url: `${PUBLIC_BASE}/media/0b1d0e0c-1111-4222-8333-444444444444-remote.png`,
         filename: 'Remote picture',
         contentType: 'image/png',
         size: 7,
@@ -211,10 +225,21 @@ describe('listMedia', () => {
     ])
   })
 
-  it('still answers with the local rows when the bucket cannot be reached', async () => {
-    configureR2()
+  it('names an object after its key when the Worker holds no name for it', async () => {
+    connect()
+    store.set('media/0b1d0e0c-1111-4222-8333-444444444444-remote.png', {
+      body: new Uint8Array(1),
+      contentType: 'image/png',
+      metadata: {}
+    })
+    expect((await media.listMedia())[0].filename).toBe('remote.png')
+  })
+
+  it('still answers with the local rows when the Worker cannot be reached', async () => {
+    connect()
     const mine = await upload()
     failWith(new Error('offline'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(await media.listMedia()).toEqual([mine])
   })
 })
@@ -224,25 +249,34 @@ describe('updateAlt / rename', () => {
     const local = await upload()
     expect((await media.updateAlt(local.key, 'A cat')).alt).toBe('A cat')
 
-    configureR2()
+    connect()
     const uploaded = await upload()
     const withAlt = await media.updateAlt(uploaded.key, 'A dog')
     expect(withAlt.alt).toBe('A dog')
-    expect(bucket.get(uploaded.key)?.metadata).toMatchObject({ alt: 'A dog' })
+    expect(store.get(uploaded.key)?.metadata).toMatchObject({ alt: 'A dog' })
 
     const renamed = await media.rename(uploaded.key, '  Fancy  nameé ')
     expect(renamed.filename).toBe('Fancy namee')
-    expect(bucket.get(uploaded.key)?.metadata.filename).toBe('Fancy namee')
+    expect(store.get(uploaded.key)?.metadata.filename).toBe('Fancy namee')
     expect((await media.listMedia()).find((a) => a.key === uploaded.key)).toEqual(renamed)
   })
 
-  it('works on an object only the bucket knows', async () => {
-    configureR2()
+  it('keeps the row when the Worker cannot be reached', async () => {
+    connect()
+    const uploaded = await upload()
+    failWith(new Error('offline'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect((await media.updateAlt(uploaded.key, 'A dog')).alt).toBe('A dog')
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('works on an object only the Worker knows', async () => {
+    connect()
     const key = 'media/0b1d0e0c-1111-4222-8333-444444444444-remote.png'
-    bucket.set(key, { body: new Uint8Array(1), contentType: 'image/png', metadata: {} })
+    store.set(key, { body: new Uint8Array(1), contentType: 'image/png', metadata: {} })
     expect((await media.updateAlt(key, 'alt')).alt).toBe('alt')
     expect((await media.rename(key, 'name')).filename).toBe('name')
-    expect(bucket.get(key)?.metadata).toEqual({ alt: 'alt', filename: 'name' })
+    expect(store.get(key)?.metadata).toEqual({ alt: 'alt', filename: 'name' })
   })
 
   it('refuses a key outside the library', async () => {
@@ -252,47 +286,69 @@ describe('updateAlt / rename', () => {
 
 describe('uploadPoster', () => {
   it('stores the still beside the clip and stamps the clip with it', async () => {
-    configureR2()
+    connect()
     const clip = await upload({ filename: 'clip.mp4', contentType: 'video/mp4' })
     const still = new Uint8Array([0xff, 0xd8])
     const url = await media.uploadPoster(clip.key, still)
     const posterKey = clip.key.replace('media/', 'posters/').replace(/\.mp4$/, '.jpg')
-    expect(url).toBe(`https://cdn.example.com/${posterKey}`)
-    expect(bucket.get(posterKey)?.contentType).toBe('image/jpeg')
-    expect([...bucket.get(posterKey)!.body]).toEqual([0xff, 0xd8])
-    expect(bucket.get(clip.key)?.metadata.poster).toBe(url)
+    expect(url).toBe(`${PUBLIC_BASE}/${posterKey}`)
+    expect(store.get(posterKey)?.contentType).toBe('image/jpeg')
+    expect([...store.get(posterKey)!.body]).toEqual([0xff, 0xd8])
+    expect(store.get(clip.key)?.metadata.poster).toBe(url)
     expect(existsSync(join(userData, 'media', posterKey.slice('posters/'.length)))).toBe(true)
     expect((await media.listMedia())[0].poster).toBe(url)
   })
 
-  it('keeps the still local when R2 is not configured, and refuses a foreign key', async () => {
+  it('keeps the still local when the Worker is not available, and refuses a foreign key', async () => {
     const clip = await upload({ filename: 'clip.mp4', contentType: 'video/mp4' })
     const url = await media.uploadPoster(clip.key, new Uint8Array([1]))
     expect(url).toMatch(/^local:\/\/[0-9a-f-]{36}-clip\.jpg$/)
     expect(await media.uploadPoster('icons/x.svg', new Uint8Array([1]))).toBeNull()
   })
+
+  it('keeps the still local when the upload fails', async () => {
+    connect()
+    const clip = await upload({ filename: 'clip.mp4', contentType: 'video/mp4' })
+    failWith(new Error('offline'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const url = await media.uploadPoster(clip.key, new Uint8Array([1]))
+    expect(url).toMatch(/^local:\/\//)
+    expect((await media.listMedia())[0].poster).toBe(url)
+  })
 })
 
 describe('deleteMedia', () => {
   it('removes the row, the files and the objects', async () => {
-    configureR2()
+    connect()
     const clip = await upload({ filename: 'clip.mp4', contentType: 'video/mp4' })
     await media.uploadPoster(clip.key, new Uint8Array([1]))
     const file = clip.key.slice('media/'.length)
 
     await media.deleteMedia(clip.key)
 
-    expect(bucket.size).toBe(0)
+    expect(store.size).toBe(0)
     expect(existsSync(join(userData, 'media', file))).toBe(false)
     expect(existsSync(join(userData, 'media', file.replace(/\.mp4$/, '.jpg')))).toBe(false)
     expect(await media.listMedia()).toEqual([])
   })
 
-  it('leaves the local copy in place when the bucket refuses', async () => {
-    configureR2()
+  it('leaves the local copy in place when the Worker refuses', async () => {
+    connect()
     const asset = await upload()
     failWith(new Error('offline'))
     await expect(media.deleteMedia(asset.key)).rejects.toThrow('offline')
+    failWith(null)
+    expect(await media.listMedia()).toEqual([asset])
+  })
+
+  it('removes a local-only row without asking the Worker', async () => {
+    connect()
+    const asset = await upload()
+    failWith(new Error('offline'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const local = await upload({ filename: 'other.png' })
+    await media.deleteMedia(local.key)
+    failWith(null)
     expect(await media.listMedia()).toEqual([asset])
   })
 })

@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import type { AuthUser } from '@shared/domain/auth'
 import type { MediaAsset } from '@shared/domain/media'
 
 declare global {
@@ -70,10 +71,11 @@ declare global {
       }
       /**
        * The media library. Every file is saved on this machine first, under
-       * `userData/media/`, and served back as `local://<file>`. When R2 is
-       * configured and the machine is online the same call uploads it and
-       * returns the public URL instead; otherwise the upload is queued and
-       * the sync service rewrites `local://` sources in notes once it lands.
+       * `userData/media/`, and served back as `local://<file>`. When the app
+       * is signed in and the machine is online the same call uploads it to
+       * the Worker and returns the public URL instead; otherwise the upload
+       * is queued and the sync service rewrites `local://` sources in notes
+       * once it lands.
        */
       media: {
         list: () => Promise<MediaAsset[]>
@@ -86,8 +88,18 @@ declare global {
         /** Upload anything still local-only. Resolves to how many landed. */
         flushPending: () => Promise<number>
       }
+      /**
+       * Sign-in lives in the main process: it runs Google's consent window,
+       * trades the ID token for a Worker session and keeps that session.
+       * The ID token comes back too, for the renderer's Firebase sign-in.
+       */
       auth: {
-        googleSignIn: (clientId: string, authDomain: string) => Promise<string>
+        googleSignIn: (
+          clientId: string,
+          authDomain: string
+        ) => Promise<{ idToken: string; user: AuthUser }>
+        current: () => Promise<AuthUser | null>
+        signOut: () => Promise<void>
       }
     }
   }

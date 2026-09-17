@@ -5,3 +5,5 @@ dist/
 *.map
 .env
 .env.local
+worker/.wrangler/
+worker/.dev.vars

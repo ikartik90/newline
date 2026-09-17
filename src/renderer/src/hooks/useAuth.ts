@@ -26,7 +26,8 @@ export function useAuth() {
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
-    const idToken = await window.api.auth.googleSignIn(GOOGLE_CLIENT_ID, AUTH_DOMAIN)
+    // Main establishes the Worker session and hands the ID token back for Firebase.
+    const { idToken } = await window.api.auth.googleSignIn(GOOGLE_CLIENT_ID, AUTH_DOMAIN)
     const credential = GoogleAuthProvider.credential(idToken)
     await signInWithCredential(auth, credential)
   }, [])
@@ -40,6 +41,7 @@ export function useAuth() {
   }, [])
 
   const logout = useCallback(async () => {
+    await window.api.auth.signOut()
     await signOut(auth)
   }, [])
 
