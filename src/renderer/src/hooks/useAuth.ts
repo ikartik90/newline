@@ -1,47 +1,26 @@
-import { useState, useEffect, useCallback } from 'react'
-import {
-  onAuthStateChanged,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  type User
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { useEffect } from 'react'
+import { useAuthStore } from '@/store/auth'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? ''
-const AUTH_DOMAIN = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? ''
-
+/**
+ * Who is signed in, as main knows it. A view on the auth store: every caller
+ * sees the same user, and the first one mounted asks main for the session.
+ */
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const user = useAuthStore((state) => state.user)
+  const loading = useAuthStore((state) => state.loading)
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
+  const cancelGoogleSignIn = useAuthStore((state) => state.cancelGoogleSignIn)
+  const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u)
-      setLoading(false)
-    })
-    return unsubscribe
+    void useAuthStore.getState().load()
   }, [])
 
-  const signInWithGoogle = useCallback(async () => {
-    const idToken = await window.api.auth.googleSignIn(GOOGLE_CLIENT_ID, AUTH_DOMAIN)
-    const credential = GoogleAuthProvider.credential(idToken)
-    await signInWithCredential(auth, credential)
-  }, [])
-
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
-  }, [])
-
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password)
-  }, [])
-
-  const logout = useCallback(async () => {
-    await signOut(auth)
-  }, [])
-
-  return { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, logout }
+  return {
+    user,
+    loading,
+    signInWithGoogle,
+    cancelGoogleSignIn,
+    logout
+  }
 }

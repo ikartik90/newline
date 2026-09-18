@@ -1,15 +1,21 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '@/components/Sidebar'
-import NoteEditor from '@/components/Editor'
 import ThemeToggle from '@/components/ThemeToggle'
 import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
 import AuthScreen from '@/components/auth/AuthScreen'
+import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
+import { NotePropertiesPanel } from '@/components/note-properties-panel'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useKeyboard } from '@/hooks/useKeyboard'
-import { extractTags, deriveTitle } from '@/lib/markdown'
-import { startSyncService, stopSyncService, pushNoteNow } from '@/lib/sync-service'
+import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
+import { useInputModality } from '@/hooks/use-input-modality'
+import { parseDocument, serializeDocument } from '@shared/domain/document'
+import SettingsIcon from '@/assets/icons/settings.svg'
+
+const iconButton =
+  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body hover:bg-field-hover transition-colors'
 
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
@@ -26,12 +32,16 @@ function App() {
     refresh
   } = useNotes()
 
-  const { theme, setTheme } = useTheme()
+  const { effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Focus rings and hover gating follow how the app is being driven.
+  useKeyboardFocus()
+  useInputModality()
 
   useKeyboard({
     onNewNote: createNote,
@@ -42,63 +52,83 @@ function App() {
     onToggleSidebar: () => setSidebarCollapsed((c) => !c)
   })
 
+  // Sync runs in main. Signed in, the renderer asks for a cycle once (and
+  // again whenever the machine comes back online) and reloads the list when
+  // a pull changed something. `refresh` follows the search query, so it is
+  // read through a ref rather than re-running the subscription on every
+  // keystroke.
+  const refreshRef = useRef(refresh)
   useEffect(() => {
-    if (user) {
-      startSyncService(user.uid)
-      return () => stopSyncService()
-    }
-  }, [user])
+    refreshRef.current = refresh
+  }, [refresh])
 
+  const userId = user?.id ?? null
   useEffect(() => {
-    if (user) {
-      const interval = setInterval(refresh, 60_000)
-      return () => clearInterval(interval)
+    if (!userId) return
+    const reload = () => void refreshRef.current()
+    const unsubscribe = window.api.sync.onChanged(reload)
+    const run = () => {
+      // The cycle may be one main started before this screen was listening.
+      void window.api.sync.now().then(({ pulled }) => {
+        if (pulled > 0) reload()
+      })
     }
-  }, [user, refresh])
+    run()
+    window.addEventListener('online', run)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('online', run)
+    }
+  }, [userId])
 
-  const handleNoteUpdate = useCallback(
-    (fields: { body: string; title?: string }) => {
-      if (!activeNote) return
+  // The editor seeds itself from these once per note; later saves must not
+  // re-seed it, so they are keyed on the id alone.
+  const activeNoteId = activeNote?.id ?? null
+  const initialDocument = useMemo(
+    () => (activeNote ? parseDocument(activeNote.body) : null),
+    [activeNoteId]
+  )
 
-      const tags = extractTags(fields.body)
-      const title = fields.title !== undefined ? fields.title : activeNote.title
-      const displayTitle = deriveTitle(title, fields.body)
-      const payload = { body: fields.body, title: displayTitle, tags }
-
+  /** Write a change to SQLite, then have main push it to the Worker, reporting each step. */
+  const persist = useCallback(
+    async (id: string, fields: { title?: string; body?: string; tags?: string[] }) => {
       setSaveState('saving')
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
-      debounceTimerRef.current = setTimeout(async () => {
-        const updatedNote = await updateNote(activeNote.id, payload)
+      await updateNote(id, fields)
+      setSaveState('syncing')
 
-        setSaveState('syncing')
+      const synced = await window.api.sync.pushNote(id)
 
-        const noteForPush = updatedNote ?? {
-          ...activeNote,
-          ...payload,
-          updatedAt: Date.now()
-        }
-        const synced = await pushNoteNow(noteForPush)
+      if (synced) setSaveState('saved')
+      else if (!navigator.onLine) setSaveState('offline')
+      else setSaveState('error')
 
-        if (synced) {
-          setSaveState('saved')
-        } else if (!navigator.onLine) {
-          setSaveState('offline')
-        } else {
-          setSaveState('error')
-        }
-
-        fadeTimerRef.current = setTimeout(() => setSaveState('idle'), 3000)
-      }, 300)
+      fadeTimerRef.current = setTimeout(() => setSaveState('idle'), 3000)
     },
-    [activeNote, updateNote]
+    [updateNote]
+  )
+
+  const handleEditorChange = useCallback(
+    ({ title, document }: EditorSnapshot) => {
+      if (!activeNoteId) return
+      void persist(activeNoteId, { title, body: serializeDocument(document) })
+    },
+    [activeNoteId, persist]
+  )
+
+  const handleTagsChange = useCallback(
+    (tags: string[]) => {
+      if (!activeNoteId) return
+      void persist(activeNoteId, { tags })
+    },
+    [activeNoteId, persist]
   )
 
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-        <div className="text-neutral-400 dark:text-neutral-600 text-sm">Loading…</div>
+      <div className="h-screen flex items-center justify-center bg-canvas">
+        <div className="text-fg-body text-style-body-sm">Loading…</div>
       </div>
     )
   }
@@ -108,7 +138,7 @@ function App() {
   }
 
   return (
-    <div className="h-screen flex bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
+    <div className="h-screen flex bg-canvas text-fg">
       <Sidebar
         notes={notes}
         activeId={activeId}
@@ -134,37 +164,60 @@ function App() {
             className="flex items-center gap-2"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
-            <span className="text-xs text-neutral-400 dark:text-neutral-600 truncate max-w-[120px]">
+            <span className="text-style-caption text-fg-body/50 truncate max-w-[160px]">
               {user.email}
             </span>
             <button
+              type="button"
               onClick={logout}
-              className="text-xs text-neutral-400 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400"
+              className="text-style-caption text-fg-body hover:text-fg transition-colors"
             >
               Sign out
             </button>
-            <ThemeToggle theme={theme} onChange={setTheme} />
+            {/* The theme toggle, then the note's settings (the gear) last. */}
+            <ThemeToggle theme={effectiveTheme} onChange={setTheme} />
+            {activeNote && (
+              <button
+                type="button"
+                className={iconButton}
+                aria-label="Note properties"
+                aria-pressed={propertiesOpen}
+                title="Note properties"
+                onClick={() => setPropertiesOpen((open) => !open)}
+              >
+                <SettingsIcon className="w-5 h-5" aria-hidden />
+              </button>
+            )}
           </div>
         </div>
 
-        {activeNote ? (
-          <NoteEditor note={activeNote} onUpdate={handleNoteUpdate} />
+        {activeNote && initialDocument ? (
+          <main className="flex-1 overflow-y-auto px-5 pt-8 pb-20">
+            <article>
+              <ArticleEditor
+                key={activeNote.id}
+                noteId={activeNote.id}
+                initialTitle={activeNote.title}
+                initialDocument={initialDocument}
+                onChange={handleEditorChange}
+              />
+            </article>
+          </main>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-neutral-300 dark:text-neutral-700">
-                Newline
-              </h2>
-              <p className="mt-2 text-sm text-neutral-400 dark:text-neutral-600">
+              <h2 className="text-style-subheading text-fg-body">Newline</h2>
+              <p className="mt-2 text-style-body-sm text-fg-body/50">
                 Select a note or create a new one
               </p>
-              <p className="mt-1 text-xs text-neutral-300 dark:text-neutral-700">
+              <p className="mt-1 text-style-caption text-fg-body/50">
                 {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}N to create,{' '}
                 {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}F to search
               </p>
               <button
+                type="button"
                 onClick={createNote}
-                className="mt-4 px-4 py-2 text-sm rounded-lg bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:opacity-90 transition-opacity"
+                className="mt-4 h-10 px-3 text-style-body-sm rounded-md bg-branded text-fg-branded hover:opacity-90 transition-opacity"
               >
                 New note
               </button>
@@ -172,6 +225,15 @@ function App() {
           </div>
         )}
       </div>
+
+      {activeNote && propertiesOpen && (
+        <NotePropertiesPanel
+          key={activeNote.id}
+          note={activeNote}
+          onTagsChange={handleTagsChange}
+          onDismiss={() => setPropertiesOpen(false)}
+        />
+      )}
     </div>
   )
 }

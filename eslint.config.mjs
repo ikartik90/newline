@@ -10,6 +10,12 @@ export default tseslint.config(
     }
   },
   {
-    ignores: ['out/', 'dist/', 'node_modules/']
+    ignores: [
+      'out/',
+      'dist/',
+      'node_modules/',
+      'worker/.wrangler/',
+      'worker/worker-configuration.d.ts'
+    ]
   }
 )

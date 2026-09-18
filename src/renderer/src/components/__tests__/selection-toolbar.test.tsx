@@ -1,0 +1,187 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { SelectionToolbar } from '../selection-toolbar'
+import type { Mark } from '@shared/domain/nodes'
+
+function noopHandlers() {
+  return {
+    rect: { left: 0, top: 0, width: 0, height: 0 },
+    onToggleMark: vi.fn(),
+    onStartLink: vi.fn(),
+    onApplyLink: vi.fn(),
+    onRemoveLink: vi.fn(),
+    onGotoLink: vi.fn(),
+    onEditLink: vi.fn(),
+    onAddSidenote: vi.fn(),
+    onEditSidenote: vi.fn(),
+    onDeleteSidenote: vi.fn(),
+    onDismiss: vi.fn()
+  }
+}
+
+const empty: ReadonlySet<Mark['type']> = new Set()
+
+describe('SelectionToolbar — format mode', () => {
+  it('renders the formatting buttons', () => {
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
+    expect(screen.getByRole('toolbar', { name: 'Format selection' })).toBeDefined()
+    for (const label of [
+      'Add link',
+      'Add sidenote',
+      'Bold',
+      'Italic',
+      'Underline',
+      'Strikethrough',
+      'Highlight',
+      'Code'
+    ]) {
+      expect(screen.getByLabelText(label)).toBeDefined()
+    }
+  })
+
+  it('calls onToggleMark with the mark type when a button is clicked', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...h} />)
+    fireEvent.click(screen.getByLabelText('Strikethrough'))
+    expect(h.onToggleMark).toHaveBeenCalledWith('strikethrough')
+  })
+
+  it('marks active buttons via aria-pressed', () => {
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={new Set<Mark['type']>(['italic', 'link'])}
+        {...noopHandlers()}
+      />
+    )
+    expect(screen.getByLabelText('Italic').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Add link').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Bold').getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('starts link editing and adds a sidenote from their buttons', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...h} />)
+    fireEvent.click(screen.getByLabelText('Add link'))
+    expect(h.onStartLink).toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Add sidenote'))
+    expect(h.onAddSidenote).toHaveBeenCalled()
+  })
+
+  it('keeps the editor selection alive: a press on a button is default-prevented', () => {
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    screen.getByLabelText('Bold').dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('dismisses on Escape', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...h} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(h.onDismiss).toHaveBeenCalled()
+  })
+
+  it('anchors to the article-relative rect it is given', () => {
+    render(
+      <article style={{ position: 'relative' }}>
+        <SelectionToolbar
+          mode="format"
+          activeMarks={empty}
+          {...noopHandlers()}
+          rect={{ left: 12, top: 34, width: 56, height: 78 }}
+        />
+      </article>
+    )
+    const anchor = document.querySelector<HTMLElement>('[data-popover-anchor]')
+    expect(anchor?.style.left).toBe('12px')
+    expect(anchor?.style.top).toBe('34px')
+  })
+})
+
+describe('SelectionToolbar — link-edit mode', () => {
+  it('prefills the href and applies on Enter', () => {
+    const h = noopHandlers()
+    render(
+      <SelectionToolbar
+        mode="link-edit"
+        activeMarks={empty}
+        linkHref="https://old.example"
+        {...h}
+      />
+    )
+    const input = screen.getByLabelText('Link URL') as HTMLInputElement
+    expect(input.value).toBe('https://old.example')
+    fireEvent.change(input, { target: { value: 'https://new.example' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(h.onApplyLink).toHaveBeenCalledWith('https://new.example')
+  })
+
+  it('does not apply an empty href', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...h} />)
+    const input = screen.getByLabelText('Link URL')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(h.onApplyLink).not.toHaveBeenCalled()
+  })
+
+  it('dismisses on Escape from the input', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...h} />)
+    fireEvent.keyDown(screen.getByLabelText('Link URL'), { key: 'Escape' })
+    expect(h.onDismiss).toHaveBeenCalled()
+  })
+
+  it('focuses the input on entry and re-seeds it when the link changes', () => {
+    const h = noopHandlers()
+    const { rerender } = render(
+      <SelectionToolbar mode="format" activeMarks={empty} linkHref="https://a.example" {...h} />
+    )
+    rerender(
+      <SelectionToolbar mode="link-edit" activeMarks={empty} linkHref="https://b.example" {...h} />
+    )
+    const input = screen.getByLabelText('Link URL') as HTMLInputElement
+    expect(input.value).toBe('https://b.example')
+    expect(document.activeElement).toBe(input)
+  })
+})
+
+describe('SelectionToolbar — link-view mode', () => {
+  it('renders edit / open / remove actions and wires them', () => {
+    const h = noopHandlers()
+    render(
+      <SelectionToolbar
+        mode="link-view"
+        activeMarks={empty}
+        linkHref="https://example.com"
+        {...h}
+      />
+    )
+    expect(screen.getByRole('toolbar', { name: 'Link actions' })).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Edit link'))
+    fireEvent.click(screen.getByLabelText('Open link'))
+    fireEvent.click(screen.getByLabelText('Remove link'))
+    expect(h.onEditLink).toHaveBeenCalled()
+    expect(h.onGotoLink).toHaveBeenCalled()
+    expect(h.onRemoveLink).toHaveBeenCalled()
+  })
+})
+
+describe('SelectionToolbar — sidenote-view mode', () => {
+  it('renders only Edit and Delete actions and wires them', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="sidenote-view" activeMarks={empty} {...h} />)
+    expect(screen.getByRole('toolbar', { name: 'Sidenote actions' })).toBeDefined()
+    // Exactly two actions — no Open, no formatting buttons.
+    expect(screen.getByLabelText('Edit sidenote')).toBeDefined()
+    expect(screen.getByLabelText('Delete sidenote')).toBeDefined()
+    expect(screen.queryByLabelText('Bold')).toBeNull()
+    expect(screen.queryByLabelText('Open link')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Edit sidenote'))
+    fireEvent.click(screen.getByLabelText('Delete sidenote'))
+    expect(h.onEditSidenote).toHaveBeenCalled()
+    expect(h.onDeleteSidenote).toHaveBeenCalled()
+  })
+})

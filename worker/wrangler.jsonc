@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "newline-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "newline",
+      "database_id": "ec14e9f4-b5ff-4fe8-a7e1-9a765a55b7fb",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "newline-assets"
+    }
+  ]
+  // GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are Worker secrets
+  // (`wrangler secret put <NAME>`); locally they come from `.dev.vars`.
+  // MEDIA_QUOTA_BYTES and MEDIA_PUBLIC_BASE_URL are optional vars, see README.md.
+}

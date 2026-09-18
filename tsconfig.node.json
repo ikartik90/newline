@@ -9,11 +9,24 @@
     "rootDir": ".",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["electron-vite/node"]
+    "types": [
+      "electron-vite/node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": [
+        "src/shared/*"
+      ]
+    },
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ]
   },
   "include": [
     "src/main/**/*",
     "src/preload/**/*",
+    "src/shared/**/*",
     "electron.vite.config.ts"
   ]
 }

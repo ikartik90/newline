@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+/** What the renderer hands main to store a file — mirrors `MediaUploadInput` in env.d.ts. */
+interface MediaUploadInput {
+  filename: string
+  contentType: string
+  bytes: Uint8Array
+  width?: number
+  height?: number
+}
+
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   notes: {
@@ -9,27 +18,39 @@ contextBridge.exposeInMainWorld('api', {
     delete: (id: string) => ipcRenderer.invoke('notes:delete', id),
     get: (id: string) => ipcRenderer.invoke('notes:get', id),
     list: () => ipcRenderer.invoke('notes:list'),
-    search: (query: string) => ipcRenderer.invoke('notes:search', query),
-    upsertFromRemote: (
-      id: string,
-      fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
-    ) => ipcRenderer.invoke('notes:upsertFromRemote', id, fields),
-    markSynced: (id: string) => ipcRenderer.invoke('notes:markSynced', id),
-    dirty: () => ipcRenderer.invoke('notes:dirty')
+    search: (query: string) => ipcRenderer.invoke('notes:search', query)
   },
   sync: {
-    status: () => ipcRenderer.invoke('sync:status')
+    now: () => ipcRenderer.invoke('sync:now'),
+    pushNote: (id: string) => ipcRenderer.invoke('sync:pushNote', id),
+    status: () => ipcRenderer.invoke('sync:status'),
+    onChanged: (listener: () => void) => {
+      // Wrapped so the renderer's function never sees the IPC event object.
+      const handler = (): void => listener()
+      ipcRenderer.on('sync:changed', handler)
+      return () => {
+        ipcRenderer.removeListener('sync:changed', handler)
+      }
+    }
   },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)
   },
-  images: {
-    save: (base64Data: string, ext: string, noteId: string) =>
-      ipcRenderer.invoke('images:save', base64Data, ext, noteId)
+  media: {
+    list: () => ipcRenderer.invoke('media:list'),
+    upload: (input: MediaUploadInput) => ipcRenderer.invoke('media:upload', input),
+    updateAlt: (key: string, alt: string) => ipcRenderer.invoke('media:updateAlt', key, alt),
+    rename: (key: string, filename: string) => ipcRenderer.invoke('media:rename', key, filename),
+    delete: (key: string) => ipcRenderer.invoke('media:delete', key),
+    uploadPoster: (key: string, bytes: Uint8Array) =>
+      ipcRenderer.invoke('media:uploadPoster', key, bytes),
+    flushPending: () => ipcRenderer.invoke('media:flushPending')
   },
   auth: {
-    googleSignIn: (clientId: string, authDomain: string) =>
-      ipcRenderer.invoke('auth:google', clientId, authDomain)
+    googleSignIn: () => ipcRenderer.invoke('auth:google'),
+    cancelSignIn: () => ipcRenderer.invoke('auth:cancel'),
+    current: () => ipcRenderer.invoke('auth:current'),
+    signOut: () => ipcRenderer.invoke('auth:signOut')
   }
 })
