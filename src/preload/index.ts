@@ -18,16 +18,20 @@ contextBridge.exposeInMainWorld('api', {
     delete: (id: string) => ipcRenderer.invoke('notes:delete', id),
     get: (id: string) => ipcRenderer.invoke('notes:get', id),
     list: () => ipcRenderer.invoke('notes:list'),
-    search: (query: string) => ipcRenderer.invoke('notes:search', query),
-    upsertFromRemote: (
-      id: string,
-      fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
-    ) => ipcRenderer.invoke('notes:upsertFromRemote', id, fields),
-    markSynced: (id: string) => ipcRenderer.invoke('notes:markSynced', id),
-    dirty: () => ipcRenderer.invoke('notes:dirty')
+    search: (query: string) => ipcRenderer.invoke('notes:search', query)
   },
   sync: {
-    status: () => ipcRenderer.invoke('sync:status')
+    now: () => ipcRenderer.invoke('sync:now'),
+    pushNote: (id: string) => ipcRenderer.invoke('sync:pushNote', id),
+    status: () => ipcRenderer.invoke('sync:status'),
+    onChanged: (listener: () => void) => {
+      // Wrapped so the renderer's function never sees the IPC event object.
+      const handler = (): void => listener()
+      ipcRenderer.on('sync:changed', handler)
+      return () => {
+        ipcRenderer.removeListener('sync:changed', handler)
+      }
+    }
   },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),

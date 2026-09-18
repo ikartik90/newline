@@ -99,13 +99,11 @@ const bringToFront = vi.fn()
 /** The Worker's two answers, queued: the client id, then the session. */
 function answerWorker(): void {
   fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
-  fetchMock.mockResolvedValueOnce(
-    json({ token: 'session-token', user, idToken: 'google-id-token' })
-  )
+  fetchMock.mockResolvedValueOnce(json({ token: 'session-token', user }))
 }
 
 /** A sign-in whose browser flow answers at once. */
-async function signIn(): Promise<{ idToken: string; user: auth.AuthUser }> {
+async function signIn(): Promise<{ user: auth.AuthUser }> {
   answerWorker()
   const pending = auth.signInWithGoogle()
   await vi.waitFor(() => expect(flows.length).toBeGreaterThan(0))
@@ -156,7 +154,7 @@ describe('signInWithGoogle', () => {
       redirectUri: 'http://127.0.0.1:4242/callback'
     })
 
-    expect(result).toEqual({ idToken: 'google-id-token', user })
+    expect(result).toEqual({ user })
     expect(bringToFront).toHaveBeenCalledTimes(1)
   })
 
@@ -234,7 +232,7 @@ describe('signInWithGoogle', () => {
 
   it('refuses a session the Worker shaped wrongly', async () => {
     fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
-    fetchMock.mockResolvedValueOnce(json({ token: 'x', user }))
+    fetchMock.mockResolvedValueOnce(json({ user }))
     const pending = auth.signInWithGoogle()
     await vi.waitFor(() => expect(flows.length).toBe(1))
     flows[0].resolve(code)
@@ -255,9 +253,7 @@ describe('signInWithGoogle', () => {
   it('replaces an earlier session', async () => {
     await signIn()
     fetchMock.mockResolvedValueOnce(json({ clientId: 'client-123' }))
-    fetchMock.mockResolvedValueOnce(
-      json({ token: 'second', user: { ...user, name: 'Renamed' }, idToken: 'id-2' })
-    )
+    fetchMock.mockResolvedValueOnce(json({ token: 'second', user: { ...user, name: 'Renamed' } }))
     const pending = auth.signInWithGoogle()
     await vi.waitFor(() => expect(flows.length).toBe(2))
     flows[1].resolve(code)
@@ -322,7 +318,7 @@ describe('a second sign-in while one is pending', () => {
 
     await vi.waitFor(() => expect(flows.length).toBe(2))
     flows[1].resolve(code)
-    await expect(second).resolves.toEqual({ idToken: 'google-id-token', user })
+    await expect(second).resolves.toEqual({ user })
     expect(auth.getSessionToken()).toBe('session-token')
     expect(bringToFront).toHaveBeenCalledTimes(1)
   })

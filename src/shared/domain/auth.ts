@@ -15,14 +15,10 @@ export const AuthUserSchema = z.object({
 
 export type AuthUser = z.infer<typeof AuthUserSchema>
 
-/**
- * What `POST /auth/google/code` answers with: the session token, its owner
- * and Google's ID token, which the renderer still signs into Firebase with.
- */
+/** What `POST /auth/google/code` answers with: the session token and its owner. */
 export const AuthSessionSchema = z.object({
   token: z.string().min(1),
-  user: AuthUserSchema,
-  idToken: z.string().min(1)
+  user: AuthUserSchema
 })
 
 export type AuthSession = z.infer<typeof AuthSessionSchema>

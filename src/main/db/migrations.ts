@@ -144,6 +144,29 @@ const migrations: Migration[] = [
         );
       `)
     }
+  },
+  {
+    // The store moves from Firestore to the Worker. Every device already
+    // holds a full replica, so there is nothing to export: every note,
+    // tombstones included, is queued and the first cycle pushes the lot. The
+    // Firestore pull stamp has no meaning against the Worker's cursor.
+    version: 3,
+    up(db) {
+      const rows = db.prepare('SELECT id FROM notes').all() as { id: string }[]
+      const queued = db.prepare(
+        `SELECT id FROM sync_queue WHERE entity_type = 'note' AND entity_id = ? AND status = 'pending'`
+      )
+      const enqueue = db.prepare(
+        `INSERT INTO sync_queue (entity_type, entity_id, action, created_at)
+         VALUES ('note', ?, 'upsert', ?)`
+      )
+      const now = Date.now()
+      for (const row of rows) {
+        if (!queued.get(row.id)) enqueue.run(row.id, now)
+      }
+
+      db.exec(`DELETE FROM app_meta WHERE key = 'last_full_sync'`)
+    }
   }
 ]
 

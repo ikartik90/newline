@@ -1,44 +1,48 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  onAuthStateChanged,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  type User
-} from 'firebase/auth'
-import { isSignInCancelled } from '@shared/domain/auth'
-import { auth } from '@/lib/firebase'
+import { isSignInCancelled, type AuthUser } from '@shared/domain/auth'
 
+/**
+ * Who is signed in, as main knows it. The session lives in the main process
+ * (`window.api.auth`); this hook only mirrors the user it reports and asks
+ * it to sign in or out.
+ */
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u)
-      setLoading(false)
-    })
-    return unsubscribe
+    let stale = false
+    window.api.auth.current().then(
+      (current) => {
+        if (stale) return
+        setUser(current)
+        setLoading(false)
+      },
+      (error) => {
+        console.warn('[auth] could not read the session:', error)
+        if (!stale) setLoading(false)
+      }
+    )
+    return () => {
+      stale = true
+    }
   }, [])
 
   /**
    * Main runs the sign-in in the user's browser and establishes the Worker
-   * session; the ID token it hands back signs into Firebase. Resolves `true`
-   * once signed in and `false` when the sign-in was cancelled — by the user
-   * in the browser, or by `cancelGoogleSignIn` — which is not a failure.
+   * session. Resolves `true` once signed in and `false` when the sign-in was
+   * cancelled — by the user in the browser, or by `cancelGoogleSignIn` —
+   * which is not a failure.
    */
   const signInWithGoogle = useCallback(async (): Promise<boolean> => {
-    let idToken: string
+    let signedIn: AuthUser
     try {
-      ;({ idToken } = await window.api.auth.googleSignIn())
+      ;({ user: signedIn } = await window.api.auth.googleSignIn())
     } catch (error) {
       if (isSignInCancelled(error)) return false
       throw error
     }
-    const credential = GoogleAuthProvider.credential(idToken)
-    await signInWithCredential(auth, credential)
+    setUser(signedIn)
     return true
   }, [])
 
@@ -47,17 +51,9 @@ export function useAuth() {
     await window.api.auth.cancelSignIn()
   }, [])
 
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
-  }, [])
-
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password)
-  }, [])
-
   const logout = useCallback(async () => {
     await window.api.auth.signOut()
-    await signOut(auth)
+    setUser(null)
   }, [])
 
   return {
@@ -65,8 +61,6 @@ export function useAuth() {
     loading,
     signInWithGoogle,
     cancelGoogleSignIn,
-    signInWithEmail,
-    signUpWithEmail,
     logout
   }
 }

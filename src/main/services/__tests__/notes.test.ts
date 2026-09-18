@@ -82,18 +82,36 @@ describe('searchNotes', () => {
   })
 })
 
+describe('deleteNote / getNoteIncludingDeleted', () => {
+  it('keeps a tombstone that only getNoteIncludingDeleted answers with', () => {
+    const note = notes.createNote('Gone', paragraph('bye'))
+    notes.deleteNote(note.id)
+    expect(notes.getNote(note.id)).toBeNull()
+    expect(notes.listNotes()).toEqual([])
+    const tombstone = notes.getNoteIncludingDeleted(note.id)
+    expect(tombstone).toMatchObject({ id: note.id, title: 'Gone', isDeleted: true })
+    expect(tombstone!.updatedAt).toBeGreaterThanOrEqual(note.updatedAt)
+  })
+
+  it('answers null for a note that never existed', () => {
+    expect(notes.getNoteIncludingDeleted('nope')).toBeNull()
+  })
+})
+
 describe('upsertFromRemote', () => {
-  it('inserts a document body with its plain text', () => {
+  it('inserts a document body with its plain text, stamped as the Worker stamped it', () => {
     notes.upsertFromRemote('r1', {
       title: 'Remote',
       body: paragraph('from the cloud'),
       tags: [],
       createdAt: 5,
+      updatedAt: 7,
       isDeleted: false
     })
     const note = notes.getNote('r1')
     expect(note?.plainText).toBe('from the cloud')
     expect(note?.createdAt).toBe(5)
+    expect(note?.updatedAt).toBe(7)
     expect(note?.lastSyncedAt).not.toBeNull()
   })
 
@@ -105,12 +123,38 @@ describe('upsertFromRemote', () => {
       body: '**bold** remote',
       tags: ['t'],
       createdAt: 1,
+      updatedAt: existing.updatedAt + 1,
       isDeleted: false
     })
     const note = notes.getNote(existing.id)
     expect(note?.plainText).toBe('bold remote')
     expect(note?.tags).toEqual(['t'])
+    expect(note?.updatedAt).toBe(existing.updatedAt + 1)
     expect(notes.searchNotes('remote').map((n) => n.id)).toEqual([existing.id])
+  })
+
+  it('turns a local note into a tombstone, and a tombstone back into a note', () => {
+    const note = notes.createNote('Mine', paragraph('words'))
+    notes.upsertFromRemote(note.id, {
+      title: 'Mine',
+      body: note.body,
+      tags: [],
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt + 1,
+      isDeleted: true
+    })
+    expect(notes.getNote(note.id)).toBeNull()
+    expect(notes.getNoteIncludingDeleted(note.id)?.isDeleted).toBe(true)
+
+    notes.upsertFromRemote(note.id, {
+      title: 'Mine',
+      body: note.body,
+      tags: [],
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt + 2,
+      isDeleted: false
+    })
+    expect(notes.getNote(note.id)?.updatedAt).toBe(note.updatedAt + 2)
   })
 })
 
@@ -122,5 +166,27 @@ describe('markSynced / enqueueSyncAction', () => {
     notes.enqueueSyncAction(note.id, 'upsert')
     notes.enqueueSyncAction(note.id, 'upsert')
     expect(notes.getDirtyNotes().map((n) => n.id)).toEqual([note.id])
+  })
+
+  it("takes the Worker's stamp as the note's updatedAt when it is later", () => {
+    const note = notes.createNote()
+    notes.markSynced(note.id, note.updatedAt + 50)
+    expect(notes.getNote(note.id)?.updatedAt).toBe(note.updatedAt + 50)
+    // An edit that landed meanwhile is later still; the stamp never turns time back.
+    notes.markSynced(note.id, note.updatedAt - 50)
+    expect(notes.getNote(note.id)?.updatedAt).toBe(note.updatedAt + 50)
+  })
+})
+
+describe('getDirtyNotes', () => {
+  it('includes tombstones, so a deletion can be pushed', () => {
+    const kept = notes.createNote('Kept')
+    const gone = notes.createNote('Gone')
+    notes.markSynced(kept.id)
+    notes.markSynced(gone.id)
+    notes.deleteNote(gone.id)
+    const dirty = notes.getDirtyNotes()
+    expect(dirty.map((n) => n.id)).toEqual([gone.id])
+    expect(dirty[0].isDeleted).toBe(true)
   })
 })

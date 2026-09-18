@@ -12,7 +12,6 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
-import { startSyncService, stopSyncService, pushNoteNow } from '@/lib/sync-service'
 import MetadataIcon from '@/assets/icons/metadata.svg'
 
 const iconButton =
@@ -53,19 +52,34 @@ function App() {
     onToggleSidebar: () => setSidebarCollapsed((c) => !c)
   })
 
+  // Sync runs in main. Signed in, the renderer asks for a cycle once (and
+  // again whenever the machine comes back online) and reloads the list when
+  // a pull changed something. `refresh` follows the search query, so it is
+  // read through a ref rather than re-running the subscription on every
+  // keystroke.
+  const refreshRef = useRef(refresh)
   useEffect(() => {
-    if (user) {
-      startSyncService(user.uid)
-      return () => stopSyncService()
-    }
-  }, [user])
+    refreshRef.current = refresh
+  }, [refresh])
 
+  const userId = user?.id ?? null
   useEffect(() => {
-    if (user) {
-      const interval = setInterval(refresh, 60_000)
-      return () => clearInterval(interval)
+    if (!userId) return
+    const reload = () => void refreshRef.current()
+    const unsubscribe = window.api.sync.onChanged(reload)
+    const run = () => {
+      // The cycle may be one main started before this screen was listening.
+      void window.api.sync.now().then(({ pulled }) => {
+        if (pulled > 0) reload()
+      })
     }
-  }, [user, refresh])
+    run()
+    window.addEventListener('online', run)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('online', run)
+    }
+  }, [userId])
 
   // The editor seeds itself from these once per note; later saves must not
   // re-seed it, so they are keyed on the id alone.
@@ -75,21 +89,16 @@ function App() {
     [activeNoteId]
   )
 
-  /** Write a change to SQLite, then push it to Firestore, reporting each step. */
+  /** Write a change to SQLite, then have main push it to the Worker, reporting each step. */
   const persist = useCallback(
     async (id: string, fields: { title?: string; body?: string; tags?: string[] }) => {
       setSaveState('saving')
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
 
-      const updatedNote = await updateNote(id, fields)
+      await updateNote(id, fields)
       setSaveState('syncing')
 
-      const noteForPush = updatedNote ?? {
-        ...(activeNote as Note),
-        ...fields,
-        updatedAt: Date.now()
-      }
-      const synced = await pushNoteNow(noteForPush)
+      const synced = await window.api.sync.pushNote(id)
 
       if (synced) setSaveState('saved')
       else if (!navigator.onLine) setSaveState('offline')
@@ -97,7 +106,7 @@ function App() {
 
       fadeTimerRef.current = setTimeout(() => setSaveState('idle'), 3000)
     },
-    [activeNote, updateNote]
+    [updateNote]
   )
 
   const handleEditorChange = useCallback(

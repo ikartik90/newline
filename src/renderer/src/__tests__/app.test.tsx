@@ -9,23 +9,18 @@ import App from '../App'
 // The app shell end to end in jsdom: a signed-in user, a fake main process
 // behind `window.api`, and the real editor. What is checked is the wiring —
 // that a note opens in the editor, that an edit reaches SQLite and the sync
-// push, and that the properties rail edits tags.
+// push, that a pull main reports reloads the list, and that the properties
+// rail edits tags.
 // ---------------------------------------------------------------------------
 
-vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: { uid: 'u1', email: 'me@example.com' },
-    loading: false,
-    logout: vi.fn()
-  })
+// One user object for the run, as the real hook's state would be: a fresh
+// one per render would look like a new sign-in on every render.
+const auth = vi.hoisted(() => ({
+  user: { id: 'u1', email: 'me@example.com' },
+  loading: false,
+  logout: vi.fn()
 }))
-
-const sync = vi.hoisted(() => ({
-  startSyncService: vi.fn(),
-  stopSyncService: vi.fn(),
-  pushNoteNow: vi.fn(async () => true)
-}))
-vi.mock('@/lib/sync-service', () => sync)
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => auth }))
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {
@@ -46,11 +41,13 @@ function makeNote(overrides: Partial<Note> = {}): Note {
 }
 
 function installApi(notes: Note[]) {
+  const changeListeners = new Set<() => void>()
   const api = {
     platform: 'darwin',
     notes: {
-      list: vi.fn(async () => notes),
-      search: vi.fn(async () => notes),
+      // Copies, as IPC would hand over: the same array again would not re-render.
+      list: vi.fn(async () => [...notes]),
+      search: vi.fn(async () => [...notes]),
       get: vi.fn(async (id: string) => notes.find((n) => n.id === id) ?? null),
       create: vi.fn(async (title = '', body = '') => {
         const note = makeNote({ id: `n${notes.length + 1}`, title, body, tags: [], plainText: '' })
@@ -63,12 +60,19 @@ function installApi(notes: Note[]) {
         notes[index] = { ...notes[index], ...fields, updatedAt: Date.now() }
         return notes[index]
       }),
-      delete: vi.fn(async () => {}),
-      upsertFromRemote: vi.fn(async () => {}),
-      markSynced: vi.fn(async () => {}),
-      dirty: vi.fn(async () => [])
+      delete: vi.fn(async () => {})
     },
-    sync: { status: vi.fn(async () => ({ pendingCount: 0, failedCount: 0, lastSyncedAt: null })) },
+    sync: {
+      now: vi.fn(async () => ({ pushed: 0, pulled: 0, ok: true })),
+      pushNote: vi.fn(async () => true),
+      status: vi.fn(async () => ({ pendingCount: 0, failedCount: 0, lastSyncedAt: null })),
+      onChanged: vi.fn((listener: () => void) => {
+        changeListeners.add(listener)
+        return () => {
+          changeListeners.delete(listener)
+        }
+      })
+    },
     meta: { set: vi.fn(async () => {}), get: vi.fn(async () => null) },
     media: {
       list: vi.fn(async () => []),
@@ -79,10 +83,17 @@ function installApi(notes: Note[]) {
       uploadPoster: vi.fn(),
       flushPending: vi.fn(async () => 0)
     },
-    auth: { googleSignIn: vi.fn() }
+    auth: {
+      googleSignIn: vi.fn(),
+      cancelSignIn: vi.fn(async () => {}),
+      current: vi.fn(async () => ({ id: 'u1', email: 'me@example.com' })),
+      signOut: vi.fn(async () => {})
+    }
   }
   Object.defineProperty(window, 'api', { value: api, writable: true, configurable: true })
-  return api
+  /** What main does when a pull changed notes. */
+  const notifyChanged = () => changeListeners.forEach((listener) => listener())
+  return { api, notifyChanged, changeListeners }
 }
 
 describe('App', () => {
@@ -90,11 +101,50 @@ describe('App', () => {
     vi.clearAllMocks()
   })
 
-  it('lists notes and starts the sync service for the signed-in user', async () => {
-    installApi([makeNote()])
+  it('lists notes and asks main for a sync cycle for the signed-in user', async () => {
+    const { api } = installApi([makeNote()])
     render(<App />)
     expect(await screen.findByText('First note')).toBeTruthy()
-    expect(sync.startSyncService).toHaveBeenCalledWith('u1')
+    expect(screen.getByText('me@example.com')).toBeTruthy()
+    expect(api.sync.now).toHaveBeenCalledTimes(1)
+    expect(api.sync.onChanged).toHaveBeenCalledTimes(1)
+  })
+
+  it('reloads the list when main reports a pull changed notes, and stops listening on unmount', async () => {
+    const notes = [makeNote()]
+    const { api, notifyChanged, changeListeners } = installApi(notes)
+    const { unmount } = render(<App />)
+    await screen.findByText('First note')
+    await waitFor(() => expect(api.notes.list).toHaveBeenCalledTimes(1))
+
+    notes.push(makeNote({ id: 'n2', title: 'From elsewhere', tags: [] }))
+    act(() => notifyChanged())
+    expect(await screen.findByText('From elsewhere')).toBeTruthy()
+
+    unmount()
+    expect(changeListeners.size).toBe(0)
+  })
+
+  it('reloads the list when the cycle it asked for pulled something', async () => {
+    const notes = [makeNote()]
+    const { api } = installApi(notes)
+    api.sync.now.mockImplementationOnce(async () => {
+      notes.push(makeNote({ id: 'n2', title: 'Pulled at start', tags: [] }))
+      return { pushed: 0, pulled: 1, ok: true }
+    })
+    render(<App />)
+    expect(await screen.findByText('Pulled at start')).toBeTruthy()
+  })
+
+  it('asks for another cycle when the machine comes back online', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    await screen.findByText('First note')
+    await waitFor(() => expect(api.sync.now).toHaveBeenCalledTimes(1))
+    act(() => {
+      window.dispatchEvent(new Event('online'))
+    })
+    expect(api.sync.now).toHaveBeenCalledTimes(2)
   })
 
   it('opens a note in the editor with its title and body', async () => {
@@ -106,10 +156,10 @@ describe('App', () => {
     expect(screen.getByText('Hello there')).toBeTruthy()
   })
 
-  it('writes an edit to the note and pushes it, reporting the save', async () => {
+  it('writes an edit to the note and has main push it, reporting the save', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      const api = installApi([makeNote()])
+      const { api } = installApi([makeNote()])
       render(<App />)
       await userEvent.click(await screen.findByText('First note'))
       const title = await screen.findByRole('heading', { name: 'Title' })
@@ -128,14 +178,15 @@ describe('App', () => {
       expect(id).toBe('n1')
       expect(fields.title).toBe('Renamed')
       expect(JSON.parse(fields.body as string).type).toBe('doc')
-      await waitFor(() => expect(sync.pushNoteNow).toHaveBeenCalled())
+      await waitFor(() => expect(api.sync.pushNote).toHaveBeenCalledWith('n1'))
+      expect(await screen.findByText('Saved')).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }
   })
 
   it('edits tags from the properties rail', async () => {
-    const api = installApi([makeNote()])
+    const { api } = installApi([makeNote()])
     render(<App />)
     await userEvent.click(await screen.findByText('First note'))
     await userEvent.click(await screen.findByRole('button', { name: 'Note properties' }))
@@ -146,7 +197,7 @@ describe('App', () => {
   })
 
   it('creates a new note from the empty state and opens it', async () => {
-    const api = installApi([])
+    const { api } = installApi([])
     render(<App />)
     // The sidebar has a "New note" icon button too; the empty state's is last.
     const buttons = await screen.findAllByRole('button', { name: 'New note' })

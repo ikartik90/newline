@@ -3,7 +3,8 @@ import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc'
-import { flushPending, getMediaPath } from './services/media'
+import { getMediaPath } from './services/media'
+import { onSyncChanged, startSyncScheduler, stopSyncScheduler } from './services/sync'
 import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
@@ -45,9 +46,9 @@ function registerLocalProtocol(): void {
   })
 }
 
-/** Whatever was saved while offline goes up once now; the renderer asks again when it is online. */
-function flushPendingMedia(): void {
-  flushPending().catch((error) => console.warn('[media] flush failed:', error))
+/** A pull that changed notes: the renderer reloads its list. */
+function notifyRendererOfSyncChange(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('sync:changed')
 }
 
 function createWindow(): void {
@@ -87,7 +88,11 @@ app.whenReady().then(() => {
   registerIpcHandlers()
 
   createWindow()
-  flushPendingMedia()
+  // The first cycle pushes whatever was saved while the app was closed and
+  // pulls what other devices did; the renderer asks for one itself once it
+  // is up, and shares this one when it is still running.
+  onSyncChanged(notifyRendererOfSyncChange)
+  startSyncScheduler()
 
   if (app.isPackaged) {
     setupAutoUpdater()
@@ -103,5 +108,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  stopSyncScheduler()
   closeDatabase()
 })

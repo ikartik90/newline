@@ -15,14 +15,40 @@ Google is the identity provider, through the OAuth 2.0 flow for native apps. The
 | Route                     | Auth   | Body                                  | Response                                                                                          |
 | ------------------------- | ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `GET /auth/google/config` | none   |                                       | `200 { clientId }`, the public client id the app builds the consent URL with; `500 misconfigured` |
-| `POST /auth/google/code`  | none   | `{ code, codeVerifier, redirectUri }` | `200 { token, user, idToken }`, `401 invalid_code`, `500 misconfigured`                           |
+| `POST /auth/google/code`  | none   | `{ code, codeVerifier, redirectUri }` | `200 { token, user }`, `401 invalid_code`, `500 misconfigured`                                    |
 | `GET /auth/me`            | Bearer |                                       | `200 { user }`, `401 unauthorized`                                                                |
 | `POST /auth/signout`      | Bearer |                                       | `204` (an unknown token is also `204`)                                                            |
 
 - The exchange is `POST https://oauth2.googleapis.com/token`, form-encoded: `client_id`, `client_secret`, `code`, `code_verifier`, `redirect_uri` (the loopback URL the code was issued for, verbatim) and `grant_type=authorization_code`. Google refusing the exchange, an answer without an `id_token`, or a token that fails verification is `401 invalid_code`. An unset `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is `500 misconfigured`.
-- `idToken` is Google's ID token for the user, returned because the renderer still signs into Firebase with it until the notes cutover. `user = { id, email, name?, picture? }`. `id` is a uuid minted on first sign-in; users are keyed by Google `sub`, and `email`, `name`, `picture` are refreshed on every sign-in.
+- `user = { id, email, name?, picture? }`. `id` is a uuid minted on first sign-in; users are keyed by Google `sub`, and `email`, `name`, `picture` are refreshed on every sign-in.
 - The session token is 32 random bytes, base64url. D1 stores only its SHA-256 hex. Sessions expire 180 days after last use; `last_used_at` and `expires_at` move forward at most once a day.
-- Every `/media` route requires `Authorization: Bearer <token>`. A missing, unknown or expired token is `401 { error: 'unauthorized' }`.
+- Every `/notes` and `/media` route requires `Authorization: Bearer <token>`. A missing, unknown or expired token is `401 { error: 'unauthorized' }`.
+
+## Notes
+
+The store behind sync. Every note belongs to one user; the app is the source of truth for its own edits, the Worker stamps the order. Shapes and limits are the zod schemas in `src/shared/domain/sync.ts`, which both sides import.
+
+| Route                             | Auth   | Body / query                                  | Response                                                                                    |
+| --------------------------------- | ------ | --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `PUT /notes/<id>`                 | Bearer | `{ title, body, tags, createdAt, isDeleted }` | `200 { id, updatedAt }`, `400 bad_request` / `invalid_id` / `invalid_body`, `413 too_large` |
+| `GET /notes?cursor=<c>&limit=<n>` | Bearer | both optional                                 | `200 { notes: NoteRecord[], cursor: string \| null, hasMore: boolean }`                     |
+
+```ts
+type NoteRecord = {
+  id: string // the app's uuid
+  title: string
+  body: string // the Document as JSON text, exactly as the app stores it
+  tags: string[]
+  createdAt: number // ms, the app's
+  updatedAt: number // ms, stamped by the Worker on every PUT
+  isDeleted: boolean // a tombstone; deletions are PUTs with this set
+}
+```
+
+- A PUT creates or replaces the note and stamps `updatedAt` with the Worker's clock. `body` must parse as a `Document` (`DocumentSchema`), otherwise `400 invalid_body`; a body over the limit is `413 too_large`. `id` must match `NOTE_ID_PATTERN`.
+- `GET /notes` lists the user's notes changed after the cursor, tombstones included, ordered by `updatedAt` then `id`, at most `limit` (default 500, max 1000). The answer's `cursor` is the position after the last note returned, which the app stores and sends next time; on an empty page it is the cursor that was sent, or null when none was. `hasMore` is true when a further page exists now, and the app keeps requesting until it is false. A cursor is opaque (`base64url(updatedAt:id)`) and keyset-based, so two notes stamped in the same millisecond are never skipped; one that does not decode is `400 bad_request`. No cursor means from the beginning.
+- There is no delete route: a deletion is a PUT with `isDeleted: true`, so it reaches every device.
+- The Worker must be deployed before an app version that writes a new block type, since it validates bodies with the same schema.
 
 ## Media
 
@@ -62,14 +88,14 @@ Every error is JSON `{ error: string }` with the status. Wrong method is `405`; 
 
 ## Bindings and vars
 
-| Name                    | Kind   | Purpose                                                  |
-| ----------------------- | ------ | -------------------------------------------------------- |
-| `DB`                    | D1     | `users`, `sessions`, `media_objects` (see `migrations/`) |
-| `MEDIA`                 | R2     | object bytes under `u/<userId>/…`                        |
-| `GOOGLE_CLIENT_ID`      | secret | the Desktop-app OAuth client the app signs in with       |
-| `GOOGLE_CLIENT_SECRET`  | secret | that client's secret; only the Worker ever holds it      |
-| `MEDIA_QUOTA_BYTES`     | var    | optional, default `8589934592`                           |
-| `MEDIA_PUBLIC_BASE_URL` | var    | optional, default the Worker origin + `/m`               |
+| Name                    | Kind   | Purpose                                                           |
+| ----------------------- | ------ | ----------------------------------------------------------------- |
+| `DB`                    | D1     | `users`, `sessions`, `media_objects`, `notes` (see `migrations/`) |
+| `MEDIA`                 | R2     | object bytes under `u/<userId>/…`                                 |
+| `GOOGLE_CLIENT_ID`      | secret | the Desktop-app OAuth client the app signs in with                |
+| `GOOGLE_CLIENT_SECRET`  | secret | that client's secret; only the Worker ever holds it               |
+| `MEDIA_QUOTA_BYTES`     | var    | optional, default `8589934592`                                    |
+| `MEDIA_PUBLIC_BASE_URL` | var    | optional, default the Worker origin + `/m`                        |
 
 ## Schema
 
@@ -92,6 +118,19 @@ CREATE TABLE sessions (
   last_used_at INTEGER NOT NULL
 );
 CREATE INDEX sessions_user ON sessions(user_id);
+
+CREATE TABLE notes (
+  user_id    TEXT NOT NULL REFERENCES users(id),
+  id         TEXT NOT NULL,
+  title      TEXT NOT NULL DEFAULT '',
+  body       TEXT NOT NULL,
+  tags       TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX notes_user_updated ON notes(user_id, updated_at, id);
 
 CREATE TABLE media_objects (
   user_id      TEXT NOT NULL REFERENCES users(id),

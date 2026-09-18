@@ -49,13 +49,13 @@ export function registerAuthRoutes(router: Router<AppEnv>, deps: AuthRouteDeps):
     const { GOOGLE_CLIENT_ID: clientId, GOOGLE_CLIENT_SECRET: clientSecret } = env
     if (!clientId || !clientSecret) throw new HttpError(500, 'misconfigured')
 
-    let idToken: string
+    // Google's ID token is checked here and goes no further: the app gets a session.
     let identity: GoogleIdentity
     try {
-      ;({ idToken } = await deps.google.exchangeCode(
+      const { idToken } = await deps.google.exchangeCode(
         { code, codeVerifier, redirectUri },
         { clientId, clientSecret }
-      ))
+      )
       identity = await deps.google.verifyIdToken(idToken, clientId)
     } catch (error) {
       if (error instanceof InvalidGoogleCodeError || error instanceof InvalidGoogleTokenError) {
@@ -67,7 +67,7 @@ export function registerAuthRoutes(router: Router<AppEnv>, deps: AuthRouteDeps):
     const now = deps.now()
     const user = await upsertUser(env.DB, identity, now)
     const token = await createSession(env.DB, user.id, now)
-    return json({ token, user, idToken })
+    return json({ token, user })
   })
 
   router.on('GET', '/auth/me', async ({ request, env }) => {

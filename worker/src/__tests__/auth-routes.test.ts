@@ -12,7 +12,6 @@ import {
   codeFor,
   fakeExchanger,
   goodCode,
-  goodToken,
   identity,
   signedInUser,
   testApp
@@ -47,7 +46,6 @@ function grant(who: GoogleIdentity) {
 interface SignInBody {
   token: string
   user: Record<string, string>
-  idToken: string
 }
 
 describe('GET /auth/google/config', () => {
@@ -67,21 +65,22 @@ describe('GET /auth/google/config', () => {
 })
 
 describe('POST /auth/google/code', () => {
-  it('trades the code for a session, the user and the id token', async () => {
+  it('trades the code for a session and the user, keeping Google’s id token to itself', async () => {
     const who = identity()
 
     const response = await postJson('/auth/google/code', grant(who))
 
     expect(response.status).toBe(200)
     const body = await response.json<SignInBody>()
-    expect(body.token).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    expect(body.user).toEqual({
-      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      email: who.email,
-      name: who.name,
-      picture: who.picture
+    expect(body).toEqual({
+      token: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
+      user: {
+        id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        email: who.email,
+        name: who.name,
+        picture: who.picture
+      }
     })
-    expect(body.idToken).toBe(goodToken(who))
     const row = await env.DB.prepare('SELECT user_id FROM sessions WHERE token_hash = ?')
       .bind(await hashSessionToken(body.token))
       .first<{ user_id: string }>()

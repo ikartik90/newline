@@ -128,6 +128,16 @@ export function getNote(id: string): Note | null {
   return row ? rowToNote(row) : null
 }
 
+/**
+ * The note whether or not it has been deleted. Sync needs the tombstone: a
+ * deletion is pushed as one, and a remote copy is compared against it.
+ */
+export function getNoteIncludingDeleted(id: string): Note | null {
+  const db = getDb()
+  const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(id) as NoteRow | undefined
+  return row ? rowToNote(row) : null
+}
+
 export function listNotes(): Note[] {
   const db = getDb()
   const rows = db
@@ -163,9 +173,20 @@ export function searchNotes(query: string): Note[] {
   return rows.map(rowToNote)
 }
 
+/**
+ * Take a note as the Worker holds it. `updatedAt` is the Worker's stamp and
+ * becomes the local `updated_at`, so a later pull compares like with like.
+ */
 export function upsertFromRemote(
   id: string,
-  fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
+  fields: {
+    title: string
+    body: string
+    tags: string[]
+    createdAt: number
+    updatedAt: number
+    isDeleted: boolean
+  }
 ): void {
   const db = getDb()
   const now = Date.now()
@@ -186,7 +207,7 @@ export function upsertFromRemote(
       stored.plainText,
       JSON.stringify(fields.tags),
       fields.isDeleted ? 1 : 0,
-      now,
+      fields.updatedAt,
       now,
       id
     )
@@ -201,23 +222,36 @@ export function upsertFromRemote(
       stored.plainText,
       JSON.stringify(fields.tags),
       fields.createdAt,
-      now,
+      fields.updatedAt,
       now,
       fields.isDeleted ? 1 : 0
     )
   }
 }
 
-export function markSynced(id: string): void {
+/**
+ * The note has reached the Worker: clear its queue row. With the stamp the
+ * Worker answered, the note's `updated_at` moves up to it, so the next pull
+ * sees the copy there as the same age rather than newer; an edit that landed
+ * meanwhile is later still and keeps its own time.
+ */
+export function markSynced(id: string, updatedAt?: number): void {
   const db = getDb()
   const now = Date.now()
-  db.prepare('UPDATE notes SET last_synced_at = ? WHERE id = ?').run(now, id)
+  if (updatedAt === undefined) {
+    db.prepare('UPDATE notes SET last_synced_at = ? WHERE id = ?').run(now, id)
+  } else {
+    db.prepare(
+      'UPDATE notes SET last_synced_at = ?, updated_at = MAX(updated_at, ?) WHERE id = ?'
+    ).run(now, updatedAt, id)
+  }
 
   db.prepare(
     "DELETE FROM sync_queue WHERE entity_type = 'note' AND entity_id = ? AND status = 'pending'"
   ).run(id)
 }
 
+/** Every note with a pending queue row, tombstones included: what the next push sends. */
 export function getDirtyNotes(): Note[] {
   const db = getDb()
   const rows = db

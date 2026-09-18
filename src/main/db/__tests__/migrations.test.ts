@@ -47,11 +47,11 @@ describe('runMigrations', () => {
   describe('v2', () => {
     beforeEach(() => {
       seedV1(db)
-      runMigrations(db)
+      runMigrations(db, { toVersion: 2 })
     })
 
     it('records the version once and is a no-op the second time', () => {
-      runMigrations(db)
+      runMigrations(db, { toVersion: 2 })
       const versions = db.prepare('SELECT version FROM schema_version ORDER BY version').all()
       expect(versions).toEqual([{ version: 1 }, { version: 2 }])
     })
@@ -144,6 +144,56 @@ describe('runMigrations', () => {
         'created_at',
         'uploaded_at'
       ])
+    })
+  })
+
+  describe('v3', () => {
+    /** A v2 database that had synced with Firestore: nothing queued, a last-sync stamp. */
+    function seedV2(): void {
+      seedV1(db)
+      runMigrations(db, { toVersion: 2 })
+      db.exec(`
+        DELETE FROM sync_queue;
+        INSERT INTO sync_queue (entity_type, entity_id, action, created_at)
+          VALUES ('note', 'a', 'upsert', 1);
+        INSERT INTO sync_queue (entity_type, entity_id, action, created_at, status)
+          VALUES ('note', 'b', 'upsert', 1, 'failed');
+        INSERT INTO app_meta (key, value) VALUES ('last_full_sync', '1700000000000');
+        INSERT INTO app_meta (key, value) VALUES ('session_token', 'plain:tok');
+      `)
+    }
+
+    beforeEach(() => {
+      seedV2()
+      runMigrations(db)
+    })
+
+    it('records the version', () => {
+      expect(db.prepare('SELECT MAX(version) AS v FROM schema_version').get()).toEqual({ v: 3 })
+    })
+
+    it('queues every note for the Worker once, tombstones included', () => {
+      const rows = db
+        .prepare(
+          `SELECT entity_id, action, status FROM sync_queue
+           WHERE entity_type = 'note' ORDER BY entity_id, status`
+        )
+        .all()
+      expect(rows).toEqual([
+        { entity_id: 'a', action: 'upsert', status: 'pending' },
+        // The failed row from before is not a pending one: the note is queued afresh.
+        { entity_id: 'b', action: 'upsert', status: 'failed' },
+        { entity_id: 'b', action: 'upsert', status: 'pending' },
+        { entity_id: 'c', action: 'upsert', status: 'pending' },
+        { entity_id: 'd', action: 'upsert', status: 'pending' }
+      ])
+    })
+
+    it('forgets the Firestore sync stamp and keeps everything else in app_meta', () => {
+      const keys = (
+        db.prepare('SELECT key FROM app_meta ORDER BY key').all() as { key: string }[]
+      ).map((r) => r.key)
+      expect(keys).toEqual(['session_token'])
     })
   })
 })

@@ -46,18 +46,20 @@ describe('AuthUserSchema', () => {
 describe('AuthSessionSchema', () => {
   const user = { id: 'u-1', email: 'me@example.com' }
 
-  it('parses what a sign-in answers with: the session, its owner and the ID token', () => {
+  it('parses what a sign-in answers with: the session and its owner', () => {
+    expect(AuthSessionSchema.parse({ token: 'tok', user })).toEqual({ token: 'tok', user })
+  })
+
+  it('drops an ID token an older Worker might still send', () => {
     expect(AuthSessionSchema.parse({ token: 'tok', user, idToken: 'google-id-token' })).toEqual({
       token: 'tok',
-      user,
-      idToken: 'google-id-token'
+      user
     })
   })
 
-  it('refuses an empty token or a missing ID token', () => {
-    expect(() => AuthSessionSchema.parse({ token: '', user, idToken: 'x' })).toThrow()
-    expect(() => AuthSessionSchema.parse({ token: 'tok', user })).toThrow()
-    expect(() => AuthSessionSchema.parse({ token: 'tok', user, idToken: '' })).toThrow()
+  it('refuses an empty token or a missing user', () => {
+    expect(() => AuthSessionSchema.parse({ token: '', user })).toThrow()
+    expect(() => AuthSessionSchema.parse({ token: 'tok' })).toThrow()
   })
 })
 

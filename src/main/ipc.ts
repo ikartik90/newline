@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
+import { pushNote, syncNow } from './services/sync'
 import { getSyncStatus } from './services/sync-status'
 
 export function registerIpcHandlers(): void {
@@ -32,23 +33,12 @@ export function registerIpcHandlers(): void {
     return notesService.searchNotes(query)
   })
 
-  ipcMain.handle(
-    'notes:upsertFromRemote',
-    (
-      _event,
-      id: string,
-      fields: { title: string; body: string; tags: string[]; createdAt: number; isDeleted: boolean }
-    ) => {
-      notesService.upsertFromRemote(id, fields)
-    }
-  )
-
-  ipcMain.handle('notes:markSynced', (_event, id: string) => {
-    notesService.markSynced(id)
+  ipcMain.handle('sync:now', () => {
+    return syncNow()
   })
 
-  ipcMain.handle('notes:dirty', () => {
-    return notesService.getDirtyNotes()
+  ipcMain.handle('sync:pushNote', (_event, id: string) => {
+    return pushNote(id)
   })
 
   ipcMain.handle('sync:status', () => {
@@ -91,8 +81,11 @@ export function registerIpcHandlers(): void {
     return mediaService.flushPending()
   })
 
-  ipcMain.handle('auth:google', () => {
-    return authService.signInWithGoogle()
+  ipcMain.handle('auth:google', async () => {
+    const result = await authService.signInWithGoogle()
+    // A fresh session has a replica to catch up on; the renderer is not kept waiting for it.
+    void syncNow()
+    return result
   })
 
   ipcMain.handle('auth:cancel', () => {

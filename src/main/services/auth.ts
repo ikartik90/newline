@@ -12,10 +12,9 @@ import { clearSession, currentUser, getSessionToken, storeSession } from './sess
 // ---------------------------------------------------------------------------
 // Sign-in. Google is the identity provider: the user's default browser runs
 // the consent screen and sends an authorization code back to a loopback
-// port (`google-sign-in.ts`); the Worker exchanges the code for a session
-// and hands back Google's ID token as well. The session is kept in
-// `session.ts`; the ID token goes to the renderer, which still signs into
-// Firebase with it while Firestore sync remains.
+// port (`google-sign-in.ts`); the Worker exchanges the code for a session,
+// which `session.ts` keeps. The session is the whole of being signed in:
+// the renderer only ever learns who the user is.
 // ---------------------------------------------------------------------------
 
 export type { AuthUser }
@@ -68,12 +67,12 @@ function cancel(attempt: Attempt): void {
 
 /**
  * Sign in: Google in the browser, then the Worker. Resolves once the session
- * is stored, with the ID token for the renderer's Firebase sign-in and the
- * user the Worker knows. Rejects, storing nothing, when either side refuses;
- * with `SignInCancelledError` when the user declines in the browser, when
- * `cancelSignIn` is called, or when a newer sign-in supersedes this one.
+ * is stored, with the user the Worker knows. Rejects, storing nothing, when
+ * either side refuses; with `SignInCancelledError` when the user declines in
+ * the browser, when `cancelSignIn` is called, or when a newer sign-in
+ * supersedes this one.
  */
-export async function signInWithGoogle(): Promise<{ idToken: string; user: AuthUser }> {
+export async function signInWithGoogle(): Promise<{ user: AuthUser }> {
   if (pending) cancel(pending)
   const attempt: Attempt = { cancelled: false, flow: null }
   pending = attempt
@@ -96,7 +95,7 @@ export async function signInWithGoogle(): Promise<{ idToken: string; user: AuthU
 
     storeSession(session.token, session.user)
     deps.bringToFront()
-    return { idToken: session.idToken, user: session.user }
+    return { user: session.user }
   } finally {
     if (pending === attempt) pending = null
   }

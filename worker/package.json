@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Newline's Cloudflare Worker: Google sign-in sessions and the media store",
+  "description": "Newline's Cloudflare Worker: Google sign-in sessions, the notes store and the media store",
   "scripts": {
     "dev": "wrangler dev",
     "test": "vitest run",

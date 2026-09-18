@@ -11,9 +11,7 @@ import AuthScreen from '../AuthScreen'
 
 const hook = vi.hoisted(() => ({
   signInWithGoogle: vi.fn<() => Promise<boolean>>(),
-  cancelGoogleSignIn: vi.fn(async () => {}),
-  signInWithEmail: vi.fn(async () => {}),
-  signUpWithEmail: vi.fn(async () => {})
+  cancelGoogleSignIn: vi.fn(async () => {})
 }))
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => hook }))
 
@@ -39,11 +37,11 @@ beforeEach(() => {
 })
 
 describe('AuthScreen', () => {
-  it('offers Google and the email form at rest', () => {
+  it('offers Google, and only Google, at rest', () => {
     render(<AuthScreen />)
     expect(googleButton()).toBeTruthy()
-    expect(screen.getByPlaceholderText('Email')).toBeTruthy()
-    expect(screen.getByPlaceholderText('Password')).toBeTruthy()
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.queryByRole('textbox')).toBeNull()
     expect(browserLine()).toBeNull()
     expect(cancelButton()).toBeNull()
   })
@@ -64,15 +62,6 @@ describe('AuthScreen', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('holds the email form while the browser has the sign-in', async () => {
-    pendingSignIn()
-    render(<AuthScreen />)
-    await userEvent.click(googleButton()!)
-    expect((screen.getByRole('button', { name: 'Sign in' }) as HTMLButtonElement).disabled).toBe(
-      true
-    )
-  })
-
   it('Cancel asks the hook to end the sign-in, and a cancellation shows no error', async () => {
     const signIn = pendingSignIn()
     render(<AuthScreen />)
@@ -87,13 +76,21 @@ describe('AuthScreen', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('shows why a sign-in failed and offers Google again', async () => {
+  it('shows why a sign-in failed, without the IPC wrapper, and offers Google again', async () => {
     const signIn = pendingSignIn()
     render(<AuthScreen />)
     await userEvent.click(googleButton()!)
 
-    await act(async () => signIn.fail(new Error('API request failed: invalid_code (401)')))
-    expect(screen.getByRole('alert').textContent).toContain('invalid_code')
+    await act(async () =>
+      signIn.fail(
+        new Error(
+          "Error invoking remote method 'auth:google': ApiError: API request failed: invalid_code (401)"
+        )
+      )
+    )
+    expect(screen.getByRole('alert').textContent).toBe(
+      'ApiError: API request failed: invalid_code (401)'
+    )
     expect(googleButton()).toBeTruthy()
     expect(cancelButton()).toBeNull()
   })

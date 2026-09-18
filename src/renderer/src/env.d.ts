@@ -2,6 +2,7 @@
 
 import type { AuthUser } from '@shared/domain/auth'
 import type { MediaAsset } from '@shared/domain/media'
+import type { SyncResult } from '@shared/domain/sync'
 
 declare global {
   /**
@@ -49,21 +50,21 @@ declare global {
         get: (id: string) => Promise<Note | null>
         list: () => Promise<Note[]>
         search: (query: string) => Promise<Note[]>
-        upsertFromRemote: (
-          id: string,
-          fields: {
-            title: string
-            body: string
-            tags: string[]
-            createdAt: number
-            isDeleted: boolean
-          }
-        ) => Promise<void>
-        markSynced: (id: string) => Promise<void>
-        dirty: () => Promise<Note[]>
       }
+      /**
+       * Sync with the Worker runs in the main process, on a timer and on
+       * every save. The renderer asks for a cycle when it comes up and when
+       * the machine comes back online, pushes the note it just saved, and
+       * reloads its list when main says a pull changed something.
+       */
       sync: {
+        /** One cycle: push, send pending media, pull. Shares a cycle already running. */
+        now: () => Promise<SyncResult>
+        /** Send one note now; false leaves it queued for the next cycle. */
+        pushNote: (id: string) => Promise<boolean>
         status: () => Promise<SyncStatus>
+        /** Hear about a pull that changed notes. Resolves to the unsubscribe. */
+        onChanged: (listener: () => void) => () => void
       }
       meta: {
         set: (key: string, value: string) => Promise<void>
@@ -92,13 +93,13 @@ declare global {
        * Sign-in lives in the main process: it sends the user's browser to
        * Google's consent screen, receives the authorization code on a
        * loopback port, trades it with the Worker for a session and keeps
-       * that session. Google's ID token comes back too, for the renderer's
-       * Firebase sign-in. `googleSignIn` rejects with a message containing
+       * that session; the renderer only ever learns who the user is.
+       * `googleSignIn` rejects with a message containing
        * `SIGN_IN_CANCELLED_MESSAGE` (`@shared/domain/auth`) when the user
        * declines in the browser or `cancelSignIn` ends the attempt.
        */
       auth: {
-        googleSignIn: () => Promise<{ idToken: string; user: AuthUser }>
+        googleSignIn: () => Promise<{ user: AuthUser }>
         cancelSignIn: () => Promise<void>
         current: () => Promise<AuthUser | null>
         signOut: () => Promise<void>
