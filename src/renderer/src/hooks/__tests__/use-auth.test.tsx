@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthUser } from '@shared/domain/auth'
+import { resetAuthStore } from '@/store/auth'
 import { useAuth } from '../useAuth'
 
 // ---------------------------------------------------------------------------
@@ -20,6 +21,7 @@ const api = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  resetAuthStore()
   api.current.mockResolvedValue(null)
   Object.defineProperty(window, 'api', {
     value: { platform: 'darwin', auth: api },
@@ -111,6 +113,51 @@ describe('useAuth.cancelGoogleSignIn', () => {
       await result.current.cancelGoogleSignIn()
     })
     expect(api.cancelSignIn).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useAuth is one state for every subscriber', () => {
+  // The sign-in screen and the app shell call the hook separately; a sign-in
+  // made through one has to reach the other, or the shell never leaves the
+  // sign-in screen.
+  it('shows a sign-in made through another subscriber, asking main only once', async () => {
+    api.googleSignIn.mockResolvedValueOnce({ user: me })
+    const screen = renderHook(() => useAuth())
+    const shell = renderHook(() => useAuth())
+    await waitFor(() => expect(shell.result.current.loading).toBe(false))
+    expect(api.current).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await screen.result.current.signInWithGoogle()
+    })
+
+    expect(shell.result.current.user).toEqual(me)
+    expect(screen.result.current.user).toEqual(me)
+  })
+
+  it('shows a sign-out made through another subscriber', async () => {
+    api.current.mockResolvedValueOnce(me)
+    const shell = renderHook(() => useAuth())
+    const header = renderHook(() => useAuth())
+    await waitFor(() => expect(shell.result.current.user).toEqual(me))
+
+    await act(async () => {
+      await header.result.current.logout()
+    })
+
+    expect(shell.result.current.user).toBeNull()
+  })
+
+  it('keeps the user for a subscriber mounted after the sign-in', async () => {
+    api.googleSignIn.mockResolvedValueOnce({ user: me })
+    const screen = renderHook(() => useAuth())
+    await act(async () => {
+      await screen.result.current.signInWithGoogle()
+    })
+
+    const late = renderHook(() => useAuth())
+    expect(late.result.current.user).toEqual(me)
+    expect(late.result.current.loading).toBe(false)
   })
 })
 

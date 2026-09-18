@@ -1,59 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
-import { isSignInCancelled, type AuthUser } from '@shared/domain/auth'
+import { useEffect } from 'react'
+import { useAuthStore } from '@/store/auth'
 
 /**
- * Who is signed in, as main knows it. The session lives in the main process
- * (`window.api.auth`); this hook only mirrors the user it reports and asks
- * it to sign in or out.
+ * Who is signed in, as main knows it. A view on the auth store: every caller
+ * sees the same user, and the first one mounted asks main for the session.
  */
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const user = useAuthStore((state) => state.user)
+  const loading = useAuthStore((state) => state.loading)
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
+  const cancelGoogleSignIn = useAuthStore((state) => state.cancelGoogleSignIn)
+  const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
-    let stale = false
-    window.api.auth.current().then(
-      (current) => {
-        if (stale) return
-        setUser(current)
-        setLoading(false)
-      },
-      (error) => {
-        console.warn('[auth] could not read the session:', error)
-        if (!stale) setLoading(false)
-      }
-    )
-    return () => {
-      stale = true
-    }
-  }, [])
-
-  /**
-   * Main runs the sign-in in the user's browser and establishes the Worker
-   * session. Resolves `true` once signed in and `false` when the sign-in was
-   * cancelled — by the user in the browser, or by `cancelGoogleSignIn` —
-   * which is not a failure.
-   */
-  const signInWithGoogle = useCallback(async (): Promise<boolean> => {
-    let signedIn: AuthUser
-    try {
-      ;({ user: signedIn } = await window.api.auth.googleSignIn())
-    } catch (error) {
-      if (isSignInCancelled(error)) return false
-      throw error
-    }
-    setUser(signedIn)
-    return true
-  }, [])
-
-  /** End the sign-in under way, if any; its `signInWithGoogle` then resolves `false`. */
-  const cancelGoogleSignIn = useCallback(async () => {
-    await window.api.auth.cancelSignIn()
-  }, [])
-
-  const logout = useCallback(async () => {
-    await window.api.auth.signOut()
-    setUser(null)
+    void useAuthStore.getState().load()
   }, [])
 
   return {
