@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { serializeDocument } from '@shared/domain/document'
@@ -194,6 +194,19 @@ describe('App', () => {
     await waitFor(() =>
       expect(api.notes.update).toHaveBeenCalledWith('n1', { tags: ['work', 'ideas'] })
     )
+  })
+
+  it('ends the header with the theme toggle and then the note properties button', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    const properties = await screen.findByRole('button', { name: 'Note properties' })
+    // jsdom's matchMedia never matches, so the system theme is light and the
+    // toggle offers dark.
+    const theme = screen.getByRole('button', { name: 'Dark theme' })
+    const buttons = within(properties.parentElement as HTMLElement).getAllByRole('button')
+    expect(buttons.at(-1)).toBe(properties)
+    expect(buttons.at(-2)).toBe(theme)
   })
 
   it('creates a new note from the empty state and opens it', async () => {

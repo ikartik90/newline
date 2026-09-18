@@ -12,7 +12,7 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
-import MetadataIcon from '@/assets/icons/metadata.svg'
+import SettingsIcon from '@/assets/icons/settings.svg'
 
 const iconButton =
   'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body hover:bg-field-hover transition-colors'
@@ -32,7 +32,7 @@ function App() {
     refresh
   } = useNotes()
 
-  const { theme, setTheme } = useTheme()
+  const { effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -174,6 +174,8 @@ function App() {
             >
               Sign out
             </button>
+            {/* The theme toggle, then the note's settings (the gear) last. */}
+            <ThemeToggle theme={effectiveTheme} onChange={setTheme} />
             {activeNote && (
               <button
                 type="button"
@@ -183,10 +185,9 @@ function App() {
                 title="Note properties"
                 onClick={() => setPropertiesOpen((open) => !open)}
               >
-                <MetadataIcon className="w-5 h-5" aria-hidden />
+                <SettingsIcon className="w-5 h-5" aria-hidden />
               </button>
             )}
-            <ThemeToggle theme={theme} onChange={setTheme} />
           </div>
         </div>
 

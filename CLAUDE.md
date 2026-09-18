@@ -71,6 +71,8 @@ Token names in `src/renderer/src/assets/main.css`. Mapping from Panda recipes:
 
 Data attributes drive state styling exactly as in kartik.to (`data-active`, `data-indented`, `data-align`, `data-slash-anchor`, `data-sidenote-rail`, `data-media-pending`, `data-keyboard-focus`, `data-control-dragging`).
 
+Write every Tailwind class out whole. Tailwind's scanner reads class names from the source text, so a name assembled at runtime (`` `data-[active]:${tint}` ``) reaches the DOM with no rule behind it and styles nothing; branch between two complete strings instead. `components/ui/input/__tests__/option-list-classes.test.tsx` checks the option list's rendered classes against the scanner.
+
 ## Document model
 
 `Document = { type: 'doc', content: BlockNode[] }`. Blocks: paragraph, heading, blockquote, list_item, bullet_list_item, code_block, horizontal_rule, media (image | video), metric, link_card. Inline: text nodes with marks (bold, italic, code, underline, strikethrough, highlight, link, sidenote). Lists are runs of consecutive item blocks. See `src/shared/domain/nodes.ts`.

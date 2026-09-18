@@ -82,7 +82,26 @@ const ON_BRAND_STATE =
  */
 export function optionListClasses({ tone, direction, fit, size }: Variants) {
   const brand = tone === 'onBrand'
-  const hoverTint = brand ? 'bg-field-hover-brand' : 'bg-field-hover'
+  // Each tint spelled out whole, for both palettes: Tailwind reads class names
+  // out of the source, so a name assembled at runtime — `data-[active]:${tint}`
+  // — reaches the DOM with no rule behind it and dresses nothing. That is how
+  // the keyboard highlight went invisible. `option-list-classes.test.tsx`
+  // checks every rendered class against the scanner.
+  const tint = brand
+    ? {
+        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-field-hover-brand',
+        listboxHover:
+          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-field-hover-brand',
+        toolbarHover: 'hover:not-aria-pressed:bg-field-hover-brand',
+        highlighted: 'data-[highlighted]:not-aria-selected:bg-field-hover-brand'
+      }
+    : {
+        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-field-hover',
+        listboxHover:
+          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-field-hover',
+        toolbarHover: 'hover:not-aria-pressed:bg-field-hover',
+        highlighted: 'data-[highlighted]:not-aria-selected:bg-field-hover'
+      }
   return {
     root: cx(
       'flex flex-col w-(--size-option-list-width) rounded-sm overflow-hidden',
@@ -129,7 +148,7 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       // `data-active` is the roving/keyboard highlight; the `not-` guards keep
       // the neutral tint off the selected row, which is the default roving
       // target and so carries both attributes.
-      `data-[active]:not-aria-selected:not-aria-pressed:${hoverTint}`,
+      tint.active,
       brand ? ON_BRAND_STATE : ON_STATE,
       'disabled:text-field-fg-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
       '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--border-focus-ring)]',
@@ -139,10 +158,10 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     // row: a cursor parked over a menu opened with `/` would otherwise paint a
     // second lit row beside the one the keyboard is driving. A TOOLBAR has no
     // roving highlight, so hover always tints there.
-    listboxHover: `[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:${hoverTint}`,
-    toolbarHover: `hover:not-aria-pressed:${hoverTint}`,
+    listboxHover: tint.listboxHover,
+    toolbarHover: tint.toolbarHover,
     // Base UI's own roving highlight (the Combobox item), the same tint.
-    highlighted: `data-[highlighted]:not-aria-selected:${hoverTint}`,
+    highlighted: tint.highlighted,
     empty: cx(
       'flex items-center px-1 text-style-body-sm select-none',
       brand ? 'text-field-fg-active-muted' : 'text-field-fg-muted',

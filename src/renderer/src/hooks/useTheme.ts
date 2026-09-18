@@ -2,31 +2,34 @@ import { useState, useEffect, useCallback } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
-function getEffectiveTheme(theme: Theme): 'light' | 'dark' {
-  if (theme !== 'system') return theme
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
+const SYSTEM_DARK = '(prefers-color-scheme: dark)'
 
+/**
+ * The chosen theme (`system` until the user picks one, remembered in
+ * localStorage) and the one in force, which follows the OS while the choice
+ * is `system`. Both are live state, so the toggle that offers "the other one"
+ * re-renders when the OS switches underneath it.
+ */
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
     return (localStorage.getItem('theme') as Theme) ?? 'system'
   })
-
-  const effectiveTheme = getEffectiveTheme(theme)
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia(SYSTEM_DARK).matches)
 
   useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle('dark', effectiveTheme === 'dark')
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => {
-      if (theme === 'system') {
-        root.classList.toggle('dark', mq.matches)
-      }
-    }
+    const mq = window.matchMedia(SYSTEM_DARK)
+    const handler = (event: MediaQueryListEvent) => setSystemDark(event.matches)
+    setSystemDark(mq.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
-  }, [theme, effectiveTheme])
+  }, [])
+
+  const effectiveTheme: 'light' | 'dark' =
+    theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', effectiveTheme === 'dark')
+  }, [effectiveTheme])
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
