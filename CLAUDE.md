@@ -50,6 +50,7 @@ src/
 - **Base UI for primitives.** Popover, Tooltip, Dialog, Menu, Select/Combobox, Slider, Switch, Checkbox, Toggle come from `@base-ui/react`, wrapped once in `components/ui/` and styled with Tailwind. Do not hand-roll these.
 - **Local-first.** The renderer never blocks on the network and never talks to the Worker itself. Writes go to SQLite through `window.api`; main syncs.
 - **Security.** The app holds no Cloudflare credentials. Main keeps the Worker session token in `app_meta`, encrypted with `safeStorage`, and is the only process that calls the Worker; the renderer asks main over IPC.
+- **Comments are concise and purposeful.** A line or two, saying why — never narrating a change or the bug behind it. If the code already says it, leave it out.
 - **Free plan.** The Cloudflare account is on the free tier and must stay unbillable: the backend is one plain Worker with a D1 binding and an R2 binding, and the Worker's `MEDIA_QUOTA_BYTES` keeps stored media under R2's free allowance. Anything paid (placement, CPU limits, observability, queues, durable objects, custom domains) is out.
 
 ## Porting from kartik.to (Panda CSS → Tailwind)
@@ -78,7 +79,7 @@ Data attributes drive state styling exactly as in kartik.to (`data-active`, `dat
 
 **A field's frame is `border-field-border` / `border-field-border-active` — the spellings that stop one segment short, at the field's own name, are the field's FILL.** They are not typos the build rejects: `@theme inline` names the frame `--color-field-border`, so the short form resolves to `--color-field` and compiles to `border-color: var(--field-bg)`. A frame written that way draws at the fill's alpha, and the active one paints the opaque rosemilk/rust fill over a background already using it, so a focused field loses its edge entirely. (Naming the short forms in prose is enough to make Tailwind emit them — the scanner reads markdown and comments too — so they are described here rather than spelled.) For the same reason a surface hands its fields the on-surface fill by reassigning **`--field-bg`**, not `--color-field`: `inline` substitutes the value, so no utility ever reads the `--color-*` alias. `src/renderer/src/__tests__/token-usage.test.ts` guards both.
 
-Write every Tailwind class out whole. Tailwind's scanner reads class names from the source text, so a name assembled at runtime (`` `data-[active]:${tint}` ``) reaches the DOM with no rule behind it and styles nothing; branch between two complete strings instead. `components/ui/input/__tests__/option-list-classes.test.tsx` checks the option list's rendered classes against the scanner.
+Write every Tailwind class out whole. Tailwind's scanner reads class names from the source text, so a name assembled at runtime (`` `data-[active]:${tint}` ``) reaches the DOM with no rule behind it and styles nothing; branch between two complete strings instead. Two utilities for the same property in one class list resolve by stylesheet order, not list order — `.flex` is emitted after `.contents`, so an appended `contents` never collapsed a `flex` root. Write the cases as alternatives, never a base plus an override. `components/ui/input/__tests__/option-list-classes.test.tsx` guards both.
 
 ## Document model
 
