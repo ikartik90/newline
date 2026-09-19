@@ -59,18 +59,12 @@ jobs:
       # skips better-sqlite3's download too and leaves no binding at all.
       - run: npm ci
 
-      # `postinstall` rebuilds better-sqlite3 for Electron's ABI, but the main
-      # project runs under plain Node. test-db.ts copes by catching the failed
-      # load and loading the Node prebuild by path — which leaves TWO copies of
-      # a statically linked SQLite in one process. macOS tolerates that (two
-      # level namespaces keep each copy's symbols to itself); Linux does not,
-      # and the interposed symbols take the fork down with SIGBUS partway
-      # through whichever file uses the database hardest. Rebuilding for Node
-      # puts a single correct binding in place, so the load succeeds first try
-      # and the fallback never runs. Only this job needs it: nothing else here
-      # opens a database, and packaging in release.yml wants Electron's ABI.
-      - name: Rebuild better-sqlite3 for Node, not Electron
-        run: npm rebuild better-sqlite3
+      # No step here puts the Node build of better-sqlite3 back over the one
+      # postinstall builds for Electron. That was the stopgap for a SIGBUS in
+      # the main suite, and src/main/db/__tests__/test-db.ts now resolves its
+      # binding up front instead. Leaving the Electron build in place is what
+      # keeps this job honest: it is the state a developer's machine is in, so
+      # CI exercises the resolution rather than arranging for it to be unused.
 
       # Three projects: renderer in jsdom, shared and main in node.
       - name: Run Vitest
