@@ -13,9 +13,16 @@ import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import SettingsIcon from '@/assets/icons/settings.svg'
+import LeftSidebarIcon from '@/assets/icons/left-sidebar.svg'
 
 const iconButton =
-  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body hover:bg-field-hover transition-colors'
+  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body not-aria-pressed:hover:bg-field-hover aria-pressed:bg-field-active aria-pressed:text-field-fg-active transition-colors'
+
+// The top bar starts where the sidebar ends. Collapsed on macOS there is no
+// sidebar left to clear the window's own controls, which are drawn over the
+// content, so the bar steps past them itself.
+const topBar =
+  'h-12 flex items-center justify-between pr-4 shrink-0 transition-[padding] duration-200 ease-in-out'
 
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
@@ -34,6 +41,9 @@ function App() {
 
   const { effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Only macOS hides its title bar into the content; elsewhere the controls
+  // are in a bar of their own, above everything here.
+  const windowControlsGutter = sidebarCollapsed && window.api.platform === 'darwin'
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -148,16 +158,31 @@ function App() {
         onCreate={createNote}
         onDelete={deleteNote}
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         searchInputRef={searchInputRef}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div
-          className="h-12 flex items-center justify-between px-4 shrink-0"
+        <header
+          className={`${topBar} ${windowControlsGutter ? 'pl-20' : 'pl-4'}`}
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-          <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <div
+            className="flex items-center gap-2"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            {/* One glyph for the rail, worn at both ends of its toggle, as the
+                properties rail's own dock button does. What the button is
+                showing is the chip, not a change of picture. */}
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={iconButton}
+              aria-pressed={!sidebarCollapsed}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <LeftSidebarIcon className="w-5 h-5" aria-hidden />
+            </button>
             <SyncIndicator saveState={saveState} />
           </div>
           <div
@@ -189,7 +214,7 @@ function App() {
               </button>
             )}
           </div>
-        </div>
+        </header>
 
         {activeNote && initialDocument ? (
           <main className="flex-1 overflow-y-auto px-5 pt-8 pb-20">
@@ -214,10 +239,12 @@ function App() {
                 {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}N to create,{' '}
                 {window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'}F to search
               </p>
+              {/* The standalone CTA, in the pill the site's own wears: the
+                  40px secondary chip on a 12px inset, floored at 80px. */}
               <button
                 type="button"
                 onClick={createNote}
-                className="mt-4 h-10 px-3 text-style-body-sm rounded-md bg-branded text-fg-branded hover:opacity-90 transition-opacity"
+                className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors"
               >
                 New note
               </button>

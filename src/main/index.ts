@@ -9,6 +9,10 @@ import { pathToFileURL } from 'url'
 
 let mainWindow: BrowserWindow | null = null
 
+// The About panel reads the RUNNING bundle's strings, which from source are
+// Electron's own; `productName` in package.json only reaches `app.name`.
+app.setAboutPanelOptions({ applicationName: 'Newline', applicationVersion: app.getVersion() })
+
 function setupAutoUpdater(): void {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
