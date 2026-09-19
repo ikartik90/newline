@@ -1,9 +1,11 @@
 {
   "name": "newline",
+  "productName": "Newline",
   "version": "0.1.0",
   "description": "A local-first rich text note editor",
   "main": "./out/main/index.js",
   "scripts": {
+    "predev": "node scripts/dev-app-name.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",

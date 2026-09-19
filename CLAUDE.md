@@ -22,6 +22,7 @@ The editor is a port of the article editor in the sibling repo `../kartik.to`. T
 
 ```
 worker/                   The Cloudflare Worker (README.md is the API contract; migrations/ is the D1 schema)
+scripts/                  Dev-only helpers; `dev-app-name.mjs` runs from `predev` and names the app Newline in dev
 src/
 ├── main/                 Electron main process (Node)
 │   ├── db/               SQLite connection + versioned migrations
