@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { List, type RowComponentProps } from 'react-window'
 import AddIcon from '@/assets/icons/add.svg'
-import ChevronLeftIcon from '@/assets/icons/chevron-left.svg'
-import ChevronRightIcon from '@/assets/icons/chevron-right.svg'
 
 interface SidebarProps {
   notes: Note[]
@@ -13,7 +11,6 @@ interface SidebarProps {
   onCreate: () => void
   onDelete: (id: string) => void
   collapsed: boolean
-  onToggle: () => void
   searchInputRef?: React.RefObject<HTMLInputElement | null>
 }
 
@@ -42,8 +39,16 @@ const NOTE_ROW_HEIGHT = 56
 /** Below this many notes the list renders plainly; above it, virtualised. */
 const VIRTUALISE_FROM = 100
 
-const iconButton =
-  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body hover:bg-field-hover transition-colors'
+// Collapsed the rail keeps no width at all: with the toggle now in the top bar
+// there is nothing left in here to show, and a divider down an empty strip
+// reads as a seam rather than an edge.
+const sidebarShell =
+  'flex flex-col bg-surface/50 transition-[width] duration-200 ease-in-out overflow-hidden'
+
+// The pill the standalone CTA wears everywhere else — a filled secondary chip,
+// fully rounded (the site's own `About me`).
+const newNoteButton =
+  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-full bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors'
 
 export default function Sidebar({
   notes,
@@ -54,7 +59,6 @@ export default function Sidebar({
   onCreate,
   onDelete,
   collapsed,
-  onToggle,
   searchInputRef
 }: SidebarProps) {
   const listRef = useRef<HTMLDivElement>(null)
@@ -80,45 +84,30 @@ export default function Sidebar({
   )
 
   return (
-    <div
-      className={`border-r border-divider flex flex-col bg-surface/50 transition-[width] duration-200 ease-in-out overflow-hidden ${
-        collapsed ? 'w-12' : 'w-64'
-      }`}
+    <aside
+      aria-label="Notes"
+      className={`${sidebarShell} ${collapsed ? 'w-0' : 'w-64 border-r border-divider'}`}
     >
-      <div
-        className="h-12 flex items-center justify-between px-2 shrink-0"
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      >
-        <button
-          type="button"
-          onClick={onToggle}
-          className={iconButton}
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? (
-            <ChevronRightIcon className="w-5 h-5" aria-hidden />
-          ) : (
-            <ChevronLeftIcon className="w-5 h-5" aria-hidden />
-          )}
-        </button>
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={onCreate}
-            className={iconButton}
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            title="New note"
-            aria-label="New note"
-          >
-            <AddIcon className="w-5 h-5" aria-hidden />
-          </button>
-        )}
-      </div>
-
       {!collapsed && (
         <>
+          {/* macOS draws the window's own controls over the left of this row,
+              so the note button keeps to the far end of it. */}
+          <div
+            className="h-12 flex items-center justify-end px-2 shrink-0"
+            style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+          >
+            <button
+              type="button"
+              onClick={onCreate}
+              className={newNoteButton}
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+              title="New note"
+              aria-label="New note"
+            >
+              <AddIcon className="w-5 h-5" aria-hidden />
+            </button>
+          </div>
+
           <div className="px-2 pb-2">
             <input
               ref={searchInputRef}
@@ -160,7 +149,7 @@ export default function Sidebar({
           </div>
         </>
       )}
-    </div>
+    </aside>
   )
 }
 

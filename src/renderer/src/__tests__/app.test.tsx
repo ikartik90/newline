@@ -219,3 +219,79 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Title' })).toBeTruthy()
   })
 })
+
+// ---------------------------------------------------------------------------
+// The shell's chrome. On macOS the window's own controls are drawn over the
+// top-left of the content, which is where the sidebar's own header starts — so
+// nothing of the app's goes there: the sidebar toggle lives in the top bar of
+// the main pane, to the right of the sidebar, and the bar itself steps clear of
+// the controls when the sidebar is collapsed out from under them.
+// ---------------------------------------------------------------------------
+
+describe('App chrome', () => {
+  it('puts the sidebar toggle in the top bar rather than in the sidebar', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
+    expect(sidebar.contains(toggle)).toBe(false)
+    expect(screen.getByRole('banner').contains(toggle)).toBe(true)
+  })
+
+  it('collapses and expands the sidebar from that toggle', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    expect(await screen.findByLabelText('Search notes')).toBeTruthy()
+
+    // The glyph is the rail's own and does not change with the state, so the
+    // pressed chip is what says whether the rail is showing.
+    const shown = screen.getByRole('button', { name: 'Collapse sidebar' })
+    expect(shown.getAttribute('aria-pressed')).toBe('true')
+
+    await userEvent.click(shown)
+    expect(screen.queryByLabelText('Search notes')).toBeNull()
+
+    const hidden = screen.getByRole('button', { name: 'Expand sidebar' })
+    expect(hidden.getAttribute('aria-pressed')).toBe('false')
+
+    await userEvent.click(hidden)
+    expect(await screen.findByLabelText('Search notes')).toBeTruthy()
+  })
+
+  it('insets the top bar past the window controls once the sidebar is collapsed', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const bar = await screen.findByRole('banner')
+    expect(bar.className.split(/\s+/)).toContain('pl-4')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(bar.className.split(/\s+/)).toContain('pl-20')
+  })
+
+  it('dresses the sidebar new-note button as the round chip', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const create = within(sidebar).getByRole('button', { name: 'New note' })
+    const classes = create.className.split(/\s+/)
+    expect(classes).toContain('rounded-full')
+    expect(classes).toContain('bg-button-secondary')
+    expect(classes).toContain('hover:bg-button-secondary-hover')
+  })
+
+  it('dresses the empty state new-note button as the pill the standalone CTA wears', async () => {
+    installApi([])
+    render(<App />)
+    // The sidebar has a "New note" icon button too; the empty state's is last.
+    const buttons = await screen.findAllByRole('button', { name: 'New note' })
+    const classes = buttons[buttons.length - 1].className.split(/\s+/)
+    expect(classes).toContain('rounded-full')
+    expect(classes).toContain('bg-button-secondary')
+    expect(classes).toContain('hover:bg-button-secondary-hover')
+    // The 40px chip on a 12px inset, floored at 80px — the `md` text action.
+    expect(classes).toContain('h-10')
+    expect(classes).toContain('px-3')
+    expect(classes).toContain('min-w-20')
+    expect(classes).toContain('text-style-body-lg')
+  })
+})
