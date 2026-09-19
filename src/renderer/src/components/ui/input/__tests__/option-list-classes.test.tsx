@@ -87,3 +87,37 @@ describe('option list classes are ones Tailwind can see in the source', () => {
     }
   })
 })
+
+// Two utilities for the same property resolve by stylesheet order, not by
+// position in the class list, so the collapse and the box must be written as
+// alternatives rather than one appended to the other.
+
+describe('a root that collapses says nothing else', () => {
+  it.each([
+    ['plain, block', { tone: 'plain', direction: 'block' }],
+    ['plain, inline', { tone: 'plain', direction: 'inline' }],
+    ['default, inline', { tone: 'default', direction: 'inline' }],
+    ['onBrand, inline', { tone: 'onBrand', direction: 'inline' }]
+  ] as const)('%s', (_name, variant) => {
+    const { root } = optionListClasses({ ...variant, fit: 'scroll', size: 'md' })
+    expect(root.split(/\s+/).filter(Boolean)).toEqual(['contents'])
+  })
+
+  it('so an inline toolbar wraps its row in no box at all', () => {
+    const { getByRole } = render(
+      <OptionList direction="inline">
+        <OptionList.Toolbar aria-label="Marks">
+          <OptionList.Option>Bold</OptionList.Option>
+        </OptionList.Toolbar>
+      </OptionList>
+    )
+    expect(getByRole('toolbar').parentElement!.className).toBe('contents')
+  })
+})
+
+describe('a root that does draw a box states each property once', () => {
+  it.each(['default', 'onBrand'] as const)('one width, tone %s', (tone) => {
+    const { root } = optionListClasses({ tone, direction: 'block', fit: 'scroll', size: 'md' })
+    expect(root.split(/\s+/).filter((c) => /^w-/.test(c))).toHaveLength(1)
+  })
+})

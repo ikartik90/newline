@@ -103,14 +103,18 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
         highlighted: 'data-[highlighted]:not-aria-selected:bg-field-hover'
       }
   return {
-    root: cx(
-      'flex flex-col w-(--size-option-list-width) rounded-sm overflow-hidden',
-      tone === 'default' && 'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)]',
-      brand && 'w-full',
-      // A menu whose popover already owns the surface, or an inline row that
-      // sits in the consumer's frame: the root collapses.
-      (tone === 'plain' || direction === 'inline') && 'contents'
-    ),
+    // A popover that owns the surface, or an inline row in the consumer's
+    // frame: the root collapses. Alternatives, not a base plus `contents` —
+    // same-property utilities resolve by stylesheet order, and `.flex` is
+    // emitted after `.contents`.
+    root:
+      tone === 'plain' || direction === 'inline'
+        ? 'contents'
+        : cx(
+            'flex flex-col rounded-sm overflow-hidden',
+            brand ? 'w-full' : 'w-(--size-option-list-width)',
+            tone === 'default' && 'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)]'
+          ),
     search: cx(
       'shrink-0 w-full px-2 py-0 border-0 border-b-[0.5px] border-solid bg-transparent appearance-none',
       'caret-field-fg-active [&::-webkit-search-cancel-button]:hidden',
