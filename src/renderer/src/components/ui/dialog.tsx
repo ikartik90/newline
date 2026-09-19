@@ -63,7 +63,7 @@ const viewportStyle = 'fixed inset-0 z-50 flex overflow-y-auto pointer-events-no
 // icon buttons are `color: inherit`. Enters scaling up from 95%, leaves the
 // same way.
 const panelStyle =
-  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface [--color-field:var(--color-field-on-surface)] text-fg-body rounded-md border-[0.5px] border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
+  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface [--field-bg:var(--field-bg-on-surface)] text-fg-body rounded-md border-[0.5px] border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // 16px (`xl`) of viewport on either side is the least a panel keeps.
 const sizeStyle: Record<DialogSize, string> = {

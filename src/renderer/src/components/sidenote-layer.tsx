@@ -21,7 +21,7 @@ import type { SidenoteEntry } from '@/utils/sidenotes'
 // at the START of the reveal so Edit auto-focus has something to land on.
 const cardStyle =
   'fixed z-40 flex flex-col gap-1 p-2 max-w-(--size-sidenote-max-width) ' +
-  'bg-surface [--color-field:var(--color-field-on-surface)] rounded-md border-[0.5px] border-divider ' +
+  'bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md border-[0.5px] border-divider ' +
   'shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] text-fg ' +
   'opacity-0 invisible pointer-events-none transition-[opacity,visibility] duration-[120ms] ease-out [transition-behavior:allow-discrete] ' +
   'data-[active]:opacity-100 data-[active]:visible data-[active]:pointer-events-auto'

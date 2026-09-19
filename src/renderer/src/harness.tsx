@@ -4,6 +4,7 @@ import type { Document } from '@shared/domain/document'
 import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
+import { useTheme } from '@/hooks/useTheme'
 import './assets/main.css'
 
 // ---------------------------------------------------------------------------
@@ -119,12 +120,22 @@ Object.defineProperty(window, 'api', {
 function Harness() {
   useKeyboardFocus()
   useInputModality()
+  // The harness is the documented way to look at the editor, so it has to be
+  // able to show either theme — it followed neither the OS nor a choice.
+  const { effectiveTheme, setTheme } = useTheme()
   const [snapshot, setSnapshot] = useState<EditorSnapshot | null>(null)
   return (
     <div className="h-screen flex flex-col bg-canvas text-fg">
       <div className="h-12 flex items-center px-4 text-style-caption text-fg-body/50 shrink-0">
         Harness · last change:{' '}
         {snapshot ? `${snapshot.document.content.length} blocks` : 'none yet'}
+        <button
+          type="button"
+          onClick={() => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')}
+          className="ml-auto h-7 px-2 rounded-sm bg-field text-field-fg hover:bg-field-hover"
+        >
+          {effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme'}
+        </button>
       </div>
       <main className="flex-1 overflow-y-auto px-5 pt-8 pb-20">
         <article>

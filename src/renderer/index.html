@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Newline</title>
+    <!--
+      The theme class has to be on <html> BEFORE the first paint. React applies
+      it from an effect, which runs after the browser has already painted, so a
+      dark-theme user would see one light frame. Keep the key and the values in
+      step with hooks/useTheme.
+    -->
+    <script>
+      try {
+        var choice = localStorage.getItem('theme')
+        var dark =
+          choice === 'dark' ||
+          ((!choice || choice === 'system') &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+      } catch (e) {
+        /* Private mode can throw on localStorage; the light default stands. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

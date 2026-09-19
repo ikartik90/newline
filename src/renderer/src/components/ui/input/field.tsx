@@ -284,13 +284,13 @@ function FieldFrame({ children, className, onMouseDown, ...rest }: FieldFramePro
       data-size={size}
       className={cx(
         'flex items-center gap-2 w-full px-2 rounded-sm border-[0.5px] border-solid overflow-hidden cursor-text',
-        'bg-field border-field text-field-fg transition-[background-color,border-color,color] duration-150',
+        'bg-field border-field-border text-field-fg transition-[background-color,border-color,color] duration-150',
         // A multi-line control grows instead of holding the fixed height, and
         // the padding turns vertical because the frame no longer centres it.
         'has-[textarea]:items-start has-[textarea]:py-1',
         SIZE[size].frame,
         whenFieldActive('bg-field-active'),
-        whenFieldActive('border-field-active'),
+        whenFieldActive('border-field-border-active'),
         whenFieldActive('text-field-fg-active'),
         // The keyboard ring goes on the shell so it hugs the whole field, icon
         // included; inset, so `overflow: hidden` cannot clip it.

@@ -30,7 +30,7 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 // pinned to the foot and the hairline drawn OVER everything it holds.
 const rootStyle = cx(
   'relative flex flex-col justify-end aspect-video w-full min-w-0 rounded-xl overflow-hidden',
-  'bg-surface [--field-bg:var(--field-bg-on-surface)] no-underline text-inherit',
+  'bg-surface [--field-bg:var(--field-bg-on-surface)] no-underline',
   'after:content-[""] after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-solid after:border-divider after:pointer-events-none',
   // Over a picture the caption takes the theme's STRONGEST ink — done by
   // reassigning the tokens the words resolve through, so `Typography` need
@@ -65,7 +65,7 @@ const toneStyle: Record<LinkCardTone, string> = {
 // The frosting: a backdrop blur that fades out towards the top of the band,
 // so the picture softens under the words and nowhere else.
 const frostStyle =
-  'absolute inset-0 backdrop-blur-md [mask-image:linear-gradient(to_top,black_30%,transparent)] pointer-events-none'
+  'absolute inset-0 backdrop-frost [mask-image:linear-gradient(to_top,black_30%,transparent)] pointer-events-none'
 
 // The tint over the frosting — the card's own plate colour, so the words keep
 // the contrast they have always had against it.

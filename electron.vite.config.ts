@@ -10,7 +10,13 @@ import { resolve } from 'path'
  * control it sits in, and the viewBox is kept so a CSS-sized icon scales.
  */
 export const svgrOptions = {
-  replaceAttrValues: { '#fff': 'currentColor', '#ffffff': 'currentColor' },
+  // `white` is the spelling the icons actually use (317 of 318 attributes);
+  // the hex forms are kept so a future icon authored either way still maps.
+  replaceAttrValues: {
+    white: 'currentColor',
+    '#fff': 'currentColor',
+    '#ffffff': 'currentColor'
+  },
   svgoConfig: {
     plugins: [
       {

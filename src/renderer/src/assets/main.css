@@ -95,6 +95,9 @@
    element and follows the theme.
 --------------------------------------------------------------------------- */
 :root {
+  /* Native chrome — the pre-CSS canvas, form controls, scrollbars. */
+  color-scheme: light;
+
   --bg-canvas: var(--color-neutral-100);
   --bg-surface: var(--color-neutral-200);
   --bg-surface-glass: color-mix(in srgb, var(--color-neutral-200) 75%, transparent);
@@ -119,6 +122,22 @@
   --fg-branded: var(--color-neutral-900);
   --fg-selection: var(--color-neutral-900);
   --fg-highlight: var(--color-brand-pink);
+
+  /* Status inks. kartik.to has no success/warning/danger family — it paints
+     every notice in the brand gradient — but sync state has to say WHICH state
+     it is, so these are newline's own. Each is chosen to clear 4.5:1 on its
+     own canvas, which no Tailwind default does: every stock hue is tuned for a
+     dark ground and lands between 1.5:1 and 3.4:1 on ours. Used as ink and as
+     the status dot's fill, so `text-*` and `bg-*` both resolve. */
+  --fg-danger: #b3123a;
+  --fg-warning: #8a5300;
+  --fg-success: #0d6b4f;
+  --fg-info: #1b4fd8;
+
+  /* Syntax highlighting needs TWO accents per theme; the brand has one. The
+     primary role takes `--fg-highlight`; this is the second, legible on
+     `--bg-surface` (the code block's ground) rather than on the canvas. */
+  --fg-syntax-secondary: #8a4b00;
 
   --border-divider: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
@@ -178,6 +197,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   --bg-canvas: var(--color-neutral-900);
   --bg-surface: var(--color-neutral-800);
   --bg-surface-glass: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
@@ -198,6 +219,13 @@
   --fg-title: var(--color-neutral-100);
   --fg-body: var(--color-neutral-400);
   --fg-highlight: var(--color-brand-orange);
+
+  --fg-danger: #ff9aa8;
+  --fg-warning: #ffc766;
+  --fg-success: #5fd6a8;
+  --fg-info: #8fb6ff;
+
+  --fg-syntax-secondary: var(--color-brand-orange);
 
   --border-divider: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
@@ -242,6 +270,12 @@
   --color-fg-branded: var(--fg-branded);
   --color-fg-selection: var(--fg-selection);
   --color-fg-highlight: var(--fg-highlight);
+
+  --color-danger: var(--fg-danger);
+  --color-warning: var(--fg-warning);
+  --color-success: var(--fg-success);
+  --color-info: var(--fg-info);
+  --color-syntax-secondary: var(--fg-syntax-secondary);
 
   --color-divider: var(--border-divider);
   --color-image-outline: var(--border-image-outline);

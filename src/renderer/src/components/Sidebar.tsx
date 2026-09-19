@@ -127,7 +127,7 @@ export default function Sidebar({
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Search notes…"
               aria-label="Search notes"
-              className="w-full h-8 px-3 text-style-body-sm rounded-sm bg-field text-field-fg placeholder:text-field-fg-placeholder border-[0.5px] border-solid border-field outline-none focus:border-field-border-active focus:bg-field-active"
+              className="w-full h-8 px-3 text-style-body-sm rounded-sm bg-field text-field-fg placeholder:text-field-fg-placeholder border-[0.5px] border-solid border-field-border outline-none focus:border-field-border-active focus:bg-field-active"
             />
           </div>
 
@@ -225,7 +225,7 @@ function NoteItem({
             {note.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-style-fineprint px-1.5 rounded-full bg-list-marker text-fg-body truncate max-w-[60px]"
+                className="text-style-fineprint px-1.5 rounded-full bg-surface-raised text-fg-body truncate max-w-[60px]"
               >
                 {tag}
               </span>

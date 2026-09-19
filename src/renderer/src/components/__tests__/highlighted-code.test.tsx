@@ -34,8 +34,11 @@ describe('HighlightedCode', () => {
     const { container } = render(<HighlightedCode code={source} language="javascript" />)
     const classOf = (role: string) =>
       container.querySelector(`[data-syntax-role="${role}"]`)?.className ?? ''
-    expect(classOf('primary')).toContain('text-brand-pink')
-    expect(classOf('secondary')).toContain('text-brand-orange')
+    // Both accents must FOLLOW the theme. `text-brand-*` does not — it is the
+    // same hue in light and dark, and orange on the light code block is
+    // 1.36:1, which is how every string and number went missing there.
+    expect(classOf('primary')).toContain('text-fg-highlight')
+    expect(classOf('secondary')).toContain('text-syntax-secondary')
     expect(classOf('neutral')).toContain('text-fg')
     expect(classOf('comment')).toContain('text-fg-body')
     // Four distinct inks — no two roles are dressed the same.

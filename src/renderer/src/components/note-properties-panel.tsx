@@ -42,7 +42,7 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
           {note.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-list-marker text-style-caption text-fg leading-none"
+              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-surface-raised text-style-caption text-fg leading-none"
             >
               {tag}
               <button
@@ -75,7 +75,7 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
                 removeTag(note.tags[note.tags.length - 1])
               }
             }}
-            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-field-on-surface text-field-fg placeholder:text-field-fg-placeholder border-[0.5px] border-solid border-field outline-none focus:border-field-border-active focus:bg-field-active"
+            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-field-on-surface text-field-fg placeholder:text-field-fg-placeholder border-[0.5px] border-solid border-field-border outline-none focus:border-field-border-active focus:bg-field-active"
           />
         </div>
       </PropertiesPanel.Group>

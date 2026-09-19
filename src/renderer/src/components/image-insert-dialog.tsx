@@ -83,7 +83,7 @@ const deleteRowStyle =
 
 const selectionCountStyle = 'text-style-caption text-fg-body/50 m-0 tabular-nums'
 
-const errorStyle = 'text-style-caption text-brand-pink dark:text-brand-orange text-center'
+const errorStyle = 'text-style-caption text-fg-highlight text-center'
 
 /** A document's stand-in: nothing draws a PDF, and the name below answers which file it is. */
 const documentGlyphStyle = 'size-10 text-fg-body/50'
@@ -107,7 +107,7 @@ const formatsStyle = 'text-style-caption text-fg-body/50 leading-5 m-0'
 // No byte count comes back from the main process, so the bar sweeps rather
 // than fills: a shimmer across the divider in the brand hue.
 const progressStyle =
-  'w-full max-w-(--size-image-preview-max) h-0.5 rounded-xs bg-[linear-gradient(90deg,var(--border-divider),var(--color-brand-pink),var(--border-divider))] dark:bg-[linear-gradient(90deg,var(--border-divider),var(--color-brand-orange),var(--border-divider))] bg-[length:200%_100%] animate-shimmer'
+  'w-full max-w-(--size-image-preview-max) h-0.5 rounded-xs bg-[linear-gradient(90deg,var(--border-divider),var(--fg-highlight),var(--border-divider))] bg-[length:200%_100%] animate-shimmer'
 
 // Built from the allow-lists rather than restated, so the file picker cannot
 // drift from what `processFiles` and the main process will actually take.
