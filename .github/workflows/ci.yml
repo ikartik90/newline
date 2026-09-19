@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# A new push supersedes the run it interrupted — that run is testing a commit
+# nobody will merge, so finishing it would only burn minutes.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  static:
+    name: Lint & types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          # Pinned to the root lockfile: worker/ has its own, and letting the
+          # default `**/package-lock.json` glob fold both into one key would
+          # make a worker-only change evict the app's cache for no reason.
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Two projects, two tsconfigs: the renderer (web libs, no Node types) and
+      # main/preload (Node). `npm run typecheck` runs both.
+      - name: Type check
+        run: npm run typecheck
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # `postinstall` rebuilds better-sqlite3 for Electron's ABI, which the Node
+      # running vitest cannot load — but `npm ci` has already cached the
+      # prebuild for THIS Node under ~/.npm/_prebuilds on the way past, and
+      # src/main/db/__tests__/test-db.ts unpacks that one when the default
+      # binding fails. So the main-process suite works off a plain `npm ci`;
+      # do not add `--ignore-scripts` to "skip the rebuild", because that skips
+      # the download too and leaves no binding at all.
+      - run: npm ci
+
+      # Three projects: renderer in jsdom, shared and main in node.
+      - name: Run Vitest
+        run: npm test
+
+  worker:
+    name: Worker tests
+    # Its own job rather than a step in `unit`: worker/ is a separate npm
+    # package with its own lockfile and node_modules, and its suite runs inside
+    # workerd against D1 and R2 emulations rather than in Node.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      # No secrets: `.dev.vars` is gitignored and absent here, and the suite
+      # supplies its own GOOGLE_CLIENT_ID/SECRET through src/__tests__/helpers.ts.
+      # Miniflare applies migrations/ to a fresh D1 per test file.
+      - name: Run Vitest in workerd
+        run: npm test
+
+  build:
+    name: Build
+    # Gated on the cheap checks: a pull request that does not lint, typecheck or
+    # pass its tests is not one whose bundle is worth producing.
+    needs: [static, unit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      # Bundles main, preload and renderer. Rollup and esbuild do not typecheck,
+      # so this is a genuinely separate signal from `static` — it catches what
+      # only fails when the graph is actually resolved and emitted. It is also
+      # the first half of every `release:*` script, so a green build here is
+      # what makes tagging a release safe.
+      - name: Build
+        run: npm run build
+
+  report-failure:
+    name: Report failure
+    needs: [static, unit, worker, build]
+    # `failure()` alone would stay silent when a job is cancelled out from under
+    # a genuine failure elsewhere in the run.
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment the failing checks on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          STATIC: ${{ needs.static.result }}
+          UNIT: ${{ needs.unit.result }}
+          WORKER: ${{ needs.worker.result }}
+          BUILD: ${{ needs.build.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          icon() {
+            case "$1" in
+              success) echo "✅ passed" ;;
+              failure) echo "❌ failed" ;;
+              cancelled) echo "⚪ cancelled" ;;
+              skipped) echo "⏭️ skipped (an earlier job failed)" ;;
+              *) echo "❔ $1" ;;
+            esac
+          }
+
+          marker="<!-- ci-failure-report -->"
+          body=$(cat <<EOF
+          $marker
+          ### ❌ CI failed — this pull request will not auto-merge
+
+          | Check | Result |
+          | --- | --- |
+          | Lint & types | $(icon "$STATIC") |
+          | Unit tests | $(icon "$UNIT") |
+          | Worker tests | $(icon "$WORKER") |
+          | Build | $(icon "$BUILD") |
+
+          [Inspect the run]($RUN_URL)
+
+          Push a fix to this branch and the whole gate re-runs.
+          EOF
+          )
+
+          # Edit the existing report in place so a branch that fails repeatedly
+          # does not bury its own diff under a column of comments.
+          # --slurp folds the paginated pages into one array of pages, so `add`
+          # gives a single flat comment list; without it jq would run per page
+          # and could emit more than one id.
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --slurp \
+            | jq -r --arg marker "$marker" \
+                '(add // []) | map(select(.body | contains($marker))) | .[0].id // empty')
+
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" \
+              -f body="$body" >/dev/null
+            echo "Updated the existing failure report."
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+              -f body="$body" >/dev/null
+            echo "Posted a failure report."
+          fi

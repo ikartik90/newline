@@ -14,6 +14,10 @@ The editor is a port of the article editor in the sibling repo `../kartik.to`. T
 - Lint / format: `npm run lint`, `npm run format` (prettier: no semicolons, single quotes, width 100)
 - Worker: `worker/` is its own npm package with its own `node_modules`; run its scripts from inside it (`npm test` there runs vitest inside workerd against real D1 and R2 emulations; `npm run dev` serves it on port 8787; `npm run deploy` needs a wrangler login).
 
+## Continuous integration
+
+`.github/workflows/ci.yml` gates every pull request into `main` with four jobs, named as the checks a branch ruleset requires: **Lint & types** (`npm run lint`, `npm run typecheck`), **Unit tests** (`npm test`), **Worker tests** (`worker/`'s own `npm ci`, typecheck and workerd suite) and **Build** (`npm run build`, gated on the first two). A failing run posts one comment on the pull request and edits that same comment on every later failure. `auto-merge.yml` arms GitHub's native auto-merge so a green pull request merges itself; it refuses to arm when the base branch requires no status checks, because auto-merge with nothing to wait on merges immediately. It arms `--merge` rather than `--squash`, because a branch here carries several self-contained commits. Head branches are not deleted automatically — the merge is recorded as `app/github-actions`, which the repository's deletion setting ignores. `release.yml` is separate and runs on a `v*` tag, not on pull requests.
+
 ## Directory map
 
 ```

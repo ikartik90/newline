@@ -1,0 +1,73 @@
+name: Auto-merge
+
+# Arms GitHub's native auto-merge. GitHub — not this workflow — performs the
+# merge, and only once every check required by the branch ruleset has reported
+# success. Nothing is deployed on merge: a release is cut by pushing a `v*` tag,
+# which is what release.yml listens for, so no publish step belongs here.
+#
+# `--merge`, not `--squash`: a branch here carries several self-contained
+# commits — one per ported area, one per migration step — and each is written
+# to be read on its own. Squashing would collapse a whole port into a single
+# message. The ruleset allows all three methods, so a pull request that really
+# is one change can still be squashed by hand.
+#
+# Merged head branches are NOT deleted automatically, and that is accepted
+# rather than unnoticed. Arming with GITHUB_TOKEN makes GitHub record the
+# merge as `app/github-actions`, and the repository's "Automatically delete
+# head branches" setting does not fire for that actor — nor does any workflow
+# listening for the merge, because events triggered by GITHUB_TOKEN start no
+# workflow runs at all. Both halves have the same cause, so no workflow can
+# route around it. The two fixes that would work each cost more than the
+# problem: a PAT makes the merge the user's own and the built-in deletion
+# fires, but it expires and its expiry degrades silently into exactly the
+# behaviour below; a scheduled sweep needs no secret but adds a workflow to
+# maintain. Branches are deleted by hand after merging instead.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  arm:
+    name: Arm auto-merge
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          # Without required status checks there is nothing for auto-merge to
+          # wait on, and GitHub merges the pull request the moment it is armed —
+          # the exact opposite of a gate. Refuse to arm rather than let a
+          # misconfigured branch turn this into an unconditional merge button.
+          required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$BASE" \
+            --jq '[.[] | select(.type == "required_status_checks")
+                       | .parameters.required_status_checks[]?.context] | length')
+
+          if [ "$required" -eq 0 ]; then
+            echo "::error::Branch '$BASE' has no required status checks, so auto-merge would merge immediately. Add a ruleset requiring the CI jobs before relying on this workflow."
+            exit 1
+          fi
+
+          echo "Branch '$BASE' requires $required status check(s)."
+
+          # --repo on every `gh pr` call: this job deliberately skips checkout
+          # (it needs no source), and without a local git remote to infer from,
+          # gh exits with "failed to run git: not a git repository".
+          if [ "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
+                    --json autoMergeRequest --jq '.autoMergeRequest != null')" = "true" ]; then
+            echo "Auto-merge is already armed on #$PR."
+            exit 0
+          fi
+
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --auto
+          echo "Armed auto-merge on #$PR — it will merge once every required check is green."
