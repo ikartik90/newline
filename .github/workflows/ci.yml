@@ -55,14 +55,22 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      # `postinstall` rebuilds better-sqlite3 for Electron's ABI, which the Node
-      # running vitest cannot load — but `npm ci` has already cached the
-      # prebuild for THIS Node under ~/.npm/_prebuilds on the way past, and
-      # src/main/db/__tests__/test-db.ts unpacks that one when the default
-      # binding fails. So the main-process suite works off a plain `npm ci`;
-      # do not add `--ignore-scripts` to "skip the rebuild", because that skips
-      # the download too and leaves no binding at all.
+      # Do not add `--ignore-scripts` here to "skip the Electron rebuild": it
+      # skips better-sqlite3's download too and leaves no binding at all.
       - run: npm ci
+
+      # `postinstall` rebuilds better-sqlite3 for Electron's ABI, but the main
+      # project runs under plain Node. test-db.ts copes by catching the failed
+      # load and loading the Node prebuild by path — which leaves TWO copies of
+      # a statically linked SQLite in one process. macOS tolerates that (two
+      # level namespaces keep each copy's symbols to itself); Linux does not,
+      # and the interposed symbols take the fork down with SIGBUS partway
+      # through whichever file uses the database hardest. Rebuilding for Node
+      # puts a single correct binding in place, so the load succeeds first try
+      # and the fallback never runs. Only this job needs it: nothing else here
+      # opens a database, and packaging in release.yml wants Electron's ABI.
+      - name: Rebuild better-sqlite3 for Node, not Electron
+        run: npm rebuild better-sqlite3
 
       # Three projects: renderer in jsdom, shared and main in node.
       - name: Run Vitest
@@ -84,7 +92,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: worker/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+
+      # worker/ is not self-contained. Its routes and tests import `@shared`,
+      # and those modules import zod — and react, for a type. Both resolve from
+      # the ROOT node_modules, because the worker package itself depends only on
+      # jose. Without this, tsc cannot find zod and every test file fails to
+      # load. --ignore-scripts is deliberate: this job never runs the app, so it
+      # needs no Electron download and no native rebuild, only resolvable
+      # modules and their types.
+      - name: Install root dependencies, which `@shared` resolves against
+        working-directory: .
+        run: npm ci --ignore-scripts
 
       - run: npm ci
 
