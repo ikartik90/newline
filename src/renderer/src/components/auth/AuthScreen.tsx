@@ -75,7 +75,7 @@ export default function AuthScreen() {
         </div>
 
         {error && (
-          <p role="alert" className="mt-4 text-style-caption text-red-500">
+          <p role="alert" className="mt-4 text-style-caption text-danger">
             {error}
           </p>
         )}

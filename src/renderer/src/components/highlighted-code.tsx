@@ -11,13 +11,16 @@ interface HighlightedCodeProps {
 }
 
 /**
- * One ink per token role. The two brand hues are the same in both themes (as
- * they are in kartik.to's Panda tokens); the two `fg` tokens follow `.dark`, so
- * plain code and comments stay legible on either canvas.
+ * One ink per token role, every one of them theme-following. The brand hues
+ * are NOT: they are the same in both themes, and orange on the light code
+ * block measures 1.36:1 — every string and number in a snippet disappeared.
+ * `primary` takes the prose accent, which flips pink/orange; `secondary` is
+ * its own token, because syntax needs two accents per theme and the brand
+ * only has one.
  */
 const SYNTAX_ROLE_CLASS: Record<SyntaxTokenRole, string> = {
-  primary: 'text-brand-pink',
-  secondary: 'text-brand-orange',
+  primary: 'text-fg-highlight',
+  secondary: 'text-syntax-secondary',
   neutral: 'text-fg',
   comment: 'text-fg-body'
 }

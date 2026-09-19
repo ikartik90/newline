@@ -181,7 +181,7 @@ function ComboboxRoot({
         initialFocus={search ? undefined : listRef}
         className={cx(
           'flex flex-col w-(--anchor-width) min-w-(--size-option-list-width) rounded-sm overflow-hidden outline-none',
-          'bg-field-popover shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]'
+          'bg-field-popover shadow-[inset_0_0_0_0.5px_var(--field-border-active),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]'
         )}
       >
         {search && (

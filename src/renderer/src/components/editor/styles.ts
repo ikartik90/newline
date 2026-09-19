@@ -14,10 +14,10 @@ export const editableBaseStyle =
 export const editorCodeBlockStyle =
   'text-style-code bg-surface rounded-md p-8 overflow-x-auto text-fg whitespace-pre outline-none focus-visible:outline-none'
 
-export const editorCodeBlockWrapperStyle = 'relative code-block-wrapper group/code'
+export const editorCodeBlockWrapperStyle = 'relative group/code'
 
 export const editorCodeLanguageSelectStyle =
-  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border-[0.5px] border-solid border-divider rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
+  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border-[0.5px] border-solid border-divider [--field-bg:var(--field-bg-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
 
 export const editorHrStyle = 'border-none h-[0.5px] bg-divider my-0'
 

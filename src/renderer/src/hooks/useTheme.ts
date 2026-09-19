@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -27,7 +27,10 @@ export function useTheme() {
   const effectiveTheme: 'light' | 'dark' =
     theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
 
-  useEffect(() => {
+  // Layout, not passive: the class must land before the browser paints, or a
+  // theme change shows one frame of the old one. index.html does the same for
+  // the very first frame, which React is not mounted in time for.
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', effectiveTheme === 'dark')
   }, [effectiveTheme])
 

@@ -85,7 +85,7 @@ const iconEmphasis: Record<ActionEmphasis, string> = {
 
 // The inline underlined affordance, in the brand ink.
 const linkStyle =
-  'inline p-0 bg-transparent text-brand-pink dark:text-brand-orange text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
+  'inline p-0 bg-transparent text-fg-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
 
 /** The Tailwind classes for an action's look — shared by Button and Link. */
 export function actionStyles({ variant, emphasis, size }: ActionStyleOptions): string {

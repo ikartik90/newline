@@ -70,8 +70,8 @@ interface Variants {
 // matching active edge on a pseudo so it composes with the focus ring.
 const ON_STATE =
   'aria-selected:bg-field-active aria-selected:text-field-fg-active aria-pressed:bg-field-active aria-pressed:text-field-fg-active ' +
-  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-field-active aria-selected:after:pointer-events-none ' +
-  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-field-active aria-pressed:after:pointer-events-none'
+  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-field-border-active aria-selected:after:pointer-events-none ' +
+  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-field-border-active aria-pressed:after:pointer-events-none'
 
 const ON_BRAND_STATE =
   'aria-selected:bg-field-selected aria-selected:text-field-fg aria-pressed:bg-field-selected aria-pressed:text-field-fg aria-selected:after:border-0 aria-pressed:after:border-0'
@@ -115,8 +115,8 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       'shrink-0 w-full px-2 py-0 border-0 border-b-[0.5px] border-solid bg-transparent appearance-none',
       'caret-field-fg-active [&::-webkit-search-cancel-button]:hidden',
       brand
-        ? 'text-field-fg-active border-b-field-active placeholder:text-field-fg-active-muted'
-        : 'text-field-fg border-b-field placeholder:text-field-fg-placeholder',
+        ? 'text-field-fg-active border-b-field-border-active placeholder:text-field-fg-active-muted'
+        : 'text-field-fg border-b-field-border placeholder:text-field-fg-placeholder',
       size === 'sm' ? 'h-7 text-style-body-sm' : 'h-10 text-style-body-lg'
     ),
     // The two layouts are written as alternatives rather than as a base with

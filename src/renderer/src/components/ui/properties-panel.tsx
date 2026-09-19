@@ -396,7 +396,7 @@ function PropertiesPanelSectionHeader({ icon, children }: PropertiesPanelSection
  */
 const CONTROL_PANEL = cx(
   'flex flex-col items-stretch gap-2 p-3 text-fg-body',
-  `[&_[data-property-block]]:${BLOCK_WIDTH}`,
+  '[&_[data-property-block]]:w-[calc(100%-8px-var(--size-property-row-action))]',
   '[&_[data-property-control]]:grid [&_[data-property-control]]:items-center [&_[data-property-control]]:gap-x-2 [&_[data-property-control]]:w-max',
   '[&_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)_var(--size-property-row-action)]',
   // The label is a column of the grid now, so it must not also stretch to the
@@ -414,8 +414,8 @@ const CONTROL_PANEL = cx(
   '[&_[data-property-tie-rows]]:flex [&_[data-property-tie-rows]]:flex-col [&_[data-property-tie-rows]]:gap-2 [&_[data-property-tie-rows]]:flex-1 [&_[data-property-tie-rows]]:min-w-0',
   '[&_[data-property-tie]_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)]',
   '[&_[data-property-tie-action]]:relative [&_[data-property-tie-action]]:flex [&_[data-property-tie-action]]:items-center [&_[data-property-tie-action]]:shrink-0',
-  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-field [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
-  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-field [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
+  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-field-border [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
+  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-field-border [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
 )
 
 export interface PropertiesPanelGroupProps {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, protocol, net, dialog } from 'electron'
+import { app, BrowserWindow, shell, protocol, net, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
@@ -58,6 +58,9 @@ function createWindow(): void {
     minWidth: 680,
     minHeight: 400,
     show: false,
+    // Electron's default is white, which flashes on launch and shows through
+    // while resizing in dark mode. These are the two `--bg-canvas` values.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 16 } } : {}),
     webPreferences: {
