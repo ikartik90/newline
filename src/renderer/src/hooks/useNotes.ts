@@ -4,15 +4,11 @@ import { EMPTY_DOCUMENT, serializeDocument } from '@shared/domain/document'
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refresh = useCallback(async () => {
-    const result = searchQuery.trim()
-      ? await window.api.notes.search(searchQuery)
-      : await window.api.notes.list()
-    setNotes(result)
-  }, [searchQuery])
+    setNotes(await window.api.notes.list())
+  }, [])
 
   useEffect(() => {
     refresh()
@@ -65,6 +61,16 @@ export function useNotes() {
     [activeId, refresh]
   )
 
+  /**
+   * Open a note picked from outside the list — the command menu. `activeNote`
+   * is read from the list, so a note the list has not caught up with yet is
+   * put in it at once rather than opening onto nothing.
+   */
+  const openNote = useCallback((note: Note) => {
+    setNotes((prev) => (prev.some((n) => n.id === note.id) ? prev : [note, ...prev]))
+    setActiveId(note.id)
+  }, [])
+
   const activeNote = notes.find((n) => n.id === activeId) ?? null
 
   return {
@@ -72,8 +78,7 @@ export function useNotes() {
     activeNote,
     activeId,
     setActiveId,
-    searchQuery,
-    setSearchQuery,
+    openNote,
     createNote,
     updateNote,
     deleteNote,

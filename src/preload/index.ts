@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('api', {
       }
     }
   },
+  theme: {
+    setSource: (source: string) => ipcRenderer.invoke('theme:setSource', source)
+  },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)

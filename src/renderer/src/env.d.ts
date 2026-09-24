@@ -66,6 +66,13 @@ declare global {
         /** Hear about a pull that changed notes. Resolves to the unsubscribe. */
         onChanged: (listener: () => void) => () => void
       }
+      /**
+       * The window's own materials (macOS's frosted sidebar) follow the OS
+       * appearance; this hands them the app's theme choice so they follow it.
+       */
+      theme: {
+        setSource: (source: 'light' | 'dark' | 'system') => Promise<void>
+      }
       meta: {
         set: (key: string, value: string) => Promise<void>
         get: (key: string) => Promise<string | null>

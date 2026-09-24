@@ -54,7 +54,7 @@ if (typeof window !== 'undefined' && typeof window.localStorage?.clear !== 'func
 // touches `window.api.platform` from throwing.
 if (typeof window !== 'undefined' && !('api' in window)) {
   Object.defineProperty(window, 'api', {
-    value: { platform: 'darwin' },
+    value: { platform: 'darwin', theme: { setSource: async () => {} } },
     writable: true,
     configurable: true
   })

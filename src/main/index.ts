@@ -62,9 +62,15 @@ function createWindow(): void {
     minWidth: 680,
     minHeight: 400,
     show: false,
+    // On macOS the window itself is the frosted sidebar material, and the page
+    // is clear over it except where it paints (the note panel) — see
+    // `html[data-frosted]` in main.css. Electron leaves the web contents
+    // transparent for a vibrant window, so no colour is set there. Elsewhere
     // Electron's default is white, which flashes on launch and shows through
-    // while resizing in dark mode. These are the two `--bg-canvas` values.
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6',
+    // while resizing in dark mode; these are the two `--bg-canvas` values.
+    ...(process.platform === 'darwin'
+      ? { vibrancy: 'sidebar' as const }
+      : { backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6' }),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 16 } } : {}),
     webPreferences: {
