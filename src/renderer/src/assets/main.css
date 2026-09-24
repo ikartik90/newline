@@ -194,6 +194,28 @@
   --size-insert-dialog-height: 480px;
   --size-library-sidebar: 200px;
   --size-image-preview-max: 280px;
+
+  /* The shell. The note panel is a card inset from the window's edge, and its
+     corner runs concentric with the window's own: the window's radius less the
+     inset, so the two arcs share a centre and the margin between them stays
+     the same width all the way round the corner.
+
+     The window's radius is the OS's, which a page cannot read, so it is
+     written down: 12px, measured off a Retina capture of this window's corner
+     on macOS 26 (a window without a toolbar; toolbar windows there get 26pt,
+     and pre-Tahoe windows 10pt). If the corners drift apart, this is the
+     number to re-measure. */
+  --size-shell-inset: 8px;
+  --size-window-radius: 12px;
+  --size-note-panel-radius: calc(var(--size-window-radius) - var(--size-shell-inset));
+
+  /* The rail's search field. The ⌘K chip inside it is the 4px `rounded-sm`
+     hotkey every menu draws, sitting 6px in from the field's top and bottom —
+     what a 32px field leaves around a 20px chip. The sides take the same 6px,
+     and the field's own corner is the chip's plus that inset, so the two
+     corners are concentric. */
+  --size-search-field-inset: 6px;
+  --size-search-field-radius: calc(var(--radius-sm) + var(--size-search-field-inset));
 }
 
 .dark {
@@ -708,6 +730,13 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* On macOS the window behind the page is frosted glass (main/index.ts sets
+     the sidebar material), and it shows wherever the page paints nothing:
+     the sidebar, and the margin around the note panel. */
+  html[data-frosted] body {
+    background: transparent;
     overflow: hidden;
     transition:
       background 150ms ease,

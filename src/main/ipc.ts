@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, nativeTheme } from 'electron'
 import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
@@ -43,6 +43,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('sync:status', () => {
     return getSyncStatus()
+  })
+
+  // The window's own materials — the frosted sidebar on macOS — follow the OS
+  // appearance unless told otherwise; the renderer tells them its choice.
+  ipcMain.handle('theme:setSource', (_event, source: string) => {
+    if (source === 'light' || source === 'dark' || source === 'system') {
+      nativeTheme.themeSource = source
+    }
   })
 
   ipcMain.handle('meta:set', (_event, key: string, value: string) => {

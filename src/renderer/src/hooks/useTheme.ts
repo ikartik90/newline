@@ -34,6 +34,12 @@ export function useTheme() {
     document.documentElement.classList.toggle('dark', effectiveTheme === 'dark')
   }, [effectiveTheme])
 
+  // The window's frosted material is the OS's and follows its appearance; main
+  // is told the choice so a dark theme is dark glass whatever the OS says.
+  useEffect(() => {
+    void window.api.theme.setSource(theme)
+  }, [theme])
+
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
     localStorage.setItem('theme', t)

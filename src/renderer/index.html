@@ -18,6 +18,11 @@
           ((!choice || choice === 'system') &&
             window.matchMedia('(prefers-color-scheme: dark)').matches)
         if (dark) document.documentElement.classList.add('dark')
+        // On macOS the window is frosted glass and the page shows it through;
+        // marked here, before the first paint, so no frame is painted over it.
+        if (window.api && window.api.platform === 'darwin') {
+          document.documentElement.dataset.frosted = ''
+        }
       } catch (e) {
         /* Private mode can throw on localStorage; the light default stands. */
       }

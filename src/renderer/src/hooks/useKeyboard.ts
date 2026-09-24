@@ -4,9 +4,15 @@ interface KeyboardActions {
   onNewNote: () => void
   onSearch: () => void
   onToggleSidebar: () => void
+  onCommandMenu: () => void
 }
 
-export function useKeyboard({ onNewNote, onSearch, onToggleSidebar }: KeyboardActions) {
+export function useKeyboard({
+  onNewNote,
+  onSearch,
+  onToggleSidebar,
+  onCommandMenu
+}: KeyboardActions) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
@@ -25,9 +31,14 @@ export function useKeyboard({ onNewNote, onSearch, onToggleSidebar }: KeyboardAc
         e.preventDefault()
         onToggleSidebar()
       }
+
+      if (mod && e.key === 'k') {
+        e.preventDefault()
+        onCommandMenu()
+      }
     }
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onNewNote, onSearch, onToggleSidebar])
+  }, [onNewNote, onSearch, onToggleSidebar, onCommandMenu])
 }
