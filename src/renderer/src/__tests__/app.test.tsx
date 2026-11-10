@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { serializeDocument } from '@shared/domain/document'
 import App from '../App'
+import css from '@/assets/main.css?raw'
 
 // ---------------------------------------------------------------------------
 // The app shell end to end in jsdom: a signed-in user, a fake main process
@@ -266,6 +267,26 @@ describe('App chrome', () => {
     expect(bar.contains(main)).toBe(false)
   })
 
+  it('rules off the bar over the note once the note scrolls under it', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    const main = screen.getByRole('main')
+    const edge = document.querySelector('[data-note-edge]') as HTMLElement
+    // It stands on the pane's top, the bar's foot, beside the note and not in it.
+    expect(main.contains(edge)).toBe(false)
+    expect(classesOf(edge)).toEqual(expect.arrayContaining(['top-0', 'border-divider']))
+    expect(classesOf(edge)).toContain('opacity-0')
+
+    main.scrollTop = 60
+    fireEvent.scroll(main)
+    expect(classesOf(edge)).toContain('opacity-100')
+
+    main.scrollTop = 0
+    fireEvent.scroll(main)
+    expect(classesOf(edge)).toContain('opacity-0')
+  })
+
   // A dialog's backdrop blur can't hide what stands on the clear glass, so
   // those layers are marked to blur themselves (main.css). The note pane is
   // opaque and is left to the backdrop.
@@ -397,6 +418,18 @@ describe('App chrome', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
     expect(hasMargin(pane)).toBe(false)
+  })
+
+  it('grounds the note pane in the canvas, #f5f5f5 in the light theme and #191919 in the dark', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const handle = await screen.findByRole('separator', { name: 'Resize sidebar' })
+    const pane = handle.parentElement!.nextElementSibling as HTMLElement
+    expect(classesOf(pane)).toContain('bg-canvas')
+    const dark = css.match(/\n\.dark \{([^}]*)\}/)![1]
+    expect(dark).toMatch(/--bg-canvas: #191919;/)
+    const light = css.match(/\n:root \{([^}]*)\}/)![1]
+    expect(light).toMatch(/--bg-canvas: #f5f5f5;/)
   })
 
   it('makes the divider between the rail and the note pane a handle that resizes the rail', async () => {
