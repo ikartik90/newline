@@ -1,51 +1,78 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { List, type RowComponentProps } from 'react-window'
 import { SwipeActions } from '@/components/swipe-actions'
-import { formatRelativeTime, noteDisplayTitle } from '@/utils/note-display'
+import { useHasCursor } from '@/hooks/use-has-cursor'
+import { useShortcutLabel } from '@/hooks/use-shortcut-label'
+import { noteDisplayTitle } from '@/utils/note-display'
 import TrashIcon from '@/assets/icons/trash.svg'
+import AddIcon from '@/assets/icons/add.svg'
+import SearchIcon from '@/assets/icons/search.svg'
 
 interface SidebarProps {
   notes: Note[]
   activeId: string | null
   onSelect: (id: string) => void
   onDelete: (id: string) => void
+  onNewNote: () => void
+  /** Open the search — the command menu. */
+  onSearch: () => void
+  /** What stands at the foot: the account and the app's settings. */
+  footer: ReactNode
   collapsed: boolean
   /** While its divider is being dragged the rail follows the pointer, not its clock. */
   resizing?: boolean
 }
 
-const NOTE_ROW_HEIGHT = 56
+/** A row is as tall as New note and Search (h-8), plus the 2px gap below it. */
+const NOTE_ROW_HEIGHT = 34
 /** Below this many notes the list renders plainly; above it, virtualised. */
 const VIRTUALISE_FROM = 100
 
-// The rail paints nothing of its own: it stands on the shell's glass under the
-// top bar, and the note panel's card edge is the only line between the two.
-// Collapsed it keeps no width at all — what used to head it, the new-note
-// button and the search, lives in the top bar and stays in view. Open, it is
-// as wide as its divider was last dragged (`--size-sidebar`, on the shell).
-const sidebarShell = 'flex flex-col shrink-0 overflow-hidden'
-const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width] duration-200 ease-in-out`
-const sidebarResizing = `${sidebarShell} w-(--size-sidebar)`
-const sidebarCollapsed = `${sidebarShell} w-0 transition-[width] duration-200 ease-in-out`
+// The rail paints nothing of its own: it stands on the shell's glass, and the
+// note pane's edge is the only line between the two. Its spacing is padding
+// inside it, never margin around it; the first 48px are the top bar's, which
+// stands over it. Open, it is as wide as its divider was last dragged
+// (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
+const sidebarShell = 'flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
+const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
+const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
+const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
-// The rows are inset 8px from either edge — the window's on the left and, on
-// the right, the card's, which keeps no margin of its own beside the rail.
-// The list's scrollbar (6px, main.css) lives in that right margin rather than
-// eating into the rows: the list's own inset stops 2px short so the reserved
-// gutter makes up the 8px, and it is held open even when the list is too
-// short to scroll — otherwise the rows would widen the moment a note is
-// deleted.
-const listInset = 'pl-2 pr-0.5'
+// New note and Search head the rail as rows, their glyphs on the line the
+// notes' titles start on. The rail and every row are padded alike, 6.5px, so a
+// 20px glyph is centred at 23px — under macOS's red window button.
+const headStyle = 'flex flex-col gap-0.5 px-[6.5px] pb-2 shrink-0'
+const headRowStyle =
+  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-lg squircle text-left text-style-sidebar text-fg hover:bg-field-hover transition-colors'
+const headGlyphStyle = 'shrink-0 size-5 text-fg'
+const headShortcutStyle = 'ml-auto text-style-caption text-fg-body/40'
+
+const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-fg-body/50 shrink-0'
+
+// The rows are inset 6.5px from either edge. The list's scrollbar (6px,
+// main.css) lives in that right margin rather than eating into the rows: the
+// list's own inset stops 6px short so the reserved gutter makes up the 6.5px,
+// and it is held open even when the list is too short to scroll — otherwise
+// the rows would widen the moment a note is deleted.
+const listInset = 'flex-1 min-h-0 overflow-hidden pl-[6.5px] pr-[0.5px]'
 const listScroll = '[scrollbar-gutter:stable]'
+
+const footStyle = 'flex items-center gap-1 px-[6.5px] pt-2 shrink-0'
 
 export default function Sidebar({
   notes,
   activeId,
   onSelect,
   onDelete,
+  onNewNote,
+  onSearch,
+  footer,
   collapsed,
   resizing = false
 }: SidebarProps) {
+  const hasCursor = useHasCursor()
+  const newNoteShortcut = useShortcutLabel('N')
+  const searchShortcut = useShortcutLabel('K')
   const listRef = useRef<HTMLDivElement>(null)
   const [listHeight, setListHeight] = useState(400)
   // The one row slid aside to show its actions, if any.
@@ -106,12 +133,36 @@ export default function Sidebar({
   return (
     <aside
       aria-label="Notes"
+      data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
       {!collapsed && (
-        <div ref={listRef} className={`flex-1 overflow-hidden ${listInset}`}>
+        <div className={headStyle}>
+          <button type="button" className={headRowStyle} aria-label="New note" onClick={onNewNote}>
+            <AddIcon className={headGlyphStyle} aria-hidden />
+            New note
+            {hasCursor && (
+              <kbd aria-hidden className={headShortcutStyle}>
+                {newNoteShortcut}
+              </kbd>
+            )}
+          </button>
+          <button type="button" className={headRowStyle} aria-label="Search" onClick={onSearch}>
+            <SearchIcon className={headGlyphStyle} aria-hidden />
+            Search
+            {hasCursor && (
+              <kbd aria-hidden className={headShortcutStyle}>
+                {searchShortcut}
+              </kbd>
+            )}
+          </button>
+        </div>
+      )}
+      {!collapsed && <div className={sectionLabelStyle}>Notes</div>}
+      {!collapsed && (
+        <div ref={listRef} className={listInset}>
           {notes.length === 0 ? (
-            <p className="px-3 py-6 text-style-body-sm text-fg-body/50 text-center">No notes yet</p>
+            <p className="px-3 py-6 text-style-sidebar text-fg-body/50 text-center">No notes yet</p>
           ) : notes.length < VIRTUALISE_FROM ? (
             <div
               className={`h-full overflow-y-auto ${listScroll}`}
@@ -133,6 +184,7 @@ export default function Sidebar({
           )}
         </div>
       )}
+      {!collapsed && <div className={footStyle}>{footer}</div>}
     </aside>
   )
 }
@@ -156,10 +208,16 @@ function NoteRow({ index, style, ...rowProps }: RowComponentProps<NoteRowProps>)
 }
 
 // The action the row uncovers: a red block the height of the row, the glyph
-// over its name, in the canvas ink so it reads on the danger fill in both
+// beside its name (a 32px row has no room to stack them), in the canvas ink so it reads on the danger fill in both
 // themes.
 const deleteActionStyle =
-  'flex flex-col items-center justify-center gap-0.5 w-full h-full bg-danger text-canvas text-style-fineprint font-medium'
+  'flex items-center justify-center gap-1 w-full h-full bg-danger text-canvas text-style-fineprint font-medium'
+
+// One line per note — its title alone — as tall as the head's rows.
+const noteRow =
+  'flex items-center w-full h-8 px-[6.5px] rounded-lg squircle text-left transition-colors'
+const noteRowIdle = `${noteRow} hover:bg-field-hover`
+const noteRowActive = `${noteRow} bg-field-selected`
 
 function NoteItem({
   note,
@@ -175,7 +233,7 @@ function NoteItem({
     <SwipeActions
       open={note.id === swipeOpenId}
       onOpenChange={(open) => onSwipeOpenChange(note.id, open)}
-      className="rounded-sm mb-0.5"
+      className="rounded-lg squircle mb-0.5"
       actions={
         <button
           type="button"
@@ -185,7 +243,7 @@ function NoteItem({
             onDelete(note.id)
           }}
         >
-          <TrashIcon className="w-5 h-5" aria-hidden />
+          <TrashIcon className="w-4 h-4" aria-hidden />
           Delete
         </button>
       }
@@ -195,30 +253,11 @@ function NoteItem({
         onClick={() => onSelect(note.id)}
         onKeyDown={(e) => onKeyDown(e, note.id)}
         aria-current={isActive ? 'true' : undefined}
-        className={`w-full text-left px-3 py-2 rounded-sm transition-colors ${
-          isActive ? 'bg-field-selected' : 'hover:bg-field-hover'
-        }`}
+        className={isActive ? noteRowActive : noteRowIdle}
       >
-        <div className="text-style-body-sm font-medium truncate text-fg">
+        <span className="min-w-0 flex-1 text-style-sidebar truncate text-fg">
           {noteDisplayTitle(note)}
-        </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-style-caption text-fg-body/50 leading-none">
-            {formatRelativeTime(note.updatedAt)}
-          </span>
-          {note.tags.length > 0 && (
-            <div className="flex gap-1 overflow-hidden">
-              {note.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-style-fineprint px-1.5 rounded-full bg-surface-raised text-fg-body truncate max-w-[60px]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        </span>
       </button>
     </SwipeActions>
   )

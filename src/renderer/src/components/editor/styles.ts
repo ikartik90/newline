@@ -62,8 +62,8 @@ export const editorCaptionStyle = `${captionEditable} text-style-caption text-fg
 /** Blockquote citation — left-aligned beneath the quote text. */
 export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-fg-body/50 break-words`
 
-/** Subheading eyebrow — the gradient reveals once populated. */
-export const editorSubheadingCaptionStyle = `${captionEditable} article-subheading-caption`
+/** The eyebrow line — the gradient reveals once populated. */
+export const editorEyebrowStyle = 'article-eyebrow'
 
 /** Metric value — the gradient display line, with a caret's width reserved while empty. */
 export const editorMetricValueStyle = `${editableBaseStyle} article-metric-value min-h-[1.5em] min-w-px`
@@ -74,7 +74,7 @@ export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg tex
 
 export const articleMetricStyle = 'flex flex-col items-start gap-1 break-words'
 
-export const articleHeadingShellStyle = 'flex flex-col gap-1'
+export const articleEyebrowShellStyle = 'flex flex-col items-start'
 
 export const articleBlockquoteShellStyle = 'flex flex-row items-start gap-1'
 
@@ -90,7 +90,7 @@ export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cur
 
 export const editorListItemShellStyle = 'flex flex-row items-start gap-2'
 
-export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-lg text-fg-body break-words`
+export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-fg-body break-words`
 
 /**
  * Every marker is a real button in the editor so it can open its popover —

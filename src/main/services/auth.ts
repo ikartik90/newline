@@ -7,7 +7,7 @@ import {
   type CodeFlow,
   type ObtainCodeOptions
 } from './google-sign-in'
-import { clearSession, currentUser, getSessionToken, storeSession } from './session'
+import { clearSession, currentUser, getSessionToken, hasSession, storeSession } from './session'
 
 // ---------------------------------------------------------------------------
 // Sign-in. Google is the identity provider: the user's default browser runs
@@ -18,7 +18,7 @@ import { clearSession, currentUser, getSessionToken, storeSession } from './sess
 // ---------------------------------------------------------------------------
 
 export type { AuthUser }
-export { currentUser, getSessionToken, SignInCancelledError }
+export { currentUser, getSessionToken, hasSession, SignInCancelledError }
 
 /** What a sign-in needs from outside: the browser flow, the browser, and the window. */
 export interface SignInDeps {
@@ -93,7 +93,7 @@ export async function signInWithGoogle(): Promise<{ user: AuthUser }> {
     )
     if (attempt.cancelled) throw new SignInCancelledError()
 
-    storeSession(session.token, session.user)
+    await storeSession(session.token, session.user)
     deps.bringToFront()
     return { user: session.user }
   } finally {
@@ -111,7 +111,7 @@ export function cancelSignIn(): void {
  * half never waits on the network: a machine that is offline still signs out.
  */
 export async function signOut(): Promise<void> {
-  if (getSessionToken() !== null) {
+  if (hasSession()) {
     try {
       await apiFetch('/auth/signout', { method: 'POST' })
     } catch (error) {

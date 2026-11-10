@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
-import { SearchField } from '@/components/search-field'
-import ThemeToggle from '@/components/ThemeToggle'
+import { AccountMenu } from '@/components/account-menu'
+import { SettingsDialog } from '@/components/settings-dialog'
 import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
 import AuthScreen from '@/components/auth/AuthScreen'
 import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
 import { NotePropertiesPanel } from '@/components/note-properties-panel'
 import { CommandMenu, type CommandMenuAction } from '@/components/command-menu'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
+import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
@@ -22,59 +23,35 @@ import SettingsIcon from '@/assets/icons/settings.svg'
 import LeftSidebarIcon from '@/assets/icons/left-sidebar.svg'
 import AddIcon from '@/assets/icons/add.svg'
 import TrashIcon from '@/assets/icons/trash.svg'
+import MetadataIcon from '@/assets/icons/metadata.svg'
 import DarkIcon from '@/assets/icons/dark.svg'
 import LightIcon from '@/assets/icons/light.svg'
 
+// Cornered and inked as the sidebar's rows are.
 const iconButton =
-  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-sm text-fg-body not-aria-pressed:hover:bg-field-hover aria-pressed:bg-field-active aria-pressed:text-field-fg-active transition-colors'
+  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-lg squircle text-fg hover:bg-field-hover transition-colors'
 
-// The top bar stands on the glass across the whole window, above the rail and
-// the card alike, and ends on the card's right edge so what it holds can line
-// up with the card. Nothing in it goes when the rail collapses.
-const topBar = 'relative h-12 flex items-center pr-(--size-shell-inset) shrink-0'
+// One bar is fixed across the top of the window, over the rail and the note
+// pane alike, and holds only the sidebar toggle. It stays put whether the rail
+// is open or not: beside the window's own controls on macOS, which the OS
+// draws over that corner (main/index.ts centres them in these 48px), or at the
+// edge elsewhere. The bar is the window's drag handle; what scrolls does so in
+// the pane below it.
+const topBar =
+  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out'
+// The traffic lights start 16px in (main/index.ts) and are three 14px buttons
+// 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
+// Where there are no lights (full screen, other platforms) it takes the first
+// one's place: its glyph centred at 23px, on the sidebar's glyphs.
+const toggleSlotPastWindowControls = 'flex items-center h-full pl-[85px]'
+const toggleSlotAtEdge = 'flex items-center h-full pl-[9px]'
 const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 
-// The bar's left end is the rail's. While the rail is open its toggle and the
-// new-note button sit at its far end, ending on the rows' own right edge;
-// collapsed, they come to the bar's start — past the window's own controls,
-// which macOS draws over that corner, or on the rail's 8px inset elsewhere.
-// The widths are explicit so the move runs on the rail's own clock: the two
-// 28px chips, their 4px gap and the 8px inset, after the 80px gutter or not.
-// While the rail's divider is dragged they follow it with no clock at all.
-const railControls = 'flex items-center justify-end gap-1 pr-2 shrink-0'
-const railControlsResizing = `${railControls} w-(--size-sidebar)`
-const railControlsOpen = `${railControls} w-(--size-sidebar) transition-[width] duration-200 ease-in-out`
-const railControlsPastWindowControls = `${railControls} w-[148px] transition-[width] duration-200 ease-in-out`
-const railControlsAtEdge = `${railControls} w-[76px] transition-[width] duration-200 ease-in-out`
-
-// The search is centred over the note panel, whichever width the rail has:
-// halfway between the panel's left edge — the rail's, or the shell inset once
-// the rail has gone — and its right, the window's less that inset. It moves
-// on the rail's clock too, except while the rail is being dragged.
-const searchSlotResizing = 'absolute top-1/2 -translate-x-1/2 -translate-y-1/2'
-const searchSlot = `${searchSlotResizing} transition-[left] duration-200 ease-in-out`
-const searchSlotLeft = (railWidth: string) =>
-  `calc((${railWidth} + 100% - var(--size-shell-inset)) / 2)`
-
-// The pill the standalone CTA wears everywhere else — a filled secondary chip,
-// fully rounded (the site's own `About me`).
-const newNoteButton =
-  'inline-flex items-center justify-center w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-full bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors'
-
-// The note panel floats on the shell as a card under the top bar, inset from
-// the window so the glass shows around it, with a corner derived from the
-// window's own (main.css, `--size-note-panel-radius`); a hairline and a soft
-// drop mark its edge on either theme's glass. Its top is the top bar's foot,
-// the line the rail's rows start on too. The properties rail docks inside it.
-//
-// Beside the open sidebar the card keeps no left margin of its own: the rail's
-// 8px inset is the gap, so a row sits as far from the card's edge as it does
-// from the window's. Collapsed, there is no rail to provide it, and the card
-// steps in by the same 8px itself. The margin moves on the rail's own clock.
-const notePanelShell =
-  'flex-1 flex min-w-0 mb-(--size-shell-inset) mr-(--size-shell-inset) rounded-(--size-note-panel-radius) bg-canvas overflow-hidden shadow-[0_0_0_0.5px_var(--border-divider),0_2px_8px_color-mix(in_srgb,var(--color-neutral-900)_10%,transparent)] transition-[margin] duration-200 ease-in-out'
-const notePanelBesideRail = `${notePanelShell} ml-0`
-const notePanelAlone = `${notePanelShell} ml-(--size-shell-inset)`
+// The note pane runs to the window's edges with no margin of its own; its
+// spacing is inside it. Its first 48px are under the bar. Beside the rail a
+// hairline is the only line between the two; alone it needs none.
+const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
+const notePaneBesideRail = `${notePane} border-l-[0.5px] border-divider`
 
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
@@ -90,15 +67,17 @@ function App() {
     refresh
   } = useNotes()
 
-  const { effectiveTheme, setTheme } = useTheme()
+  const { theme, effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
-  // Only macOS hides its title bar into the content; elsewhere the controls
-  // are in a bar of their own, above everything here.
-  const windowControlsGutter = window.api.platform === 'darwin'
+  // Only macOS hides its title bar into the content, and only out of full
+  // screen; elsewhere the window's controls are in a frame of their own.
+  const fullScreen = useFullScreen()
+  const windowControlsGutter = window.api.platform === 'darwin' && !fullScreen
   const [propertiesOpen, setPropertiesOpen] = useState(false)
   const [commandMenuOpen, setCommandMenuOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   // The note a delete has been asked for and not yet answered.
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -215,18 +194,12 @@ function App() {
       shortcut: '\\',
       run: () => setSidebarCollapsed((c) => !c)
     },
-    {
-      id: 'theme',
-      label: effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme',
-      icon: effectiveTheme === 'dark' ? LightIcon : DarkIcon,
-      run: () => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
-    },
     ...(activeNote
       ? [
           {
             id: 'properties',
             label: 'Note properties',
-            icon: SettingsIcon,
+            icon: MetadataIcon,
             run: () => setPropertiesOpen((open) => !open)
           },
           {
@@ -236,7 +209,15 @@ function App() {
             run: () => askDelete(activeNote.id)
           }
         ]
-      : [])
+      : []),
+    // Last, so the bottom of the menu is never Delete note.
+    {
+      id: 'theme',
+      label: effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme',
+      icon: effectiveTheme === 'dark' ? LightIcon : DarkIcon,
+      group: 'Settings',
+      run: () => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
+    }
   ]
 
   if (authLoading) {
@@ -261,150 +242,115 @@ function App() {
       ref={shellRef}
       style={sidebarResize.shellStyle}
       className={
-        frosted ? 'h-screen flex flex-col text-fg' : 'h-screen flex flex-col bg-surface text-fg'
+        frosted ? 'relative h-screen flex text-fg' : 'relative h-screen flex bg-surface text-fg'
       }
     >
-      <header className={topBar} style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
-        <div
-          className={
-            !sidebarCollapsed
-              ? sidebarResize.resizing
-                ? railControlsResizing
-                : railControlsOpen
-              : windowControlsGutter
-                ? railControlsPastWindowControls
-                : railControlsAtEdge
-          }
-          style={noDrag}
-        >
-          {/* One glyph for the rail, worn at both ends of its toggle, as the
-              properties rail's own dock button does. What the button is
-              showing is the chip, not a change of picture. */}
+      <header
+        data-on-glass=""
+        className={topBar}
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <div className={windowControlsGutter ? toggleSlotPastWindowControls : toggleSlotAtEdge}>
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className={iconButton}
-            aria-pressed={!sidebarCollapsed}
+            style={noDrag}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <LeftSidebarIcon className="w-5 h-5" aria-hidden />
           </button>
-          <button
-            type="button"
-            onClick={createNote}
-            className={newNoteButton}
-            title="New note"
-            aria-label="New note"
-          >
-            <AddIcon className="w-5 h-5" aria-hidden />
-          </button>
-        </div>
-        <div
-          className={sidebarResize.resizing ? searchSlotResizing : searchSlot}
-          style={{
-            ...noDrag,
-            left: searchSlotLeft(
-              sidebarCollapsed ? 'var(--size-shell-inset)' : 'var(--size-sidebar)'
-            )
-          }}
-        >
-          <SearchField onOpen={() => setCommandMenuOpen(true)} className="w-60" />
-        </div>
-        <div className="ml-auto flex items-center gap-2" style={noDrag}>
-          <SyncIndicator saveState={saveState} />
-          <span className="text-style-caption text-fg-body/50 truncate max-w-[160px]">
-            {user.email}
-          </span>
-          <button
-            type="button"
-            onClick={logout}
-            className="text-style-caption text-fg-body hover:text-fg transition-colors"
-          >
-            Sign out
-          </button>
-          {/* The theme toggle, then the note's settings (the gear) last. */}
-          <ThemeToggle theme={effectiveTheme} onChange={setTheme} />
-          {activeNote && (
-            <button
-              type="button"
-              className={iconButton}
-              aria-label="Note properties"
-              aria-pressed={propertiesOpen}
-              title="Note properties"
-              onClick={() => setPropertiesOpen((open) => !open)}
-            >
-              <SettingsIcon className="w-5 h-5" aria-hidden />
-            </button>
-          )}
         </div>
       </header>
 
-      <div className="flex-1 flex min-h-0">
-        <Sidebar
-          notes={notes}
-          activeId={activeId}
-          onSelect={setActiveId}
-          onDelete={askDelete}
-          collapsed={sidebarCollapsed}
+      <Sidebar
+        notes={notes}
+        activeId={activeId}
+        onSelect={setActiveId}
+        onDelete={askDelete}
+        onNewNote={createNote}
+        onSearch={() => setCommandMenuOpen(true)}
+        collapsed={sidebarCollapsed}
+        resizing={sidebarResize.resizing}
+        footer={
+          <>
+            <AccountMenu user={user} onSignOut={logout} />
+            <SyncIndicator saveState={saveState} />
+            <button
+              type="button"
+              className={iconButton}
+              aria-label="Settings"
+              title="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <SettingsIcon className="w-5 h-5" aria-hidden />
+            </button>
+          </>
+        }
+      />
+
+      {!sidebarCollapsed && (
+        <SidebarResizeHandle
           resizing={sidebarResize.resizing}
+          handleProps={sidebarResize.handleProps}
         />
+      )}
 
-        {!sidebarCollapsed && (
-          <SidebarResizeHandle
-            resizing={sidebarResize.resizing}
-            handleProps={sidebarResize.handleProps}
-          />
-        )}
-
-        <div className={sidebarCollapsed ? notePanelAlone : notePanelBesideRail}>
-          <div className="flex-1 flex flex-col min-w-0">
-            {activeNote && initialDocument ? (
-              <main className="flex-1 overflow-y-auto px-5 pt-8 pb-20">
-                <article>
-                  <ArticleEditor
-                    key={activeNote.id}
-                    noteId={activeNote.id}
-                    initialTitle={activeNote.title}
-                    initialDocument={initialDocument}
-                    onChange={handleEditorChange}
-                  />
-                </article>
-              </main>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-style-subheading text-fg-body">Newline</h2>
-                  <p className="mt-2 text-style-body-sm text-fg-body/50">
-                    Select a note or create a new one
-                  </p>
-                  <p className="mt-1 text-style-caption text-fg-body/50">
-                    {modifier}N to create, {modifier}K to search
-                  </p>
-                  {/* The standalone CTA, in the pill the site's own wears: the
-                      40px secondary chip on a 12px inset, floored at 80px. */}
-                  <button
-                    type="button"
-                    onClick={createNote}
-                    className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors"
-                  >
-                    New note
-                  </button>
-                </div>
+      <div className={sidebarCollapsed ? notePane : notePaneBesideRail}>
+        <div className="flex-1 flex flex-col min-w-0">
+          {activeNote && initialDocument ? (
+            <main className="flex-1 overflow-y-auto px-5 pt-4 pb-20">
+              <article>
+                <ArticleEditor
+                  key={activeNote.id}
+                  noteId={activeNote.id}
+                  initialTitle={activeNote.title}
+                  initialDocument={initialDocument}
+                  onChange={handleEditorChange}
+                />
+              </article>
+            </main>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <h2 className="text-style-subheading text-fg-body">Newline</h2>
+                <p className="mt-2 text-style-body-sm text-fg-body/50">
+                  Select a note or create a new one
+                </p>
+                <p className="mt-1 text-style-caption text-fg-body/50">
+                  {modifier}N to create, {modifier}K to search
+                </p>
+                {/* The standalone CTA, in the pill the site's own wears: the
+                    40px secondary chip on a 12px inset, floored at 80px. */}
+                <button
+                  type="button"
+                  onClick={createNote}
+                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors"
+                >
+                  New note
+                </button>
               </div>
-            )}
-          </div>
-
-          {activeNote && propertiesOpen && (
-            <NotePropertiesPanel
-              key={activeNote.id}
-              note={activeNote}
-              onTagsChange={handleTagsChange}
-              onDismiss={() => setPropertiesOpen(false)}
-            />
+            </div>
           )}
         </div>
+
+        {activeNote && propertiesOpen && (
+          <NotePropertiesPanel
+            key={activeNote.id}
+            note={activeNote}
+            onTagsChange={handleTagsChange}
+            onDismiss={() => setPropertiesOpen(false)}
+          />
+        )}
       </div>
+
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
 
       <CommandMenu
         open={commandMenuOpen}

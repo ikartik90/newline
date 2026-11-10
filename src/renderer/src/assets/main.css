@@ -3,17 +3,27 @@
 /* Newline toggles `.dark` on <html> (see hooks/use-theme). */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Inter (Rasmus Andersson) and JetBrains Mono, under the OFL beside them in fonts/. */
 @font-face {
-  font-family: 'Switzer';
-  src: url('./fonts/Switzer-Variable.woff2') format('woff2');
+  font-family: 'Inter';
+  src: url('./fonts/Inter-Variable.woff2') format('woff2');
   font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter-Variable-Italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'JetBrains Mono';
-  src: url('./fonts/JetBrainsMono-Regular.woff2') format('woff2');
-  font-weight: 400;
+  src: url('./fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  font-weight: 100 800;
   font-display: swap;
 }
 
@@ -23,7 +33,7 @@
    the same 8px it means in the source recipes.
 --------------------------------------------------------------------------- */
 @theme {
-  --font-sans: 'Switzer', Helvetica, sans-serif;
+  --font-sans: 'Inter', Helvetica, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --font-weight-medium: 500;
@@ -195,31 +205,9 @@
   --size-library-sidebar: 200px;
   --size-image-preview-max: 280px;
 
-  /* The shell. The note panel is a card inset from the window's edge, and its
-     corner runs concentric with the window's own: the window's radius less the
-     inset, so the two arcs share a centre and the margin between them stays
-     the same width all the way round the corner.
-
-     The window's radius is the OS's, which a page cannot read, so it is
-     written down: 12px, measured off a Retina capture of this window's corner
-     on macOS 26 (a window without a toolbar; toolbar windows there get 26pt,
-     and pre-Tahoe windows 10pt). If the corners drift apart, this is the
-     number to re-measure. */
-  --size-shell-inset: 8px;
-  --size-window-radius: 12px;
-  --size-note-panel-radius: calc(var(--size-window-radius) - var(--size-shell-inset));
-
-  /* The notes rail's width: its floor, until its divider is dragged wider.
-     The shell sets the dragged width inline (hooks/use-sidebar-resize.ts). */
+  /* The notes rail's width. The shell sets it from the divider's last drag;
+     this is the floor it starts at. */
   --size-sidebar: 256px;
-
-  /* The rail's search field. The ⌘K chip inside it is the 4px `rounded-sm`
-     hotkey every menu draws, sitting 6px in from the field's top and bottom —
-     what a 32px field leaves around a 20px chip. The sides take the same 6px,
-     and the field's own corner is the chip's plus that inset, so the two
-     corners are concentric. */
-  --size-search-field-inset: 6px;
-  --size-search-field-radius: calc(var(--radius-sm) + var(--size-search-field-inset));
 }
 
 .dark {
@@ -326,15 +314,13 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Text styles (kartik.to `textStyles`). Panda's percentage letter-spacing is
-   written here as the em it meant.
+   Text styles (kartik.to `textStyles`), all set with no letter spacing.
 --------------------------------------------------------------------------- */
 @utility text-style-title {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 2rem;
   line-height: 1.5;
-  letter-spacing: -0.015em;
 }
 @utility text-style-subheading {
   font-family: var(--font-sans);
@@ -354,33 +340,36 @@
   font-size: 0.875rem;
   line-height: 1.72;
 }
+/* The sidebar's labels: a point smaller than body small, on its line. */
+@utility text-style-sidebar {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  line-height: calc(0.875rem * 1.72);
+}
 @utility text-style-quote {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 1.25rem;
   line-height: 1.8;
-  letter-spacing: -0.01em;
 }
 @utility text-style-caption {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.75rem;
   line-height: 2;
-  letter-spacing: 0.005em;
 }
 @utility text-style-sidenote {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.75rem;
   line-height: 1.67;
-  letter-spacing: 0.005em;
 }
 @utility text-style-fineprint {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.625rem;
   line-height: 1.6;
-  letter-spacing: 0.005em;
 }
 @utility text-style-inline-code {
   font-family: var(--font-mono);
@@ -402,6 +391,11 @@
 }
 @utility bg-branded {
   background: var(--bg-branded-emphasis);
+}
+/* Corners that ease into the straight (a squircle) rather than a circular
+   arc; pair with a rounded-* radius. */
+@utility squircle {
+  corner-shape: squircle;
 }
 /* The app's one blur strength. */
 @utility backdrop-frost {
@@ -514,11 +508,10 @@
 
 /* Only clip the gradient once there is text, or an empty editor field turns
    its own placeholder transparent. */
-@utility article-subheading-caption {
+@utility article-eyebrow {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
-  letter-spacing: 0.005em;
   width: fit-content;
   word-break: break-word;
   &:not(:empty):not([data-empty]) {
@@ -533,7 +526,6 @@
   font-family: var(--font-sans);
   font-size: 2rem;
   line-height: 1.5;
-  letter-spacing: -0.015em;
   width: fit-content;
   max-width: 100%;
   word-break: break-word;
@@ -580,8 +572,8 @@
   }
 }
 
-/* The column every list marker occupies: a fixed 24px box centring the ink
-   on the first text line ((28px line box - 24) / 2 = 2px down). */
+/* The column every list marker occupies: a fixed 24px box, as tall as the
+   body's first line (14px at 1.72), so the ink centres on it unshifted. */
 @utility list-marker-box {
   flex-shrink: 0;
   display: inline-flex;
@@ -590,7 +582,6 @@
   height: var(--size-list-marker);
   min-width: var(--size-list-marker);
   width: var(--size-list-marker);
-  margin-block-start: 2px;
   user-select: none;
   pointer-events: none;
 }
@@ -615,7 +606,6 @@
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
-  letter-spacing: 0.005em;
   font-weight: 500;
   text-align: center;
   white-space: nowrap;
@@ -631,7 +621,6 @@
   justify-content: center;
   height: var(--size-list-marker);
   min-width: var(--size-list-marker);
-  margin-block-start: 2px;
   user-select: none;
   pointer-events: none;
   &::before {
@@ -651,7 +640,6 @@
   justify-content: center;
   height: var(--size-list-marker);
   min-width: var(--size-list-marker);
-  margin-block-start: 2px;
   user-select: none;
   pointer-events: none;
 }
@@ -747,6 +735,14 @@
       color 150ms ease;
   }
 
+  /* A dialog's backdrop blurs what lies under it, but where the page is clear
+     over the glass that blurred copy is translucent, and the sharp original
+     shows through it in a halo. What stands on the glass blurs itself instead,
+     at the backdrop's strength; the opaque note pane is left to the backdrop. */
+  html[data-frosted] body:has([data-dialog-backdrop]) [data-on-glass] {
+    filter: blur(8px);
+  }
+
   a {
     color: inherit;
     text-decoration: none;
@@ -807,6 +803,12 @@
 
   article > * {
     width: min(100%, var(--size-article-content));
+  }
+
+  /* An eyebrow belongs to what follows it, so it sits 4px above it, not a
+     block's gap away. */
+  article > [data-eyebrow] + * {
+    margin-block-start: -12px;
   }
 
   /* One-level indent (Tab in the editor): a list marker plus its gap. */
@@ -886,7 +888,7 @@
     user-select: none !important;
   }
 
-  /* The pointer outruns a 6px grip; the cursor stays the resize one wherever
+  /* The pointer outruns a 5px grip; the cursor stays the resize one wherever
      the drag takes it. */
   html[data-sidebar-resizing],
   html[data-sidebar-resizing] * {

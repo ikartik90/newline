@@ -15,6 +15,7 @@ function setSlashAnchorOnBody() {
 
 const ALL_LABELS = [
   'Subheading',
+  'Eyebrow',
   'Paragraph',
   'Image or video',
   'Link card',
@@ -62,10 +63,10 @@ describe('SlashMenu', () => {
   // Rendering
   // -------------------------------------------------------------------------
 
-  it('renders all ten menu items when query is empty', () => {
+  it('renders all eleven menu items when query is empty', () => {
     renderMenu()
     for (const label of ALL_LABELS) expect(screen.getByText(label)).toBeDefined()
-    expect(screen.getAllByRole('option')).toHaveLength(10)
+    expect(screen.getAllByRole('option')).toHaveLength(11)
   })
 
   it('highlights the first item by default', () => {
@@ -117,6 +118,7 @@ describe('SlashMenu', () => {
 
   it.each<[string, SlashMenuBlockType]>([
     ['Subheading', 'heading'],
+    ['Eyebrow', 'eyebrow'],
     ['Paragraph', 'paragraph'],
     ['Image or video', 'media'],
     ['Link card', 'link_card'],
@@ -177,7 +179,7 @@ describe('SlashMenu', () => {
     renderMenu()
     fireEvent.pointerEnter(screen.getByText('Image or video'))
     const items = screen.getAllByRole('option')
-    expect(items[2].hasAttribute('data-active')).toBe(true)
+    expect(items[3].hasAttribute('data-active')).toBe(true)
     expect(items[0].hasAttribute('data-active')).toBe(false)
   })
 
@@ -191,7 +193,7 @@ describe('SlashMenu', () => {
     const items = () => screen.getAllByRole('option')
 
     fireEvent.pointerEnter(screen.getByText('Image or video'))
-    expect(items()[2].hasAttribute('data-active')).toBe(false)
+    expect(items()[3].hasAttribute('data-active')).toBe(false)
     expect(items()[0].hasAttribute('data-active')).toBe(true)
 
     fireEvent.keyDown(document, { key: 'ArrowDown' })
@@ -202,7 +204,7 @@ describe('SlashMenu', () => {
     // Reaching for the mouse hands control straight back.
     fireEvent.pointerMove(document, { clientX: 120, clientY: 64 })
     fireEvent.pointerEnter(screen.getByText('Image or video'))
-    expect(items()[2].hasAttribute('data-active')).toBe(true)
+    expect(items()[3].hasAttribute('data-active')).toBe(true)
   })
 
   it('keyboard arrow navigation takes over from the pointer-entered position', () => {
@@ -210,14 +212,14 @@ describe('SlashMenu', () => {
     fireEvent.pointerEnter(screen.getByText('Image or video'))
     fireEvent.keyDown(document, { key: 'ArrowDown' })
     const items = screen.getAllByRole('option')
-    expect(items[3].hasAttribute('data-active')).toBe(true)
+    expect(items[4].hasAttribute('data-active')).toBe(true)
   })
 
   it('selects the active item on Enter', () => {
     renderMenu()
     fireEvent.keyDown(document, { key: 'ArrowDown' })
     fireEvent.keyDown(document, { key: 'Enter' })
-    expect(onSelect).toHaveBeenCalledWith('paragraph')
+    expect(onSelect).toHaveBeenCalledWith('eyebrow')
   })
 
   it('selects the first item on Enter with no navigation', () => {

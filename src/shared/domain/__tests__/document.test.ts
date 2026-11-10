@@ -31,6 +31,39 @@ describe('DocumentSchema', () => {
     expect(DocumentSchema.safeParse({ content: [] }).success).toBe(false)
   })
 
+  it('lifts a subheading caption out into an eyebrow of its own, above it', () => {
+    const parsed = DocumentSchema.parse({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', children: [text('Before')] },
+        { type: 'heading', level: 2, caption: 'Chapter one', children: [text('Title')] },
+        { type: 'heading', level: 2, caption: '  ', children: [text('Bare')] }
+      ]
+    })
+    expect(parsed.content).toEqual([
+      { type: 'paragraph', children: [text('Before')] },
+      { type: 'eyebrow', children: [{ type: 'text', text: 'Chapter one' }] },
+      { type: 'heading', level: 2, children: [text('Title')] },
+      { type: 'heading', level: 2, children: [text('Bare')] }
+    ])
+  })
+
+  it('carries a subheading’s indent onto the eyebrow lifted from it', () => {
+    const parsed = parseDocument(
+      JSON.stringify({
+        type: 'doc',
+        content: [
+          { type: 'heading', level: 2, caption: 'Aside', indent: true, children: [text('T')] }
+        ]
+      })
+    )
+    expect(parsed.content[0]).toEqual({
+      type: 'eyebrow',
+      children: [{ type: 'text', text: 'Aside' }],
+      indent: true
+    })
+  })
+
   it('rejects a document with a malformed block', () => {
     expect(
       DocumentSchema.safeParse({ type: 'doc', content: [{ type: 'heading', level: 9 }] }).success

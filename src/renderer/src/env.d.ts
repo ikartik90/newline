@@ -73,6 +73,12 @@ declare global {
       theme: {
         setSource: (source: 'light' | 'dark' | 'system') => Promise<void>
       }
+      /** The window itself: whether it fills the screen, where macOS hides its buttons. */
+      window: {
+        isFullScreen: () => Promise<boolean>
+        /** Hear the window enter or leave full screen. Returns the unsubscribe. */
+        onFullScreenChange: (listener: (fullScreen: boolean) => void) => () => void
+      }
       meta: {
         set: (key: string, value: string) => Promise<void>
         get: (key: string) => Promise<string | null>

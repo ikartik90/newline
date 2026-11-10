@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import Sidebar from '../Sidebar'
+import css from '@/assets/main.css?raw'
 
 // ---------------------------------------------------------------------------
 // The sidebar's rows slide aside to uncover what can be done to a note. One
@@ -30,6 +31,9 @@ function renderSidebar() {
     activeId: null,
     onSelect: vi.fn(),
     onDelete: vi.fn(),
+    onNewNote: vi.fn(),
+    onSearch: vi.fn(),
+    footer: <button type="button">Account</button>,
     collapsed: false
   }
   const view = render(<Sidebar {...props} />)
@@ -48,15 +52,133 @@ function swipe(element: HTMLElement, from: number, to: number) {
 const deleteButtons = () => screen.queryAllByRole('button', { name: 'Delete' })
 
 describe('Sidebar', () => {
-  it('insets the rows 8px from either edge, with the scrollbar in the right margin', () => {
+  it('insets the rows 6.5px from either edge, with the scrollbar in the right margin', () => {
     renderSidebar()
-    // The list's inset stops 2px short on the right and the gutter, held open
-    // whether or not the list scrolls, is the rest of the 8px.
+    // The list's inset stops 6px short on the right and the gutter, held open
+    // whether or not the list scrolls, is the rest of the 6.5px.
     const scroll = row('Apples').closest('.overflow-y-auto')!
     expect(scroll.className.split(/\s+/)).toContain('[scrollbar-gutter:stable]')
     const listInset = scroll.parentElement!.className.split(/\s+/)
-    expect(listInset).toContain('pl-2')
-    expect(listInset).toContain('pr-0.5')
+    expect(listInset).toContain('pl-[6.5px]')
+    expect(listInset).toContain('pr-[0.5px]')
+  })
+
+  it('pads every row as the rail is padded, so a 20px glyph centres under the red light', () => {
+    renderSidebar()
+    // 6.5 + 6.5 + 20 / 2 = 23, the centre of macOS's first window button.
+    const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
+    const newNote = screen.getByRole('button', { name: 'New note' })
+    const footer = screen.getByRole('button', { name: 'Account' }).parentElement!
+    for (const el of [newNote.parentElement!, footer]) {
+      expect(classes(el)).toContain('px-[6.5px]')
+    }
+    for (const el of [newNote, screen.getByRole('button', { name: 'Search' }), row('Apples')]) {
+      expect(classes(el)).toContain('px-[6.5px]')
+    }
+    expect(classes(newNote.querySelector('svg')!)).toContain('size-5')
+  })
+
+  it('sets its labels at 13px on body small’s line', () => {
+    const rule = (name: string) => css.match(new RegExp(`@utility ${name} \\{([^}]*)\\}`))![1]
+    expect(rule('text-style-sidebar')).toContain('font-size: 0.8125rem;')
+    expect(rule('text-style-sidebar')).toContain('line-height: calc(0.875rem * 1.72);')
+    expect(rule('text-style-body-sm')).toContain('line-height: 1.72;')
+    renderSidebar()
+    const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
+    for (const el of [
+      screen.getByRole('button', { name: 'New note' }),
+      screen.getByRole('button', { name: 'Search' }),
+      row('Apples').querySelector('span')!
+    ]) {
+      expect(classes(el)).toContain('text-style-sidebar')
+      expect(classes(el)).not.toContain('text-style-body-sm')
+    }
+  })
+
+  it('inks the head glyphs as their labels are inked', () => {
+    renderSidebar()
+    const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
+    for (const name of ['New note', 'Search']) {
+      const row = screen.getByRole('button', { name })
+      expect(classes(row)).toContain('text-fg')
+      expect(classes(row.querySelector('svg')!)).toContain('text-fg')
+      expect(classes(row.querySelector('svg')!)).not.toContain('text-fg-body')
+    }
+  })
+
+  it('gives every row the height of New note and Search, at regular weight', () => {
+    renderSidebar()
+    const height = (el: HTMLElement) => el.className.split(/\s+/).filter((c) => /^h-/.test(c))
+    const head = height(screen.getByRole('button', { name: 'New note' }))
+    expect(head).toEqual(['h-8'])
+    expect(height(screen.getByRole('button', { name: 'Search' }))).toEqual(head)
+    expect(height(row('Apples'))).toEqual(head)
+    expect(row('Apples').querySelector('.font-medium')).toBeNull()
+  })
+
+  it('shows no tags, even on a tagged note', () => {
+    render(
+      <Sidebar
+        notes={[{ ...makeNote('t', 'Tagged'), tags: ['home', 'work'] }]}
+        activeId={null}
+        onSelect={vi.fn()}
+        onDelete={vi.fn()}
+        onNewNote={vi.fn()}
+        onSearch={vi.fn()}
+        footer={null}
+        collapsed={false}
+      />
+    )
+    expect(row('Tagged').textContent).toBe('Tagged')
+  })
+
+  it('rounds every row as a 12px squircle, the swipe frame included', () => {
+    renderSidebar()
+    const rows = [
+      screen.getByRole('button', { name: 'New note' }),
+      screen.getByRole('button', { name: 'Search' }),
+      row('Apples'),
+      row('Apples').closest('[class*="overflow-hidden"]') as HTMLElement
+    ]
+    for (const el of rows) {
+      const classes = el.className.split(/\s+/)
+      expect(classes).toContain('rounded-lg')
+      expect(classes).toContain('squircle')
+      expect(classes).not.toContain('rounded-sm')
+    }
+  })
+
+  it('shows a note by its title alone, with no time', () => {
+    renderSidebar()
+    expect(row('Apples').textContent).toBe('Apples')
+  })
+
+  it('heads the list with New note and Search, and ends it with the footer', () => {
+    renderSidebar()
+    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
+    const buttons = within(sidebar).getAllByRole('button')
+    const names = buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)
+    expect(names[0]).toBe('New note')
+    expect(names[1]).toBe('Search')
+    expect(names.at(-1)).toBe('Account')
+  })
+
+  it('creates a note and opens the search from its head', () => {
+    const { props } = renderSidebar()
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    expect(props.onNewNote).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    expect(props.onSearch).toHaveBeenCalled()
+  })
+
+  it('pads its contents rather than being inset from the window', () => {
+    renderSidebar()
+    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
+    const classes = sidebar.className.split(/\s+/)
+    expect(classes.some((c) => /^-?m[trblxy]?-/.test(c))).toBe(false)
+    // Its first 48px are the top bar's, which stands over it.
+    expect(classes).toContain('pt-12')
+    expect(classes).toContain('pb-2')
   })
 
   it('keeps the actions out of reach until a row is swiped', () => {

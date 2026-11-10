@@ -2,17 +2,17 @@
 
 export const SIDEBAR_MIN_WIDTH = 256
 export const SIDEBAR_MAX_WIDTH = 400
-/** What the window keeps beside the rail before it may widen: the top bar
- *  centres its search over the note panel, and the account controls at the
- *  bar's right end must stay clear of it. */
-const NOTE_PANEL_MIN_WIDTH = 720
+/** What the window keeps beside the rail before it may widen: the article's
+ *  full 640px column (`--size-article-content`) and the note pane's 20px
+ *  padding either side, so dragging the rail never squeezes the text. */
+const NOTE_PANE_MIN_WIDTH = 680
 
 export const SIDEBAR_WIDTH_KEY = 'sidebarWidth'
 
 export function maxSidebarWidth(viewportWidth: number): number {
   return Math.max(
     SIDEBAR_MIN_WIDTH,
-    Math.min(SIDEBAR_MAX_WIDTH, viewportWidth - NOTE_PANEL_MIN_WIDTH)
+    Math.min(SIDEBAR_MAX_WIDTH, viewportWidth - NOTE_PANE_MIN_WIDTH)
   )
 }
 

@@ -117,6 +117,15 @@ Object.defineProperty(window, 'api', {
     theme: {
       setSource: async () => {}
     },
+    // The page's own full screen stands in for the window's.
+    window: {
+      isFullScreen: async () => document.fullscreenElement !== null,
+      onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
+        const handler = () => listener(document.fullscreenElement !== null)
+        document.addEventListener('fullscreenchange', handler)
+        return () => document.removeEventListener('fullscreenchange', handler)
+      }
+    },
     sync: {
       now: async () => ({ pushed: 0, pulled: 0, ok: true }),
       pushNote: async () => true,

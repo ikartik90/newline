@@ -1,6 +1,7 @@
 import type { FC, SVGProps } from 'react'
 import { Popover } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
+import EyebrowIcon from '@/assets/icons/eyebrow.svg'
 import SubheadingIcon from '@/assets/icons/subheading.svg'
 import ParagraphIcon from '@/assets/icons/paragraph.svg'
 import MediaIcon from '@/assets/icons/media.svg'
@@ -21,6 +22,7 @@ import MetricIcon from '@/assets/icons/metric.svg'
 // picker / URL prompt that fills the remaining field. Both ride the same
 // onSelect(type) channel as every other item.
 export type SlashMenuBlockType =
+  | 'eyebrow'
   | 'heading'
   | 'paragraph'
   | 'media'
@@ -59,6 +61,7 @@ interface SlashMenuProps {
 
 const MENU_ITEMS: SlashMenuEntry[] = [
   { type: 'heading', label: 'Subheading', Icon: SubheadingIcon },
+  { type: 'eyebrow', label: 'Eyebrow', Icon: EyebrowIcon },
   { type: 'paragraph', label: 'Paragraph', Icon: ParagraphIcon },
   { type: 'media', label: 'Image or video', Icon: MediaIcon },
   { type: 'link_card', label: 'Link card', Icon: LinkIcon },

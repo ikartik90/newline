@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getSessionToken } from '../session'
+import { hasSession } from '../session'
 import {
   MEDIA_PREFIX,
   POSTER_PREFIX,
@@ -13,7 +13,10 @@ import {
   type MediaObject
 } from '../media-api'
 
-vi.mock('../session', () => ({ getSessionToken: vi.fn((): string | null => 'session-token') }))
+vi.mock('../session', () => ({
+  hasSession: vi.fn(() => true),
+  getSessionToken: vi.fn(async () => 'session-token')
+}))
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -41,7 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   vi.stubEnv('MAIN_VITE_API_URL', 'https://api.example.com')
   fetchMock.mockReset()
-  vi.mocked(getSessionToken).mockReturnValue('session-token')
+  vi.mocked(hasSession).mockReturnValue(true)
 })
 
 afterEach(() => {
@@ -52,7 +55,7 @@ afterEach(() => {
 describe('isMediaApiAvailable', () => {
   it('means signed in', () => {
     expect(isMediaApiAvailable()).toBe(true)
-    vi.mocked(getSessionToken).mockReturnValue(null)
+    vi.mocked(hasSession).mockReturnValue(false)
     expect(isMediaApiAvailable()).toBe(false)
   })
 })
