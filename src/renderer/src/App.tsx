@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '@/components/Sidebar'
+import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
 import { SearchField } from '@/components/search-field'
 import ThemeToggle from '@/components/ThemeToggle'
 import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
@@ -14,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
+import { useSidebarResize } from '@/hooks/use-sidebar-resize'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
 import SettingsIcon from '@/assets/icons/settings.svg'
@@ -38,18 +40,19 @@ const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 // which macOS draws over that corner, or on the rail's 8px inset elsewhere.
 // The widths are explicit so the move runs on the rail's own clock: the two
 // 28px chips, their 4px gap and the 8px inset, after the 80px gutter or not.
-const railControls =
-  'flex items-center justify-end gap-1 pr-2 shrink-0 transition-[width] duration-200 ease-in-out'
-const railControlsOpen = `${railControls} w-64`
-const railControlsPastWindowControls = `${railControls} w-[148px]`
-const railControlsAtEdge = `${railControls} w-[76px]`
+// While the rail's divider is dragged they follow it with no clock at all.
+const railControls = 'flex items-center justify-end gap-1 pr-2 shrink-0'
+const railControlsResizing = `${railControls} w-(--size-sidebar)`
+const railControlsOpen = `${railControls} w-(--size-sidebar) transition-[width] duration-200 ease-in-out`
+const railControlsPastWindowControls = `${railControls} w-[148px] transition-[width] duration-200 ease-in-out`
+const railControlsAtEdge = `${railControls} w-[76px] transition-[width] duration-200 ease-in-out`
 
 // The search is centred over the note panel, whichever width the rail has:
 // halfway between the panel's left edge — the rail's, or the shell inset once
 // the rail has gone — and its right, the window's less that inset. It moves
-// on the rail's clock too.
-const searchSlot =
-  'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-[left] duration-200 ease-in-out'
+// on the rail's clock too, except while the rail is being dragged.
+const searchSlotResizing = 'absolute top-1/2 -translate-x-1/2 -translate-y-1/2'
+const searchSlot = `${searchSlotResizing} transition-[left] duration-200 ease-in-out`
 const searchSlotLeft = (railWidth: string) =>
   `calc((${railWidth} + 100% - var(--size-shell-inset)) / 2)`
 
@@ -89,6 +92,8 @@ function App() {
 
   const { effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const shellRef = useRef<HTMLDivElement>(null)
+  const sidebarResize = useSidebarResize(shellRef)
   // Only macOS hides its title bar into the content; elsewhere the controls
   // are in a bar of their own, above everything here.
   const windowControlsGutter = window.api.platform === 'darwin'
@@ -253,6 +258,8 @@ function App() {
 
   return (
     <div
+      ref={shellRef}
+      style={sidebarResize.shellStyle}
       className={
         frosted ? 'h-screen flex flex-col text-fg' : 'h-screen flex flex-col bg-surface text-fg'
       }
@@ -261,7 +268,9 @@ function App() {
         <div
           className={
             !sidebarCollapsed
-              ? railControlsOpen
+              ? sidebarResize.resizing
+                ? railControlsResizing
+                : railControlsOpen
               : windowControlsGutter
                 ? railControlsPastWindowControls
                 : railControlsAtEdge
@@ -292,10 +301,12 @@ function App() {
           </button>
         </div>
         <div
-          className={searchSlot}
+          className={sidebarResize.resizing ? searchSlotResizing : searchSlot}
           style={{
             ...noDrag,
-            left: searchSlotLeft(sidebarCollapsed ? 'var(--size-shell-inset)' : '256px')
+            left: searchSlotLeft(
+              sidebarCollapsed ? 'var(--size-shell-inset)' : 'var(--size-sidebar)'
+            )
           }}
         >
           <SearchField onOpen={() => setCommandMenuOpen(true)} className="w-60" />
@@ -336,7 +347,15 @@ function App() {
           onSelect={setActiveId}
           onDelete={askDelete}
           collapsed={sidebarCollapsed}
+          resizing={sidebarResize.resizing}
         />
+
+        {!sidebarCollapsed && (
+          <SidebarResizeHandle
+            resizing={sidebarResize.resizing}
+            handleProps={sidebarResize.handleProps}
+          />
+        )}
 
         <div className={sidebarCollapsed ? notePanelAlone : notePanelBesideRail}>
           <div className="flex-1 flex flex-col min-w-0">

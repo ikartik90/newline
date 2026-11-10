@@ -10,6 +10,8 @@ interface SidebarProps {
   onSelect: (id: string) => void
   onDelete: (id: string) => void
   collapsed: boolean
+  /** While its divider is being dragged the rail follows the pointer, not its clock. */
+  resizing?: boolean
 }
 
 const NOTE_ROW_HEIGHT = 56
@@ -19,8 +21,12 @@ const VIRTUALISE_FROM = 100
 // The rail paints nothing of its own: it stands on the shell's glass under the
 // top bar, and the note panel's card edge is the only line between the two.
 // Collapsed it keeps no width at all — what used to head it, the new-note
-// button and the search, lives in the top bar and stays in view.
-const sidebarShell = 'flex flex-col transition-[width] duration-200 ease-in-out overflow-hidden'
+// button and the search, lives in the top bar and stays in view. Open, it is
+// as wide as its divider was last dragged (`--size-sidebar`, on the shell).
+const sidebarShell = 'flex flex-col shrink-0 overflow-hidden'
+const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width] duration-200 ease-in-out`
+const sidebarResizing = `${sidebarShell} w-(--size-sidebar)`
+const sidebarCollapsed = `${sidebarShell} w-0 transition-[width] duration-200 ease-in-out`
 
 // The rows are inset 8px from either edge — the window's on the left and, on
 // the right, the card's, which keeps no margin of its own beside the rail.
@@ -32,7 +38,14 @@ const sidebarShell = 'flex flex-col transition-[width] duration-200 ease-in-out 
 const listInset = 'pl-2 pr-0.5'
 const listScroll = '[scrollbar-gutter:stable]'
 
-export default function Sidebar({ notes, activeId, onSelect, onDelete, collapsed }: SidebarProps) {
+export default function Sidebar({
+  notes,
+  activeId,
+  onSelect,
+  onDelete,
+  collapsed,
+  resizing = false
+}: SidebarProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const [listHeight, setListHeight] = useState(400)
   // The one row slid aside to show its actions, if any.
@@ -91,7 +104,10 @@ export default function Sidebar({ notes, activeId, onSelect, onDelete, collapsed
   }
 
   return (
-    <aside aria-label="Notes" className={`${sidebarShell} ${collapsed ? 'w-0' : 'w-64'}`}>
+    <aside
+      aria-label="Notes"
+      className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
+    >
       {!collapsed && (
         <div ref={listRef} className={`flex-1 overflow-hidden ${listInset}`}>
           {notes.length === 0 ? (

@@ -283,7 +283,7 @@ describe('App chrome', () => {
     const controls = within(bar).getByRole('button', { name: 'New note' }).parentElement!
     // The rail's width, the chips against its right inset.
     expect(controls.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['w-64', 'justify-end', 'pr-2'])
+      expect.arrayContaining(['w-(--size-sidebar)', 'justify-end', 'pr-2'])
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
@@ -308,13 +308,41 @@ describe('App chrome', () => {
     const slot = within(bar).getByRole('button', { name: 'Search notes' }).parentElement!
     // Halfway between the panel's left edge and its right: the rail's width
     // to the window's width less the shell inset.
-    expect(slot.style.left).toBe('calc((256px + 100% - var(--size-shell-inset)) / 2)')
+    expect(slot.style.left).toBe('calc((var(--size-sidebar) + 100% - var(--size-shell-inset)) / 2)')
     expect(slot.className.split(/\s+/)).toContain('-translate-x-1/2')
 
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
     expect(slot.style.left).toBe(
       'calc((var(--size-shell-inset) + 100% - var(--size-shell-inset)) / 2)'
     )
+  })
+
+  it('makes the divider between the rail and the card a handle that resizes the rail', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
+    // It stands between the rail and the card, and lights in the brand's ink
+    // when the pointer is over it.
+    expect(sidebar.nextElementSibling).toBe(handle.parentElement)
+    expect(handle.querySelector('.group-hover\\:bg-fg-highlight')).not.toBeNull()
+    expect(handle.className.split(/\s+/)).toContain('cursor-col-resize')
+
+    const shell = screen.getByRole('banner').parentElement!
+    expect(shell.style.getPropertyValue('--size-sidebar')).toBe('256px')
+    expect(sidebar.className.split(/\s+/)).toContain('w-(--size-sidebar)')
+
+    fireEvent.pointerDown(handle, { clientX: 256, pointerId: 1, button: 0 })
+    fireEvent.pointerMove(handle, { clientX: 300, pointerId: 1 })
+    // The rail follows the pointer at once, not on the rail's 200ms clock.
+    expect(shell.style.getPropertyValue('--size-sidebar')).toBe('300px')
+    expect(sidebar.className.split(/\s+/)).not.toContain('duration-200')
+    fireEvent.pointerUp(handle, { clientX: 300, pointerId: 1 })
+    expect(sidebar.className.split(/\s+/)).toContain('duration-200')
+    expect(localStorage.getItem('sidebarWidth')).toBe('300')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(screen.queryByRole('separator', { name: 'Resize sidebar' })).toBeNull()
   })
 
   it('floats the note panel as a card under the top bar, on a shell left clear for the window’s glass', async () => {

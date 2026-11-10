@@ -209,6 +209,10 @@
   --size-window-radius: 12px;
   --size-note-panel-radius: calc(var(--size-window-radius) - var(--size-shell-inset));
 
+  /* The notes rail's width: its floor, until its divider is dragged wider.
+     The shell sets the dragged width inline (hooks/use-sidebar-resize.ts). */
+  --size-sidebar: 256px;
+
   /* The rail's search field. The ⌘K chip inside it is the 4px `rounded-sm`
      hotkey every menu draws, sitting 6px in from the field's top and bottom —
      what a 32px field leaves around a 20px chip. The sides take the same 6px,
@@ -880,6 +884,13 @@
   html[data-control-dragging] * {
     -webkit-user-select: none !important;
     user-select: none !important;
+  }
+
+  /* The pointer outruns a 6px grip; the cursor stays the resize one wherever
+     the drag takes it. */
+  html[data-sidebar-resizing],
+  html[data-sidebar-resizing] * {
+    cursor: col-resize !important;
   }
 
   ::-webkit-scrollbar {
