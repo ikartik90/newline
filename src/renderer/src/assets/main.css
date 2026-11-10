@@ -204,6 +204,10 @@
   --size-insert-dialog-height: 480px;
   --size-library-sidebar: 200px;
   --size-image-preview-max: 280px;
+
+  /* The notes rail's width. The shell sets it from the divider's last drag;
+     this is the floor it starts at. */
+  --size-sidebar: 256px;
 }
 
 .dark {
@@ -882,6 +886,13 @@
   html[data-control-dragging] * {
     -webkit-user-select: none !important;
     user-select: none !important;
+  }
+
+  /* The pointer outruns a 5px grip; the cursor stays the resize one wherever
+     the drag takes it. */
+  html[data-sidebar-resizing],
+  html[data-sidebar-resizing] * {
+    cursor: col-resize !important;
   }
 
   ::-webkit-scrollbar {

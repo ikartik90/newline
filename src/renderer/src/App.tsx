@@ -8,6 +8,7 @@ import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
 import { NotePropertiesPanel } from '@/components/note-properties-panel'
 import { CommandMenu, type CommandMenuAction } from '@/components/command-menu'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,6 +16,7 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
+import { useSidebarResize } from '@/hooks/use-sidebar-resize'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
 import SettingsIcon from '@/assets/icons/settings.svg'
@@ -67,6 +69,8 @@ function App() {
 
   const { theme, effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const shellRef = useRef<HTMLDivElement>(null)
+  const sidebarResize = useSidebarResize(shellRef)
   // Only macOS hides its title bar into the content, and only out of full
   // screen; elsewhere the window's controls are in a frame of their own.
   const fullScreen = useFullScreen()
@@ -235,6 +239,8 @@ function App() {
 
   return (
     <div
+      ref={shellRef}
+      style={sidebarResize.shellStyle}
       className={
         frosted ? 'relative h-screen flex text-fg' : 'relative h-screen flex bg-surface text-fg'
       }
@@ -266,6 +272,7 @@ function App() {
         onNewNote={createNote}
         onSearch={() => setCommandMenuOpen(true)}
         collapsed={sidebarCollapsed}
+        resizing={sidebarResize.resizing}
         footer={
           <>
             <AccountMenu user={user} onSignOut={logout} />
@@ -282,6 +289,13 @@ function App() {
           </>
         }
       />
+
+      {!sidebarCollapsed && (
+        <SidebarResizeHandle
+          resizing={sidebarResize.resizing}
+          handleProps={sidebarResize.handleProps}
+        />
+      )}
 
       <div className={sidebarCollapsed ? notePane : notePaneBesideRail}>
         <div className="flex-1 flex flex-col min-w-0">

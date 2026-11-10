@@ -19,6 +19,8 @@ interface SidebarProps {
   /** What stands at the foot: the account and the app's settings. */
   footer: ReactNode
   collapsed: boolean
+  /** While its divider is being dragged the rail follows the pointer, not its clock. */
+  resizing?: boolean
 }
 
 /** A row is as tall as New note and Search (h-8), plus the 2px gap below it. */
@@ -29,11 +31,12 @@ const VIRTUALISE_FROM = 100
 // The rail paints nothing of its own: it stands on the shell's glass, and the
 // note pane's edge is the only line between the two. Its spacing is padding
 // inside it, never margin around it; the first 48px are the top bar's, which
-// stands over it. Collapsed it keeps no width at all.
-const sidebarShell =
-  'flex flex-col shrink-0 pt-12 pb-2 overflow-hidden transition-[width,filter] duration-200 ease-in-out'
-const sidebarOpen = `${sidebarShell} w-64`
-const sidebarCollapsed = `${sidebarShell} w-0`
+// stands over it. Open, it is as wide as its divider was last dragged
+// (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
+const sidebarShell = 'flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
+const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
+const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
+const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
 // New note and Search head the rail as rows, their glyphs on the line the
 // notes' titles start on. The rail and every row are padded alike, 6.5px, so a
@@ -64,7 +67,8 @@ export default function Sidebar({
   onNewNote,
   onSearch,
   footer,
-  collapsed
+  collapsed,
+  resizing = false
 }: SidebarProps) {
   const hasCursor = useHasCursor()
   const newNoteShortcut = useShortcutLabel('N')
@@ -130,7 +134,7 @@ export default function Sidebar({
     <aside
       aria-label="Notes"
       data-on-glass=""
-      className={collapsed ? sidebarCollapsed : sidebarOpen}
+      className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
       {!collapsed && (
         <div className={headStyle}>

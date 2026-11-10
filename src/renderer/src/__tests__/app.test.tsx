@@ -384,7 +384,10 @@ describe('App chrome', () => {
     installApi([makeNote()])
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    const pane = sidebar.nextElementSibling as HTMLElement
+    // Past the divider's handle, which stands on the pane's edge.
+    const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
+    const pane = handle.parentElement!.nextElementSibling as HTMLElement
+    expect(classesOf(pane)).toContain('border-divider')
     expect(hasMargin(pane)).toBe(false)
     expect(classesOf(pane)).toContain('bg-canvas')
     expect(classesOf(pane).some((c) => c.startsWith('rounded'))).toBe(false)
@@ -394,6 +397,34 @@ describe('App chrome', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
     expect(hasMargin(pane)).toBe(false)
+  })
+
+  it('makes the divider between the rail and the note pane a handle that resizes the rail', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
+    // It stands between the rail and the pane, below the bar that drags the
+    // window, and lights in the brand's ink when the pointer is over it.
+    expect(sidebar.nextElementSibling).toBe(handle.parentElement)
+    expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'top-12']))
+    expect(handle.querySelector('.group-hover\\:bg-fg-highlight')).not.toBeNull()
+
+    const shell = screen.getByRole('banner').parentElement!
+    expect(shell.style.getPropertyValue('--size-sidebar')).toBe('256px')
+    expect(classesOf(sidebar)).toContain('w-(--size-sidebar)')
+
+    fireEvent.pointerDown(handle, { clientX: 256, pointerId: 1, button: 0 })
+    fireEvent.pointerMove(handle, { clientX: 300, pointerId: 1 })
+    // The rail follows the pointer at once, not on its 200ms width transition.
+    expect(shell.style.getPropertyValue('--size-sidebar')).toBe('300px')
+    expect(classesOf(sidebar)).not.toContain('transition-[width,filter]')
+    fireEvent.pointerUp(handle, { clientX: 300, pointerId: 1 })
+    expect(classesOf(sidebar)).toContain('transition-[width,filter]')
+    expect(localStorage.getItem('sidebarWidth')).toBe('300')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(screen.queryByRole('separator', { name: 'Resize sidebar' })).toBeNull()
   })
 
   it('leaves the shell clear for the window’s glass on macOS', async () => {
