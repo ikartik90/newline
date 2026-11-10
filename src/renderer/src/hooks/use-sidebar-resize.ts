@@ -10,10 +10,10 @@ import {
 } from 'react'
 import { beginControlDrag, endControlDrag } from '@/utils/control-drag'
 import {
+  SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_WIDTH_KEY,
   clampSidebarWidth,
-  maxSidebarWidth,
   parseStoredSidebarWidth
 } from '@/utils/sidebar-width'
 
@@ -45,19 +45,10 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
   const [stored, setStored] = useState(() =>
     parseStoredSidebarWidth(localStorage.getItem(SIDEBAR_WIDTH_KEY))
   )
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
   const [resizing, setResizing] = useState(false)
   const gesture = useRef<Gesture | null>(null)
 
-  // The remembered width is kept as it was; a narrow window only holds the
-  // rail in for as long as it stays narrow.
-  const width = clampSidebarWidth(stored, viewportWidth)
-
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+  const width = clampSidebarWidth(stored)
 
   const paint = (next: number) => {
     shellRef.current?.style.setProperty('--size-sidebar', `${next}px`)
@@ -92,7 +83,7 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
     'aria-label': 'Resize sidebar',
     'aria-orientation': 'vertical' as const,
     'aria-valuemin': SIDEBAR_MIN_WIDTH,
-    'aria-valuemax': maxSidebarWidth(viewportWidth),
+    'aria-valuemax': SIDEBAR_MAX_WIDTH,
     'aria-valuenow': width,
     tabIndex: 0,
 
@@ -114,7 +105,7 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
       const live = gesture.current
       if (!live || live.pointerId !== event.pointerId) return
-      live.width = clampSidebarWidth(live.startWidth + event.clientX - live.startX, viewportWidth)
+      live.width = clampSidebarWidth(live.startWidth + event.clientX - live.startX)
       paint(live.width)
       event.currentTarget.setAttribute('aria-valuenow', String(live.width))
     },
@@ -145,11 +136,11 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
             : event.key === 'Home'
               ? SIDEBAR_MIN_WIDTH
               : event.key === 'End'
-                ? maxSidebarWidth(viewportWidth)
+                ? SIDEBAR_MAX_WIDTH
                 : null
       if (next === null) return
       event.preventDefault()
-      commit(clampSidebarWidth(next, viewportWidth))
+      commit(clampSidebarWidth(next))
     }
   }
 

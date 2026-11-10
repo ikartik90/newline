@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { List, type RowComponentProps } from 'react-window'
 import { SwipeActions } from '@/components/swipe-actions'
 import { useHasCursor } from '@/hooks/use-has-cursor'
+import { useScrolled } from '@/hooks/use-scrolled'
 import { useShortcutLabel } from '@/hooks/use-shortcut-label'
 import { noteDisplayTitle } from '@/utils/note-display'
 import TrashIcon from '@/assets/icons/trash.svg'
@@ -28,15 +29,32 @@ const NOTE_ROW_HEIGHT = 34
 /** Below this many notes the list renders plainly; above it, virtualised. */
 const VIRTUALISE_FROM = 100
 
-// The rail paints nothing of its own: it stands on the shell's glass, and the
-// note pane's edge is the only line between the two. Its spacing is padding
-// inside it, never margin around it; the first 48px are the top bar's, which
-// stands over it. Open, it is as wide as its divider was last dragged
-// (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
-const sidebarShell = 'flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
+// The note pane's edge is the only line between the rail and the pane. Its
+// spacing is padding inside it, never margin around it; the first 48px are the
+// top bar's, which stands over it. Open, it is as wide as its divider was last
+// dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
+// It isolates its fill, which stands behind its contents.
+const sidebarShell =
+  'relative isolate flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
+
+// The rail is solid, but for its top, where the window's glass shows. The
+// menu and the Notes heading share a box whose fill reaches up through the top
+// bar and is cleared above a gentle dome measured from the heading (main.css),
+// so an item added to the menu stands on the glass and grows it. Once the
+// notes scroll under the head, the top fills in as well. The list and the
+// footer have a plain solid fill, down through the rail's bottom padding.
+const railTop = 'relative shrink-0 flex flex-col'
+const railBody = 'relative flex-1 min-h-0 flex flex-col'
+const railFill =
+  'absolute inset-x-0 -top-12 bottom-0 -z-10 bg-sidebar pointer-events-none mask-rail-glass'
+const railFillTop =
+  'absolute inset-x-0 -top-12 bottom-0 -z-10 bg-sidebar pointer-events-none transition-opacity duration-150'
+const railFillTopClear = `${railFillTop} opacity-0`
+const railFillTopSolid = `${railFillTop} opacity-100`
+const railBodyFill = 'absolute inset-x-0 top-0 -bottom-2 -z-10 bg-sidebar pointer-events-none'
 
 // New note and Search head the rail as rows, their glyphs on the line the
 // notes' titles start on. The rail and every row are padded alike, 6.5px, so a
@@ -54,10 +72,19 @@ const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-fg-body/5
 // list's own inset stops 6px short so the reserved gutter makes up the 6.5px,
 // and it is held open even when the list is too short to scroll — otherwise
 // the rows would widen the moment a note is deleted.
-const listInset = 'flex-1 min-h-0 overflow-hidden pl-[6.5px] pr-[0.5px]'
+const listInset = 'relative flex-1 min-h-0 overflow-hidden pl-[6.5px] pr-[0.5px]'
 const listScroll = '[scrollbar-gutter:stable]'
 
-const footStyle = 'flex items-center gap-1 px-[6.5px] pt-2 shrink-0'
+// Once the notes have scrolled under the head, a hairline rules it off from
+// them, across the rail's full width.
+const listEdge =
+  'absolute top-0 inset-x-0 border-t-[0.5px] border-divider pointer-events-none transition-opacity duration-150'
+const listEdgeHidden = `${listEdge} opacity-0`
+const listEdgeShown = `${listEdge} opacity-100`
+
+// The account and settings are ruled off from the list for good, not only
+// once it scrolls: the rail's full width, 8px above them.
+const footStyle = 'flex items-center gap-1 px-[6.5px] pt-2 shrink-0 border-t-[0.5px] border-divider'
 
 export default function Sidebar({
   notes,
@@ -77,6 +104,14 @@ export default function Sidebar({
   const [listHeight, setListHeight] = useState(400)
   // The one row slid aside to show its actions, if any.
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
+  const listScrolled = useScrolled()
+  const { ref: trackListScroller, onScroll: onListScroll } = listScrolled
+  // The virtualised list hands over a handle, not its scroller.
+  const trackVirtualList = useCallback(
+    (api: { readonly element: HTMLDivElement | null } | null) =>
+      trackListScroller(api?.element ?? null),
+    [trackListScroller]
+  )
 
   useEffect(() => {
     if (!listRef.current) return
@@ -136,55 +171,84 @@ export default function Sidebar({
       data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
-      {!collapsed && (
-        <div className={headStyle}>
-          <button type="button" className={headRowStyle} aria-label="New note" onClick={onNewNote}>
-            <AddIcon className={headGlyphStyle} aria-hidden />
-            New note
-            {hasCursor && (
-              <kbd aria-hidden className={headShortcutStyle}>
-                {newNoteShortcut}
-              </kbd>
-            )}
-          </button>
-          <button type="button" className={headRowStyle} aria-label="Search" onClick={onSearch}>
-            <SearchIcon className={headGlyphStyle} aria-hidden />
-            Search
-            {hasCursor && (
-              <kbd aria-hidden className={headShortcutStyle}>
-                {searchShortcut}
-              </kbd>
-            )}
-          </button>
-        </div>
-      )}
-      {!collapsed && <div className={sectionLabelStyle}>Notes</div>}
-      {!collapsed && (
-        <div ref={listRef} className={listInset}>
-          {notes.length === 0 ? (
-            <p className="px-3 py-6 text-style-sidebar text-fg-body/50 text-center">No notes yet</p>
-          ) : notes.length < VIRTUALISE_FROM ? (
-            <div
-              className={`h-full overflow-y-auto ${listScroll}`}
-              onScroll={() => setSwipeOpenId(null)}
+      <div className={railTop}>
+        <div aria-hidden data-rail-fill="" className={railFill} />
+        <div
+          aria-hidden
+          data-rail-fill-top=""
+          className={listScrolled.scrolled ? railFillTopSolid : railFillTopClear}
+        />
+        {!collapsed && (
+          <div className={headStyle}>
+            <button
+              type="button"
+              className={headRowStyle}
+              aria-label="New note"
+              onClick={onNewNote}
             >
-              {notes.map((note) => (
-                <NoteItem key={note.id} note={note} {...rowProps} />
-              ))}
-            </div>
-          ) : (
-            <List
-              className={listScroll}
-              style={{ height: listHeight }}
-              rowComponent={NoteRow}
-              rowCount={notes.length}
-              rowHeight={NOTE_ROW_HEIGHT}
-              rowProps={rowProps}
+              <AddIcon className={headGlyphStyle} aria-hidden />
+              New note
+              {hasCursor && (
+                <kbd aria-hidden className={headShortcutStyle}>
+                  {newNoteShortcut}
+                </kbd>
+              )}
+            </button>
+            <button type="button" className={headRowStyle} aria-label="Search" onClick={onSearch}>
+              <SearchIcon className={headGlyphStyle} aria-hidden />
+              Search
+              {hasCursor && (
+                <kbd aria-hidden className={headShortcutStyle}>
+                  {searchShortcut}
+                </kbd>
+              )}
+            </button>
+          </div>
+        )}
+        {!collapsed && <div className={sectionLabelStyle}>Notes</div>}
+      </div>
+      <div className={railBody}>
+        <div aria-hidden data-rail-body-fill="" className={railBodyFill} />
+        {!collapsed && (
+          <div ref={listRef} className={listInset}>
+            {notes.length === 0 ? (
+              <p className="px-3 py-6 text-style-sidebar text-fg-body/50 text-center">
+                No notes yet
+              </p>
+            ) : notes.length < VIRTUALISE_FROM ? (
+              <div
+                ref={trackListScroller}
+                className={`h-full overflow-y-auto ${listScroll}`}
+                onScroll={(event) => {
+                  setSwipeOpenId(null)
+                  onListScroll(event)
+                }}
+              >
+                {notes.map((note) => (
+                  <NoteItem key={note.id} note={note} {...rowProps} />
+                ))}
+              </div>
+            ) : (
+              <List
+                listRef={trackVirtualList}
+                onScroll={onListScroll}
+                className={listScroll}
+                style={{ height: listHeight }}
+                rowComponent={NoteRow}
+                rowCount={notes.length}
+                rowHeight={NOTE_ROW_HEIGHT}
+                rowProps={rowProps}
+              />
+            )}
+            <div
+              aria-hidden
+              data-list-edge=""
+              className={listScrolled.scrolled ? listEdgeShown : listEdgeHidden}
             />
-          )}
-        </div>
-      )}
-      {!collapsed && <div className={footStyle}>{footer}</div>}
+          </div>
+        )}
+        {!collapsed && <div className={footStyle}>{footer}</div>}
+      </div>
     </aside>
   )
 }

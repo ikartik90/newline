@@ -17,6 +17,7 @@ import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
+import { useScrolled } from '@/hooks/use-scrolled'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
 import SettingsIcon from '@/assets/icons/settings.svg'
@@ -53,6 +54,13 @@ const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
 const notePaneBesideRail = `${notePane} border-l-[0.5px] border-divider`
 
+// Once the note has scrolled under the bar, a hairline rules the bar off from
+// it. It stands on the note column's top, which is the bar's foot.
+const noteEdge =
+  'absolute top-0 inset-x-0 border-t-[0.5px] border-divider pointer-events-none transition-opacity duration-150'
+const noteEdgeHidden = `${noteEdge} opacity-0`
+const noteEdgeShown = `${noteEdge} opacity-100`
+
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
   const {
@@ -71,6 +79,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
+  const noteScroll = useScrolled()
   // Only macOS hides its title bar into the content, and only out of full
   // screen; elsewhere the window's controls are in a frame of their own.
   const fullScreen = useFullScreen()
@@ -298,9 +307,13 @@ function App() {
       )}
 
       <div className={sidebarCollapsed ? notePane : notePaneBesideRail}>
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="relative flex-1 flex flex-col min-w-0">
           {activeNote && initialDocument ? (
-            <main className="flex-1 overflow-y-auto px-5 pt-4 pb-20">
+            <main
+              ref={noteScroll.ref}
+              onScroll={noteScroll.onScroll}
+              className="flex-1 overflow-y-auto px-5 pt-4 pb-20"
+            >
               <article>
                 <ArticleEditor
                   key={activeNote.id}
@@ -333,6 +346,11 @@ function App() {
               </div>
             </div>
           )}
+          <div
+            aria-hidden
+            data-note-edge=""
+            className={noteScroll.scrolled ? noteEdgeShown : noteEdgeHidden}
+          />
         </div>
 
         {activeNote && propertiesOpen && (
