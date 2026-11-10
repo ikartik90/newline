@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { useSidebarResize } from '../use-sidebar-resize'
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@/utils/sidebar-width'
 
@@ -29,10 +29,6 @@ function drag(from: number, to: number, { release = true } = {}) {
   fireEvent.pointerMove(handle(), { clientX: to, pointerId: 1 })
   if (release) fireEvent.pointerUp(handle(), { clientX: to, pointerId: 1 })
 }
-
-beforeEach(() => {
-  Object.defineProperty(window, 'innerWidth', { value: 1600, configurable: true })
-})
 
 describe('useSidebarResize', () => {
   it('starts at the floor, as a vertical separator', () => {
@@ -69,18 +65,20 @@ describe('useSidebarResize', () => {
     expect(shellWidth()).toBe('300px')
   })
 
-  it('narrows a remembered width to fit a smaller window', () => {
+  it('keeps its width on a narrow window, where the note pane wraps instead', () => {
     localStorage.setItem('sidebarWidth', String(SIDEBAR_MAX_WIDTH))
     render(<Shell />)
     act(() => {
       Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true })
       window.dispatchEvent(new Event('resize'))
     })
-    expect(parseInt(shellWidth())).toBeLessThan(SIDEBAR_MAX_WIDTH)
+    expect(shellWidth()).toBe(`${SIDEBAR_MAX_WIDTH}px`)
+    fireEvent.keyDown(handle(), { key: 'End' })
+    expect(shellWidth()).toBe(`${SIDEBAR_MAX_WIDTH}px`)
   })
 
   it('puts the rail back to its floor on a double click', () => {
-    localStorage.setItem('sidebarWidth', '400')
+    localStorage.setItem('sidebarWidth', '360')
     render(<Shell />)
     fireEvent.doubleClick(handle())
     expect(shellWidth()).toBe(`${SIDEBAR_MIN_WIDTH}px`)

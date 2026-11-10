@@ -404,10 +404,10 @@ describe('App chrome', () => {
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
-    // It stands between the rail and the pane, below the bar that drags the
-    // window, and lights in the brand's ink when the pointer is over it.
+    // It stands between the rail and the pane, the window's full height, and
+    // lights in the brand's ink when the pointer is over it.
     expect(sidebar.nextElementSibling).toBe(handle.parentElement)
-    expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'top-12']))
+    expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'inset-y-0']))
     expect(handle.querySelector('.group-hover\\:bg-fg-highlight')).not.toBeNull()
 
     const shell = screen.getByRole('banner').parentElement!
