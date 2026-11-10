@@ -6,9 +6,28 @@ import { BlockNodeSchema, type BlockNode, type InlineNode } from './nodes'
 // Document — the root AST node a note's body holds
 // ---------------------------------------------------------------------------
 
+/**
+ * A subheading once carried its eyebrow as a `caption`; it is a block of its
+ * own now, so a stored caption is lifted out to stand above its subheading.
+ */
+function liftSubheadingCaptions(content: unknown): unknown {
+  if (!Array.isArray(content)) return content
+  return content.flatMap((block) => {
+    if (block?.type !== 'heading' || !('caption' in block)) return [block]
+    const { caption, ...heading } = block
+    if (typeof caption !== 'string' || !caption.trim()) return [heading]
+    const eyebrow = {
+      type: 'eyebrow',
+      children: [{ type: 'text', text: caption }],
+      ...(heading.indent ? { indent: true } : {})
+    }
+    return [eyebrow, heading]
+  })
+}
+
 export const DocumentSchema = z.object({
   type: z.literal('doc'),
-  content: z.array(BlockNodeSchema)
+  content: z.preprocess(liftSubheadingCaptions, z.array(BlockNodeSchema))
 })
 
 export type Document = z.infer<typeof DocumentSchema>

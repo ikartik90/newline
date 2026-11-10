@@ -40,7 +40,7 @@ import {
   articleBlockquoteBodyStyle,
   articleBlockquoteShellStyle,
   articleBlockquoteStyle,
-  articleHeadingShellStyle,
+  articleEyebrowShellStyle,
   articleMetricStyle,
   editableBaseStyle,
   editorBlockquoteCaptionStyle,
@@ -69,7 +69,7 @@ import {
   editorMetricValueStyle,
   editorShowcaseMediaStyle,
   editorShowcaseStyle,
-  editorSubheadingCaptionStyle,
+  editorEyebrowStyle,
   mediaBlockStyles,
   menuIconStyle
 } from './styles'
@@ -84,12 +84,7 @@ const CODE_LANGUAGE_OPTIONS: Array<{ value: CodeLanguage | ''; label: string }> 
 
 /** The blocks whose `caption` field the caption effects and handlers write. */
 function hasCaption(block: BlockNode): block is Extract<BlockNode, { caption?: string }> {
-  return (
-    block.type === 'media' ||
-    block.type === 'blockquote' ||
-    block.type === 'heading' ||
-    block.type === 'metric'
-  )
+  return block.type === 'media' || block.type === 'blockquote' || block.type === 'metric'
 }
 
 // ---------------------------------------------------------------------------
@@ -406,6 +401,7 @@ export function EditableBlock({
         e.preventDefault()
         if (
           block.type === 'paragraph' ||
+          block.type === 'eyebrow' ||
           block.type === 'heading' ||
           block.type === 'blockquote' ||
           block.type === 'metric'
@@ -478,11 +474,11 @@ export function EditableBlock({
         }
       }
 
-      // ArrowUp from a subheading's / metric's first line → its eyebrow caption.
+      // ArrowUp from a metric's first line → its eyebrow caption.
       if (
         e.key === 'ArrowUp' &&
         !e.shiftKey &&
-        (block.type === 'heading' || block.type === 'metric') &&
+        block.type === 'metric' &&
         isCaretAtFirstLine(e.currentTarget)
       ) {
         e.preventDefault()
@@ -521,11 +517,11 @@ export function EditableBlock({
         return
       }
 
-      // ArrowLeft at the start of a subheading / metric value → its eyebrow.
+      // ArrowLeft at the start of a metric value → its eyebrow.
       if (
         e.key === 'ArrowLeft' &&
         !e.shiftKey &&
-        (block.type === 'heading' || block.type === 'metric') &&
+        block.type === 'metric' &&
         isCaretAtStart(e.currentTarget)
       ) {
         e.preventDefault()
@@ -614,6 +610,7 @@ export function EditableBlock({
         e.key === 'Backspace' &&
         isCaretAtStart(e.currentTarget) &&
         (block.type === 'heading' ||
+          block.type === 'eyebrow' ||
           block.type === 'blockquote' ||
           block.type === 'metric' ||
           isListItemType(block.type) ||
@@ -824,14 +821,14 @@ export function EditableBlock({
   )
 
   // Move the caret to the start of the block's own editable content (used by
-  // the subheading eyebrow, which sits above the heading text).
+  // the metric's eyebrow, which sits above the value).
   const focusContentStart = useCallback(() => {
     const content = contentRef.current
     if (content) placeCaret(content, 'start')
   }, [])
 
   // Keydown handler for a caption that sits ABOVE its block (the eyebrow).
-  const handleHeadingCaptionKeyDown = useCallback(
+  const handleCaptionAboveKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLElement>) => {
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.stopPropagation()
@@ -1020,27 +1017,46 @@ export function EditableBlock({
 
   if (block.type === 'heading') {
     return (
-      <div className={articleHeadingShellStyle} data-indented={block.indent ? '' : undefined}>
-        <span
-          ref={captionRef}
-          className={editorSubheadingCaptionStyle}
-          contentEditable
-          suppressContentEditableWarning
-          data-placeholder="Add caption..."
-          data-empty={!block.caption?.trim() ? '' : undefined}
-          onInput={handleCaptionInput}
-          onKeyDown={handleHeadingCaptionKeyDown}
-        />
-        <h2
-          ref={combinedRef as React.RefCallback<HTMLHeadingElement>}
-          className={`${editableBaseStyle} ${typographyStyles({ type: 'subheading' })}`}
+      <h2
+        ref={combinedRef as React.RefCallback<HTMLHeadingElement>}
+        className={`${editableBaseStyle} ${typographyStyles({ type: 'subheading' })}`}
+        contentEditable
+        suppressContentEditableWarning
+        onKeyDown={handleKeyDown}
+        onInput={handleInput}
+        onKeyUp={handleKeyUp}
+        onPaste={handlePaste}
+        data-placeholder={placeholder}
+        data-block-index={blockIndex}
+        data-empty={isBlockEmpty(block) ? '' : undefined}
+        data-indented={block.indent ? '' : undefined}
+        {...slashAnchorProps}
+      />
+    )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Eyebrow — the shell takes the column's width; the line inside is only as
+  // wide as its words, so the gradient spans the text rather than the column.
+  // ---------------------------------------------------------------------------
+
+  if (block.type === 'eyebrow') {
+    return (
+      <div
+        className={articleEyebrowShellStyle}
+        data-eyebrow=""
+        data-indented={block.indent ? '' : undefined}
+      >
+        <p
+          ref={combinedRef as React.RefCallback<HTMLParagraphElement>}
+          className={`${editableBaseStyle} ${editorEyebrowStyle}`}
           contentEditable
           suppressContentEditableWarning
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           onKeyUp={handleKeyUp}
           onPaste={handlePaste}
-          data-placeholder={placeholder}
+          data-placeholder="Eyebrow"
           data-block-index={blockIndex}
           data-empty={isBlockEmpty(block) ? '' : undefined}
           {...slashAnchorProps}
@@ -1282,7 +1298,7 @@ export function EditableBlock({
           data-placeholder="Add caption..."
           data-empty={!block.caption?.trim() ? '' : undefined}
           onInput={handleCaptionInput}
-          onKeyDown={handleHeadingCaptionKeyDown}
+          onKeyDown={handleCaptionAboveKeyDown}
         />
         <div
           ref={combinedRef as React.RefCallback<HTMLDivElement>}

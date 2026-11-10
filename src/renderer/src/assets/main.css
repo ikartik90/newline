@@ -504,7 +504,7 @@
 
 /* Only clip the gradient once there is text, or an empty editor field turns
    its own placeholder transparent. */
-@utility article-subheading-caption {
+@utility article-eyebrow {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
@@ -799,6 +799,12 @@
 
   article > * {
     width: min(100%, var(--size-article-content));
+  }
+
+  /* An eyebrow belongs to what follows it, so it sits 4px above it, not a
+     block's gap away. */
+  article > [data-eyebrow] + * {
+    margin-block-start: -12px;
   }
 
   /* One-level indent (Tab in the editor): a list marker plus its gap. */

@@ -21,6 +21,7 @@ vi.mock('@/components/slash-menu', () => ({
     onDismiss: () => void
   }) => (
     <div data-testid="slash-menu">
+      <button onClick={() => onSelect('eyebrow')}>eyebrow</button>
       <button onClick={() => onSelect('heading')}>heading</button>
       <button onClick={() => onSelect('paragraph')}>paragraph</button>
       <button onClick={() => onSelect('media')}>media</button>
@@ -81,15 +82,13 @@ vi.mock('@/lib/media', () => mediaClient)
 
 const text = (t: string): InlineNode => ({ type: 'text', text: t })
 const paragraph = (t = ''): BlockNode => ({ type: 'paragraph', children: [text(t)] })
-const heading = (
-  t: string,
-  extra: Partial<{ caption: string; indent: boolean }> = {}
-): BlockNode => ({
+const heading = (t: string, extra: Partial<{ indent: boolean }> = {}): BlockNode => ({
   type: 'heading',
   level: 2,
   children: [text(t)],
   ...extra
 })
+const eyebrow = (t: string): BlockNode => ({ type: 'eyebrow', children: [text(t)] })
 const blockquote = (t: string, extra: Partial<{ caption: string }> = {}): BlockNode => ({
   type: 'blockquote',
   children: [text(t)],
@@ -879,47 +878,57 @@ describe('ArticleEditor', () => {
     expect(blocks[1].type).toBe('paragraph')
   })
 
-  it("renders a subheading eyebrow caption with an 'Add caption...' placeholder", () => {
+  it('draws a subheading alone, with no caption field above it', () => {
     renderEditor([heading('Section')])
-
-    const caption = document.querySelector(
-      ".article-subheading-caption[data-placeholder='Add caption...']"
-    )
-    expect(caption).not.toBeNull()
+    expect(document.querySelectorAll('[contenteditable]:not(#article-title)')).toHaveLength(1)
+    expect(document.querySelector("[data-placeholder='Add caption...']")).toBeNull()
   })
 
-  it('updates the heading caption in the store when typing in the eyebrow', () => {
-    renderEditor([heading('Section')])
-
-    const caption = document.querySelector(
-      ".article-subheading-caption[data-placeholder='Add caption...']"
-    ) as HTMLElement
-    caption.textContent = 'Chapter One'
-    fireEvent.input(caption)
-
-    const block = useEditorStore.getState().document.content[0]
-    expect(block.type).toBe('heading')
-    if (block.type === 'heading') {
-      expect(block.caption).toBe('Chapter One')
-    }
+  it('draws an eyebrow as a line of its own, in the eyebrow style', () => {
+    renderEditor([eyebrow('Chapter one'), heading('Section')])
+    const el = blockAt(0)
+    expect(el.textContent).toBe('Chapter one')
+    expect(el.className.split(/\s+/)).toContain('article-eyebrow')
+    expect(el.getAttribute('data-placeholder')).toBe('Eyebrow')
   })
 
-  it('clears the heading caption from the store when the eyebrow is emptied', () => {
-    renderEditor([heading('Section', { caption: 'Chapter One' })])
+  it('writes what is typed in an eyebrow to its own text', () => {
+    renderEditor([eyebrow(''), heading('Section')])
+    const el = blockAt(0)
+    el.textContent = 'Chapter one'
+    fireEvent.input(el)
+    expect(useEditorStore.getState().document.content[0]).toEqual({
+      type: 'eyebrow',
+      children: [text('Chapter one')]
+    })
+  })
 
-    const caption = document.querySelector(
-      ".article-subheading-caption[data-placeholder='Add caption...']"
-    ) as HTMLElement
-    // Clear both innerText and textContent — jsdom stores innerText separately.
-    caption.innerText = ''
-    caption.textContent = ''
-    fireEvent.input(caption)
+  it('turns the line into an eyebrow from the slash menu', () => {
+    renderEditor()
+    const block = blockAt(0)
+    block.focus()
+    block.textContent = '/'
+    placeCaret(block, 1)
+    fireEvent.keyUp(block, { key: '/' })
+    fireEvent.click(screen.getByText('eyebrow'))
+    expect(useEditorStore.getState().document.content[0].type).toBe('eyebrow')
+  })
 
-    const block = useEditorStore.getState().document.content[0]
-    expect(block.type).toBe('heading')
-    if (block.type === 'heading') {
-      expect(block.caption).toBeUndefined()
-    }
+  it('turns an eyebrow back into a paragraph on Backspace at its start', () => {
+    renderEditor([eyebrow('Chapter one')])
+    const el = blockAt(0)
+    placeCaret(el, 0)
+    fireEvent.keyDown(el, { key: 'Backspace' })
+    expect(useEditorStore.getState().document.content[0]).toEqual({
+      type: 'paragraph',
+      children: [text('Chapter one')]
+    })
+  })
+
+  it('indents an eyebrow on Tab', () => {
+    renderEditor([eyebrow('Chapter one')])
+    fireEvent.keyDown(blockAt(0), { key: 'Tab' })
+    expect(useEditorStore.getState().document.content[0]).toMatchObject({ indent: true })
   })
 
   it("renders a blockquote citation caption with an 'Add citation...' placeholder", () => {

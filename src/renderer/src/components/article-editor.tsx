@@ -97,6 +97,7 @@ export interface ArticleEditorProps {
 
 /** The block types the slash menu offers on a line that already has text. */
 const CONVERTIBLE_TYPES: SlashMenuBlockType[] = [
+  'eyebrow',
   'heading',
   'paragraph',
   'blockquote',
@@ -939,7 +940,9 @@ export function ArticleEditor({
     }
 
     let newBlock: BlockNode
-    if (type === 'heading') {
+    if (type === 'eyebrow') {
+      newBlock = { type: 'eyebrow', children: keptChildren }
+    } else if (type === 'heading') {
       newBlock = { type: 'heading', level: 2, children: keptChildren }
     } else if (type === 'paragraph') {
       newBlock = { type: 'paragraph', children: keptChildren }
