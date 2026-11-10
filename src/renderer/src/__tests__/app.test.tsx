@@ -42,6 +42,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
 
 function installApi(notes: Note[]) {
   const changeListeners = new Set<() => void>()
+  const fullScreenListeners = new Set<(fullScreen: boolean) => void>()
   const api = {
     platform: 'darwin',
     notes: {
@@ -74,6 +75,15 @@ function installApi(notes: Note[]) {
       })
     },
     theme: { setSource: vi.fn(async () => {}) },
+    window: {
+      isFullScreen: vi.fn(async () => false),
+      onFullScreenChange: vi.fn((listener: (fullScreen: boolean) => void) => {
+        fullScreenListeners.add(listener)
+        return () => {
+          fullScreenListeners.delete(listener)
+        }
+      })
+    },
     meta: { set: vi.fn(async () => {}), get: vi.fn(async () => null) },
     media: {
       list: vi.fn(async () => []),
@@ -94,7 +104,10 @@ function installApi(notes: Note[]) {
   Object.defineProperty(window, 'api', { value: api, writable: true, configurable: true })
   /** What main does when a pull changed notes. */
   const notifyChanged = () => changeListeners.forEach((listener) => listener())
-  return { api, notifyChanged, changeListeners }
+  /** What main does when the window enters or leaves full screen. */
+  const setFullScreen = (fullScreen: boolean) =>
+    act(() => fullScreenListeners.forEach((listener) => listener(fullScreen)))
+  return { api, notifyChanged, changeListeners, setFullScreen }
 }
 
 describe('App', () => {
@@ -106,7 +119,7 @@ describe('App', () => {
     const { api } = installApi([makeNote()])
     render(<App />)
     expect(await screen.findByText('First note')).toBeTruthy()
-    expect(screen.getByText('me@example.com')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Account' }).textContent).toContain('me')
     expect(api.sync.now).toHaveBeenCalledTimes(1)
     expect(api.sync.onChanged).toHaveBeenCalledTimes(1)
   })
@@ -190,24 +203,13 @@ describe('App', () => {
     const { api } = installApi([makeNote()])
     render(<App />)
     await userEvent.click(await screen.findByText('First note'))
-    await userEvent.click(await screen.findByRole('button', { name: 'Note properties' }))
+    // The gear is the app's settings now; a note's own are in the command menu.
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    await userEvent.click(await screen.findByRole('option', { name: /Note properties/ }))
     await userEvent.type(await screen.findByLabelText('Add tag'), 'ideas{enter}')
     await waitFor(() =>
       expect(api.notes.update).toHaveBeenCalledWith('n1', { tags: ['work', 'ideas'] })
     )
-  })
-
-  it('ends the header with the theme toggle and then the note properties button', async () => {
-    installApi([makeNote()])
-    render(<App />)
-    await userEvent.click(await screen.findByText('First note'))
-    const properties = await screen.findByRole('button', { name: 'Note properties' })
-    // jsdom's matchMedia never matches, so the system theme is light and the
-    // toggle offers dark.
-    const theme = screen.getByRole('button', { name: 'Dark theme' })
-    const buttons = within(properties.parentElement as HTMLElement).getAllByRole('button')
-    expect(buttons.at(-1)).toBe(properties)
-    expect(buttons.at(-2)).toBe(theme)
   })
 
   it('creates a new note from the empty state and opens it', async () => {
@@ -222,134 +224,184 @@ describe('App', () => {
 })
 
 // ---------------------------------------------------------------------------
-// The shell's chrome. On macOS the window's own controls are drawn over the
-// top-left of the content, which is where the sidebar's own header starts — so
-// nothing of the app's goes there: the sidebar toggle lives in the top bar of
-// the main pane, to the right of the sidebar, and the bar itself steps clear of
-// the controls when the sidebar is collapsed out from under them.
+// The shell's chrome. One top bar is fixed across the window and holds only
+// the sidebar toggle, beside the window's own controls. The sidebar is headed
+// by New note and Search and footed by the account and the app's settings.
+// The note pane runs to the window's edges, its spacing inside it.
 // ---------------------------------------------------------------------------
 
+const classesOf = (element: Element) => element.className.split(/\s+/)
+const hasMargin = (element: Element) =>
+  classesOf(element).some((c) => /^-?m[trblxy]?-/.test(c) || /^-?m[se]-/.test(c))
+
 describe('App chrome', () => {
-  it('puts the sidebar toggle in the top bar rather than in the sidebar', async () => {
+  it('holds only the sidebar toggle in the top bar', async () => {
     installApi([makeNote()])
     render(<App />)
-    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
-    expect(sidebar.contains(toggle)).toBe(false)
-    expect(screen.getByRole('banner').contains(toggle)).toBe(true)
+    const bar = await screen.findByRole('banner')
+    const buttons = within(bar).getAllByRole('button')
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Collapse sidebar'])
+    expect(screen.getByRole('complementary', { name: 'Notes' }).contains(bar)).toBe(false)
   })
 
-  it('collapses and expands the sidebar from that toggle, keeping the bar’s own controls in view', async () => {
+  it('inks the sidebar toggle and the settings gear as the sidebar inks its labels', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    for (const name of ['Collapse sidebar', 'Settings']) {
+      const button = await screen.findByRole('button', { name })
+      expect(classesOf(button)).toContain('text-fg')
+      expect(classesOf(button)).not.toContain('text-fg-body')
+    }
+  })
+
+  it('fixes the bar over the top of the window, so what scrolls passes under it', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const bar = await screen.findByRole('banner')
+    expect(classesOf(bar)).toEqual(expect.arrayContaining(['absolute', 'top-0', 'h-12']))
+    await userEvent.click(screen.getByText('First note'))
+    // The note scrolls in its own region, under the bar's 48px.
+    const main = screen.getByRole('main')
+    expect(classesOf(main)).toContain('overflow-y-auto')
+    expect(bar.contains(main)).toBe(false)
+  })
+
+  // A dialog's backdrop blur can't hide what stands on the clear glass, so
+  // those layers are marked to blur themselves (main.css). The note pane is
+  // opaque and is left to the backdrop.
+  it('marks the top bar and the sidebar as standing on the glass, and not the note pane', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const bar = await screen.findByRole('banner')
+    expect(bar.hasAttribute('data-on-glass')).toBe(true)
+    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
+    expect(sidebar.hasAttribute('data-on-glass')).toBe(true)
+    await userEvent.click(screen.getByText('First note'))
+    expect(screen.getByRole('main').closest('[data-on-glass]')).toBeNull()
+  })
+
+  it('collapses and expands the sidebar, the toggle staying put beside the window controls', async () => {
     installApi([makeNote()])
     render(<App />)
     expect(await screen.findByRole('button', { name: /^First note/ })).toBeTruthy()
 
-    // The glyph is the rail's own and does not change with the state, so the
-    // pressed chip is what says whether the rail is showing.
+    // A plain switch: its name says what a press does, and it wears no chip
+    // for the rail being open.
     const shown = screen.getByRole('button', { name: 'Collapse sidebar' })
-    expect(shown.getAttribute('aria-pressed')).toBe('true')
+    expect(shown.hasAttribute('aria-pressed')).toBe(false)
+    expect(classesOf(shown).some((c) => c.includes('aria-pressed'))).toBe(false)
+    // Past the traffic lights macOS draws over the window's top-left corner,
+    // by the same gap that parts the lights themselves.
+    const slot = shown.parentElement!
+    expect(classesOf(slot)).toContain('pl-[85px]')
 
     await userEvent.click(shown)
     expect(screen.queryByRole('button', { name: /^First note/ })).toBeNull()
-    // The new-note button and the search live in the bar, not the rail.
-    const bar = screen.getByRole('banner')
-    expect(within(bar).getByRole('button', { name: 'New note' })).toBeTruthy()
-    expect(within(bar).getByRole('button', { name: 'Search notes' })).toBeTruthy()
-
     const hidden = screen.getByRole('button', { name: 'Expand sidebar' })
-    expect(hidden.getAttribute('aria-pressed')).toBe('false')
+    expect(hidden.parentElement).toBe(slot)
 
     await userEvent.click(hidden)
     expect(await screen.findByRole('button', { name: /^First note/ })).toBeTruthy()
   })
 
-  it('orders the bar: the sidebar toggle, the new-note button, then the search, then the account', async () => {
-    installApi([makeNote()])
-    render(<App />)
-    const bar = await screen.findByRole('banner')
-    const order = within(bar)
-      .getAllByRole('button')
-      .map((button) => button.getAttribute('aria-label') ?? button.textContent)
-    expect(order.slice(0, 3)).toEqual(['Collapse sidebar', 'New note', 'Search notes'])
-    const email = within(bar).getByText('me@example.com')
-    const search = within(bar).getByRole('button', { name: 'Search notes' })
-    expect(search.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
-  it('holds the rail’s controls at its far end while it is open, and brings them to the bar’s start past the window controls once it has gone', async () => {
-    installApi([makeNote()])
-    render(<App />)
-    const bar = await screen.findByRole('banner')
-    const controls = within(bar).getByRole('button', { name: 'New note' }).parentElement!
-    // The rail's width, the chips against its right inset.
-    expect(controls.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['w-64', 'justify-end', 'pr-2'])
-    )
-
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    // The window's controls sit over the bar's left corner on macOS.
-    expect(controls.className.split(/\s+/)).toContain('w-[148px]')
-  })
-
-  it('brings the rail’s controls to the bar’s edge where the window draws no controls over it', async () => {
+  it('puts the toggle at the bar’s edge where the window draws no controls over it', async () => {
     const { api } = installApi([makeNote()])
     ;(api as { platform: string }).platform = 'win32'
     render(<App />)
-    const bar = await screen.findByRole('banner')
-    const controls = within(bar).getByRole('button', { name: 'New note' }).parentElement!
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(controls.className.split(/\s+/)).toContain('w-[76px]')
+    const toggle = await screen.findByRole('button', { name: 'Collapse sidebar' })
+    expect(classesOf(toggle.parentElement!)).toContain('pl-[9px]')
   })
 
-  it('centres the search over the note panel, and keeps it there as the rail goes', async () => {
-    installApi([makeNote()])
+  it('moves the toggle into the lights’ place in full screen, where the OS hides them', async () => {
+    const { setFullScreen } = installApi([makeNote()])
     render(<App />)
-    const bar = await screen.findByRole('banner')
-    const slot = within(bar).getByRole('button', { name: 'Search notes' }).parentElement!
-    // Halfway between the panel's left edge and its right: the rail's width
-    // to the window's width less the shell inset.
-    expect(slot.style.left).toBe('calc((256px + 100% - var(--size-shell-inset)) / 2)')
-    expect(slot.className.split(/\s+/)).toContain('-translate-x-1/2')
+    const slot = (await screen.findByRole('button', { name: 'Collapse sidebar' })).parentElement!
+    expect(classesOf(slot)).toContain('pl-[85px]')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(slot.style.left).toBe(
-      'calc((var(--size-shell-inset) + 100% - var(--size-shell-inset)) / 2)'
-    )
+    // Its glyph's centre on the head rows' glyphs': 9 + 28 / 2 = 23.
+    setFullScreen(true)
+    expect(classesOf(slot)).toContain('pl-[9px]')
+    expect(classesOf(slot)).not.toContain('pl-[85px]')
+
+    setFullScreen(false)
+    expect(classesOf(slot)).toContain('pl-[85px]')
   })
 
-  it('floats the note panel as a card under the top bar, on a shell left clear for the window’s glass', async () => {
+  it('starts in the lights’ place when the window opens already in full screen', async () => {
+    const { api } = installApi([makeNote()])
+    api.window.isFullScreen.mockResolvedValue(true)
+    render(<App />)
+    const slot = (await screen.findByRole('button', { name: 'Collapse sidebar' })).parentElement!
+    await waitFor(() => expect(classesOf(slot)).toContain('pl-[9px]'))
+  })
+
+  it('heads the sidebar with New note and Search, and opens the command menu from Search', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Search' }))
+    expect(screen.getByRole('dialog', { name: 'Command menu' })).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'New note' }))
+    expect(api.notes.create).toHaveBeenCalled()
+  })
+
+  it('foots the sidebar with the account, which signs out', async () => {
     installApi([makeNote()])
     render(<App />)
-    const bar = await screen.findByRole('banner')
-    // The bar stands on the glass above the rail and the card alike; the card
-    // is the far side of the row under it.
-    const row = bar.nextElementSibling as HTMLElement
-    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
-    expect(row.firstElementChild).toBe(sidebar)
-    const card = row.lastElementChild as HTMLElement
-    expect(card.contains(bar)).toBe(false)
-    expect(bar.className.split(/\s+/)).toContain('h-12')
-    // Inset by the shell's token, and rounded by the corner concentric with
-    // the window's own — its radius less that inset (main.css). Beside the
-    // open rail it keeps no left margin: the rail's own inset is that gap.
-    const classes = card.className.split(/\s+/)
-    expect(classes).toEqual(
-      expect.arrayContaining([
-        'mb-(--size-shell-inset)',
-        'mr-(--size-shell-inset)',
-        'ml-0',
-        'rounded-(--size-note-panel-radius)',
-        'bg-canvas',
-        'overflow-hidden'
-      ])
-    )
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Account' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign out' }))
+    expect(auth.logout).toHaveBeenCalled()
+  })
+
+  it('opens the app’s settings from the sidebar’s gear, where the theme is chosen', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Settings' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' })
+    await userEvent.click(within(dialog).getByRole('option', { name: 'Dark' }))
+    expect(api.theme.setSource).toHaveBeenLastCalledWith('dark')
+  })
+
+  it('rounds the icon buttons as the sidebar’s rows are, a 12px squircle', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const buttons = [
+      within(sidebar).getByRole('button', { name: 'Settings' }),
+      screen.getByRole('button', { name: 'Collapse sidebar' })
+    ]
+    for (const button of buttons) {
+      const classes = button.className.split(/\s+/)
+      expect(classes).toContain('rounded-lg')
+      expect(classes).toContain('squircle')
+    }
+  })
+
+  it('runs the note pane to the window’s edges, its spacing inside it', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const pane = sidebar.nextElementSibling as HTMLElement
+    expect(hasMargin(pane)).toBe(false)
+    expect(classesOf(pane)).toContain('bg-canvas')
+    expect(classesOf(pane).some((c) => c.startsWith('rounded'))).toBe(false)
+    // Its own first 48px are under the bar.
+    expect(classesOf(pane)).toContain('pt-12')
+    expect(hasMargin(sidebar)).toBe(false)
+
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(card.className.split(/\s+/)).toContain('ml-(--size-shell-inset)')
-    const shell = card.parentElement!.parentElement!
-    expect(shell.className.split(/\s+/)).not.toContain('bg-canvas')
-    expect(shell.className.split(/\s+/)).not.toContain('bg-surface')
-    // The rail stands on the glass too: no fill, no divider of its own.
-    expect(sidebar.className.split(/\s+/)).not.toContain('border-r')
+    expect(hasMargin(pane)).toBe(false)
+  })
+
+  it('leaves the shell clear for the window’s glass on macOS', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    const shell = sidebar.parentElement!
+    expect(classesOf(shell)).not.toContain('bg-surface')
     expect(sidebar.className).not.toMatch(/bg-surface/)
   })
 
@@ -357,9 +409,8 @@ describe('App chrome', () => {
     const { api } = installApi([makeNote()])
     ;(api as { platform: string }).platform = 'win32'
     render(<App />)
-    const bar = await screen.findByRole('banner')
-    const shell = bar.parentElement!
-    expect(shell.className.split(/\s+/)).toContain('bg-surface')
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    expect(classesOf(sidebar.parentElement!)).toContain('bg-surface')
   })
 
   it('tells main the theme, so the window’s own materials follow it', async () => {
@@ -367,25 +418,12 @@ describe('App chrome', () => {
     render(<App />)
     await screen.findByText('First note')
     expect(api.theme.setSource).toHaveBeenCalledWith('system')
-    await userEvent.click(screen.getByRole('button', { name: 'Dark theme' }))
-    expect(api.theme.setSource).toHaveBeenLastCalledWith('dark')
-  })
-
-  it('dresses the bar’s new-note button as the round chip', async () => {
-    installApi([makeNote()])
-    render(<App />)
-    const bar = await screen.findByRole('banner')
-    const create = within(bar).getByRole('button', { name: 'New note' })
-    const classes = create.className.split(/\s+/)
-    expect(classes).toContain('rounded-full')
-    expect(classes).toContain('bg-button-secondary')
-    expect(classes).toContain('hover:bg-button-secondary-hover')
   })
 
   it('dresses the empty state new-note button as the pill the standalone CTA wears', async () => {
     installApi([])
     render(<App />)
-    // The sidebar has a "New note" icon button too; the empty state's is last.
+    // The sidebar has a "New note" row too; the empty state's is last.
     const buttons = await screen.findAllByRole('button', { name: 'New note' })
     const classes = buttons[buttons.length - 1].className.split(/\s+/)
     expect(classes).toContain('rounded-full')
@@ -434,14 +472,14 @@ describe('App command menu', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
-  it('opens from the bar’s search field, which is not a field of its own', async () => {
+  it('opens from the sidebar’s Search row', async () => {
     installApi([makeNote()])
     render(<App />)
     await screen.findByText('First note')
-    // No separate search: the field is the menu's one door for the mouse.
+    // Search is the menu's one door for the mouse, not a menu of its own.
     expect(screen.queryByRole('button', { name: 'Command menu' })).toBeNull()
-    const bar = screen.getByRole('banner')
-    await userEvent.click(within(bar).getByRole('button', { name: 'Search notes' }))
+    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Search' }))
     expect(await screen.findByRole('dialog', { name: 'Command menu' })).toBeTruthy()
   })
 
@@ -465,6 +503,21 @@ describe('App command menu', () => {
     expect(title.textContent).toBe('Second note')
     const row = screen.getByRole('button', { name: /^Second note/ })
     expect(row.getAttribute('aria-current')).toBe('true')
+  })
+
+  it('keeps Delete note off the bottom row: the theme is last, under Settings', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    await screen.findByRole('heading', { name: 'Title' })
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    await within(menu()).findByText('Delete note')
+    const options = within(menu()).getAllByRole('option')
+    expect(options[options.length - 1].getAttribute('data-value')).toBe('action:theme')
+    const settings = within(menu()).getByText('Settings').parentElement!
+    expect(within(settings).getByText('Dark theme')).toBeTruthy()
+    expect(within(settings).queryByText('Delete note')).toBeNull()
   })
 
   it('offers what can be done to the open note, and asks before deleting it', async () => {

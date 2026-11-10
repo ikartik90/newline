@@ -1,4 +1,4 @@
-import { ipcMain, nativeTheme } from 'electron'
+import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
@@ -51,6 +51,10 @@ export function registerIpcHandlers(): void {
     if (source === 'light' || source === 'dark' || source === 'system') {
       nativeTheme.themeSource = source
     }
+  })
+
+  ipcMain.handle('window:isFullScreen', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false
   })
 
   ipcMain.handle('meta:set', (_event, key: string, value: string) => {

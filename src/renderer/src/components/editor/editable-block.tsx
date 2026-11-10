@@ -1322,7 +1322,7 @@ export function EditableBlock({
     <p
       ref={combinedRef as React.RefCallback<HTMLParagraphElement>}
       className={`${editableBaseStyle} ${typographyStyles({
-        type: 'bodyLarge',
+        type: 'bodySmall',
         wrap: align === 'center' ? 'balance' : undefined
       })}`}
       contentEditable

@@ -143,6 +143,14 @@ const TOOLBAR_MARK_TYPES: Mark['type'][] = [
 
 const CHANGE_DEBOUNCE_MS = 500
 
+/** Hand any unsaved change to `onChange` now, and mark the store clean. */
+function handBackUnsaved(onChange: ((snapshot: EditorSnapshot) => void) | undefined): void {
+  const s = useEditorStore.getState()
+  if (!s.isDirty) return
+  onChange?.({ title: s.title, document: s.document })
+  s.setDirty(false)
+}
+
 export function ArticleEditor({
   noteId,
   initialTitle,
@@ -152,15 +160,25 @@ export function ArticleEditor({
 }: ArticleEditorProps) {
   const { title, setTitle, document: doc, setDocument, pushHistory } = useEditorStore()
 
+  const onChangeRef = useRef(onChange)
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
   // Populate the store from the note on mount and whenever the note changes;
-  // reset on unmount.
+  // hand back what is unsaved and reset on unmount.
   useEffect(() => {
     useEditorStore.getState().load({
       noteId,
       title: initialTitle,
       document: { ...initialDocument, content: withTrailingParagraph(initialDocument.content) }
     })
-    return () => useEditorStore.getState().reset()
+    return () => {
+      // An edit still inside the debounce window goes out before the reset
+      // wipes it — switching notes unmounts the editor mid-sentence.
+      handBackUnsaved(onChangeRef.current)
+      useEditorStore.getState().reset()
+    }
     // Keyed on identity: re-seeding on every new prop reference would wipe
     // in-progress edits.
   }, [noteId])
@@ -168,26 +186,20 @@ export function ArticleEditor({
   // Hand every change back to the app, debounced, and mark the store clean
   // once it has gone out. Re-read at fire time so a save between scheduling
   // and firing cannot be undone by a stale snapshot.
-  const onChangeRef = useRef(onChange)
-  useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
-
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
     const unsubscribe = useEditorStore.subscribe((state) => {
       if (!state.isDirty) return
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        const s = useEditorStore.getState()
-        if (!s.isDirty) return
-        onChangeRef.current?.({ title: s.title, document: s.document })
-        s.setDirty(false)
-      }, CHANGE_DEBOUNCE_MS)
+      timer = setTimeout(() => handBackUnsaved(onChangeRef.current), CHANGE_DEBOUNCE_MS)
     })
+    // Closing the window or quitting unloads the page without unmounting.
+    const onPageHide = () => handBackUnsaved(onChangeRef.current)
+    window.addEventListener('pagehide', onPageHide)
     return () => {
       if (timer) clearTimeout(timer)
       unsubscribe()
+      window.removeEventListener('pagehide', onPageHide)
     }
   }, [])
 
@@ -197,10 +209,7 @@ export function ArticleEditor({
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
       if (e.key !== 's' && e.key !== 'S') return
       e.preventDefault()
-      const s = useEditorStore.getState()
-      if (!s.isDirty) return
-      onChangeRef.current?.({ title: s.title, document: s.document })
-      s.setDirty(false)
+      handBackUnsaved(onChangeRef.current)
     }
     document.addEventListener('keydown', onKeyDown, { capture: true })
     return () => document.removeEventListener('keydown', onKeyDown, { capture: true })

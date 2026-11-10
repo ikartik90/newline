@@ -1486,6 +1486,45 @@ describe('ArticleEditor ⌘S onChange', () => {
     expect(onChange).toHaveBeenCalledWith({ title: 'Existing', document: DIRTY_DOC })
     expect(useEditorStore.getState().isDirty).toBe(false)
   })
+
+  it('hands back an edit still inside the debounce window when the editor unmounts', () => {
+    vi.useFakeTimers()
+    const onChange = vi.fn()
+    const { unmount } = renderEditor([], { title: 'Existing', onChange })
+
+    act(() => useEditorStore.getState().setDocument(DIRTY_DOC))
+    unmount()
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith({ title: 'Existing', document: DIRTY_DOC })
+    // Nothing goes out a second time when the window would have closed.
+    act(() => {
+      vi.advanceTimersByTime(500)
+    })
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('hands nothing back on unmount when there is nothing unsaved', () => {
+    const onChange = vi.fn()
+    const { unmount } = renderEditor([], { title: 'Clean', onChange })
+    unmount()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('hands back an edit still inside the debounce window when the page goes away', () => {
+    vi.useFakeTimers()
+    const onChange = vi.fn()
+    renderEditor([], { title: 'Existing', onChange })
+
+    act(() => useEditorStore.getState().setDocument(DIRTY_DOC))
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'))
+    })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith({ title: 'Existing', document: DIRTY_DOC })
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -98,6 +98,9 @@ const SAMPLE: Document = {
 Object.defineProperty(window, 'api', {
   value: {
     platform: 'darwin',
+    theme: {
+      setSource: async () => {}
+    },
     media: {
       list: async () => [],
       upload: async () => {

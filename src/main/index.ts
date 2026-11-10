@@ -71,8 +71,11 @@ function createWindow(): void {
     ...(process.platform === 'darwin'
       ? { vibrancy: 'sidebar' as const }
       : { backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6' }),
+    // The OS's own close/minimise/zoom buttons, drawn over the content and
+    // centred in the renderer's 48px top bar: 14px tall from y 17, a centre of 24,
+    // level with the sidebar toggle that sits past them.
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 16 } } : {}),
+    ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 17 } } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -82,6 +85,13 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
   })
+
+  // macOS hides the window's buttons in full screen; the renderer moves the
+  // sidebar toggle into their place.
+  const sendFullScreen = (fullScreen: boolean): void =>
+    mainWindow?.webContents.send('window:fullScreen', fullScreen)
+  mainWindow.on('enter-full-screen', () => sendFullScreen(true))
+  mainWindow.on('leave-full-screen', () => sendFullScreen(false))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)

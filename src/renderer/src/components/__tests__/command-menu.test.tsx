@@ -158,6 +158,28 @@ describe('CommandMenu', () => {
     expect(within(dialog()).queryByText('New note')).toBeNull()
   })
 
+  it('heads each action under its group, the groups in the order first given', async () => {
+    renderMenu({
+      actions: [
+        { id: 'new', label: 'New note', icon: AddIcon, run: vi.fn() },
+        { id: 'theme', label: 'Dark theme', icon: DarkIcon, group: 'Settings', run: vi.fn() },
+        { id: 'delete', label: 'Delete note', icon: AddIcon, run: vi.fn() }
+      ]
+    })
+    await within(dialog()).findByText('Apples')
+    expect(rows()).toEqual([
+      'note:a',
+      'note:b',
+      'note:c',
+      'action:new',
+      'action:delete',
+      'action:theme'
+    ])
+    const settings = within(dialog()).getByText('Settings').parentElement!
+    expect(within(settings).getByText('Dark theme')).toBeTruthy()
+    expect(within(settings).queryByText('Delete note')).toBeNull()
+  })
+
   it('says so when nothing answers', async () => {
     search.mockResolvedValue([])
     renderMenu()

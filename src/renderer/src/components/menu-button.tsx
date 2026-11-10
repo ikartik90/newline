@@ -70,13 +70,13 @@ const shortcutStyle =
   'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-surface text-fg-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
 
 // The `menuPopover` recipe, expanded: a 200px column on the surface.
-const popupStyle =
+export const menuPopupStyle =
   'flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
-const itemStyle =
+export const menuItemStyle =
   'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-fg-body outline-none data-[highlighted]:bg-field-hover data-[disabled]:opacity-50'
-const itemIconStyle = 'shrink-0 size-5'
+export const menuItemIconStyle = 'shrink-0 size-5'
 
 // The `hotkey` recipe inside a menu: the wash a hovered row wears, held against
 // the far end of the row.
@@ -123,17 +123,17 @@ export function MenuButton({
         />
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
-            <BaseMenu.Popup className={popupStyle}>
+            <BaseMenu.Popup className={menuPopupStyle}>
               {items.map((item) => {
                 const ItemGlyph = item.icon
                 return (
                   <BaseMenu.Item
                     key={item.label}
                     disabled={item.disabled}
-                    className={itemStyle}
+                    className={menuItemStyle}
                     onClick={item.onSelect}
                   >
-                    {ItemGlyph && <ItemGlyph className={itemIconStyle} aria-hidden />}
+                    {ItemGlyph && <ItemGlyph className={menuItemIconStyle} aria-hidden />}
                     {item.label}
                     {item.shortcut && hasCursor && (
                       <kbd aria-hidden className={itemShortcutStyle}>

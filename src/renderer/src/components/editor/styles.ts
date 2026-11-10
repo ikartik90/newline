@@ -90,7 +90,7 @@ export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cur
 
 export const editorListItemShellStyle = 'flex flex-row items-start gap-2'
 
-export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-lg text-fg-body break-words`
+export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-fg-body break-words`
 
 /**
  * Every marker is a real button in the editor so it can open its popover —
