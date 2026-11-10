@@ -64,7 +64,13 @@ export const HeadingNodeSchema = z.object({
     z.literal(6)
   ]),
   children: z.array(InlineNodeSchema),
-  caption: z.string().optional(),
+  indent: z.boolean().optional()
+})
+
+// The short line set above a subheading (or anything) to say what it belongs to.
+export const EyebrowNodeSchema = z.object({
+  type: z.literal('eyebrow'),
+  children: z.array(InlineNodeSchema),
   indent: z.boolean().optional()
 })
 
@@ -142,6 +148,7 @@ export const LinkCardNodeSchema = z.object({
 
 export type ParagraphNode = z.infer<typeof ParagraphNodeSchema>
 export type HeadingNode = z.infer<typeof HeadingNodeSchema>
+export type EyebrowNode = z.infer<typeof EyebrowNodeSchema>
 export type BlockquoteNode = z.infer<typeof BlockquoteNodeSchema>
 export type ListItemNode = z.infer<typeof ListItemNodeSchema>
 export type BulletListItemNode = z.infer<typeof BulletListItemNodeSchema>
@@ -153,6 +160,7 @@ export type LinkCardNode = z.infer<typeof LinkCardNodeSchema>
 export type BlockNode =
   | ParagraphNode
   | HeadingNode
+  | EyebrowNode
   | BlockquoteNode
   | ListItemNode
   | BulletListItemNode
@@ -165,6 +173,7 @@ export type BlockNode =
 export const BlockNodeSchema: z.ZodType<BlockNode> = z.union([
   ParagraphNodeSchema,
   HeadingNodeSchema,
+  EyebrowNodeSchema,
   BlockquoteNodeSchema,
   ListItemNodeSchema,
   BulletListItemNodeSchema,

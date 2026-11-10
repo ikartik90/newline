@@ -8,7 +8,7 @@ import { formatRelativeTime, noteDisplayTitle } from '@/utils/note-display'
 import { shortcutLabel } from '@/utils/keyboard-shortcut'
 import SearchIcon from '@/assets/icons/search.svg'
 import CrossIcon from '@/assets/icons/cross.svg'
-import PageIcon from '@/assets/icons/page.svg'
+import DraftIcon from '@/assets/icons/draft.svg'
 
 // ---------------------------------------------------------------------------
 // The command menu — ⌘K, then type. Ported from kartik.to's command palette,
@@ -41,6 +41,8 @@ export interface CommandMenuAction {
   icon: Icon
   /** The bare key, written for the platform beside the label — `N` ⇒ `⌘N`. */
   shortcut?: string
+  /** The heading it stands under; `Actions` when unnamed. */
+  group?: string
   run: () => void
 }
 
@@ -109,13 +111,14 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
   const matching = needle
     ? actions.filter((action) => action.label.toLowerCase().includes(needle))
     : actions
+  const groups = groupActions(matching)
 
   // The rows as they stand, and the highlight among them. Adjusted during the
   // render that changes the rows, so no frame shows the old highlight over the
   // new rows.
   const rowsKey = [
     ...shown.map((note) => `note:${note.id}`),
-    ...matching.map((a) => `action:${a.id}`)
+    ...groups.flatMap(([, members]) => members.map((a) => `action:${a.id}`))
   ]
   const first = rowsKey[0] ?? ''
   const [highlight, setHighlight] = useState({ rows: rowsKey.join('\n'), value: first })
@@ -169,7 +172,7 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
                   onOpenNote(note)
                 }}
               >
-                <PageIcon className={iconStyle} aria-hidden />
+                <DraftIcon className={iconStyle} aria-hidden />
                 <span className={itemTitleStyle}>{noteDisplayTitle(note)}</span>
                 <span className={itemTimeStyle}>{formatRelativeTime(note.updatedAt)}</span>
               </Command.Item>
@@ -177,10 +180,10 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
           </Command.Group>
         )}
 
-        {matching.length > 0 && (
-          <Command.Group className={groupStyle}>
-            <div className={groupHeadingStyle}>Actions</div>
-            {matching.map((action) => {
+        {groups.map(([heading, members]) => (
+          <Command.Group key={heading} className={groupStyle}>
+            <div className={groupHeadingStyle}>{heading}</div>
+            {members.map((action) => {
               const Glyph = action.icon
               return (
                 <Command.Item
@@ -206,8 +209,18 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
               )
             })}
           </Command.Group>
-        )}
+        ))}
       </Command.List>
     </Command>
   )
+}
+
+/** The actions under their headings, each group where its first member stood. */
+function groupActions(actions: CommandMenuAction[]): [string, CommandMenuAction[]][] {
+  const groups = new Map<string, CommandMenuAction[]>()
+  for (const action of actions) {
+    const heading = action.group ?? 'Actions'
+    groups.set(heading, [...(groups.get(heading) ?? []), action])
+  }
+  return [...groups]
 }

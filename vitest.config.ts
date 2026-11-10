@@ -26,6 +26,8 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['./src/renderer/src/test-setup.ts'],
           include: ['src/renderer/src/**/__tests__/**/*.test.{ts,tsx}'],
+          // Vitest blanks stylesheets; the text-style test reads this one raw.
+          css: { include: [/assets\/main\.css/] },
           testTimeout: 20_000
         }
       },

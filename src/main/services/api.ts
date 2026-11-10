@@ -52,7 +52,7 @@ async function errorFrom(response: Response): Promise<ApiError> {
  */
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers)
-  const token = getSessionToken()
+  const token = await getSessionToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
   const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers })
   if (!response.ok) throw await errorFrom(response)

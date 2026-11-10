@@ -36,6 +36,16 @@ contextBridge.exposeInMainWorld('api', {
   theme: {
     setSource: (source: string) => ipcRenderer.invoke('theme:setSource', source)
   },
+  window: {
+    isFullScreen: () => ipcRenderer.invoke('window:isFullScreen'),
+    onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
+      const handler = (_event: unknown, fullScreen: boolean): void => listener(fullScreen)
+      ipcRenderer.on('window:fullScreen', handler)
+      return () => {
+        ipcRenderer.removeListener('window:fullScreen', handler)
+      }
+    }
+  },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)

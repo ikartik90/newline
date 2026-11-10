@@ -134,14 +134,13 @@ describe('BlockNodeSchema', () => {
     ).toBe(false)
   })
 
-  it('accepts a heading node with a caption', () => {
+  it('accepts an eyebrow, a line of its own', () => {
     expect(
-      BlockNodeSchema.safeParse({
-        type: 'heading',
-        level: 2,
-        caption: 'Eyebrow',
-        children: [text('Title')]
-      }).success
+      BlockNodeSchema.safeParse({ type: 'eyebrow', children: [text('Chapter one')] }).success
+    ).toBe(true)
+    expect(
+      BlockNodeSchema.safeParse({ type: 'eyebrow', children: [text('Aside')], indent: true })
+        .success
     ).toBe(true)
   })
 

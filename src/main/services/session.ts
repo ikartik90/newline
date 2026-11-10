@@ -22,26 +22,49 @@ function readMeta(key: string): string | null {
   return row?.value ?? null
 }
 
-function encryptToken(token: string): string {
-  if (safeStorage.isEncryptionAvailable()) {
-    return safeStorage.encryptString(token).toString('base64')
+async function encryptToken(token: string): Promise<string> {
+  if (await safeStorage.isAsyncEncryptionAvailable()) {
+    return (await safeStorage.encryptStringAsync(token)).toString('base64')
   }
   console.warn('[auth] OS encryption is unavailable; storing the session token in plain text')
   return `${PLAIN_PREFIX}${token}`
 }
 
+/**
+ * The stored value this machine last failed to decrypt. Remembered so the
+ * presence check (`hasSession`) stops vouching for it without asking the
+ * keychain again.
+ */
+let unreadable: string | null = null
+
 /** The token a stored value holds, or null when this machine can no longer read it. */
-function decryptToken(stored: string): string | null {
+async function decryptToken(stored: string): Promise<string | null> {
   if (stored.startsWith(PLAIN_PREFIX)) return stored.slice(PLAIN_PREFIX.length)
   try {
-    return safeStorage.decryptString(Buffer.from(stored, 'base64'))
+    const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(
+      Buffer.from(stored, 'base64')
+    )
+    // The keychain rotated its key: store the token under the new one.
+    if (shouldReEncrypt) writeMeta(TOKEN_KEY, await encryptToken(result))
+    return result
   } catch (error) {
     console.warn('[auth] could not decrypt the stored session token:', error)
+    unreadable = stored
     return null
   }
 }
 
-export function getSessionToken(): string | null {
+function writeMeta(key: string, value: string): void {
+  getDb().prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)').run(key, value)
+}
+
+/** Whether a session is stored, without touching the keychain. */
+export function hasSession(): boolean {
+  const stored = readMeta(TOKEN_KEY)
+  return stored !== null && stored !== unreadable
+}
+
+export async function getSessionToken(): Promise<string | null> {
   const stored = readMeta(TOKEN_KEY)
   return stored === null ? null : decryptToken(stored)
 }
@@ -57,12 +80,12 @@ export function currentUser(): AuthUser | null {
   }
 }
 
-export function storeSession(token: string, user: AuthUser): void {
-  const db = getDb()
-  const upsert = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)')
-  db.transaction(() => {
-    upsert.run(TOKEN_KEY, encryptToken(token))
-    upsert.run(USER_KEY, JSON.stringify(user))
+export async function storeSession(token: string, user: AuthUser): Promise<void> {
+  // Encrypted before the transaction, which cannot wait on the keychain.
+  const encrypted = await encryptToken(token)
+  getDb().transaction(() => {
+    writeMeta(TOKEN_KEY, encrypted)
+    writeMeta(USER_KEY, JSON.stringify(user))
   })()
 }
 

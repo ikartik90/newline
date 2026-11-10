@@ -23,12 +23,8 @@ const PIXEL =
 const SAMPLE: Document = {
   type: 'doc',
   content: [
-    {
-      type: 'heading',
-      level: 2,
-      caption: 'Chapter one',
-      children: [{ type: 'text', text: 'A subheading' }]
-    },
+    { type: 'eyebrow', children: [{ type: 'text', text: 'Chapter one' }] },
+    { type: 'heading', level: 2, children: [{ type: 'text', text: 'A subheading' }] },
     {
       type: 'paragraph',
       children: [
@@ -98,6 +94,9 @@ const SAMPLE: Document = {
 Object.defineProperty(window, 'api', {
   value: {
     platform: 'darwin',
+    theme: {
+      setSource: async () => {}
+    },
     media: {
       list: async () => [],
       upload: async () => {
