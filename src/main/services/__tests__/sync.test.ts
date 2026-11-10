@@ -3,7 +3,7 @@ import { serializeDocument } from '@shared/domain/document'
 import { getDb } from '../../db/database'
 import { flushPending } from '../media'
 import * as notes from '../notes'
-import { getSessionToken } from '../session'
+import { hasSession } from '../session'
 import * as sync from '../sync'
 import {
   BASE_URL,
@@ -32,7 +32,10 @@ vi.mock('../../db/database', async () => {
   return { getDb: () => db, initDatabase: () => db, closeDatabase: () => {} }
 })
 
-vi.mock('../session', () => ({ getSessionToken: vi.fn((): string | null => 'session-token') }))
+vi.mock('../session', () => ({
+  hasSession: vi.fn(() => true),
+  getSessionToken: vi.fn(async () => 'session-token')
+}))
 
 vi.mock('../media', () => ({ flushPending: vi.fn(async () => 0) }))
 
@@ -67,7 +70,7 @@ beforeEach(() => {
   resetFakeNotesWorker()
   vi.stubGlobal('fetch', fetchMock)
   vi.stubEnv('MAIN_VITE_API_URL', BASE_URL)
-  vi.mocked(getSessionToken).mockReturnValue('session-token')
+  vi.mocked(hasSession).mockReturnValue(true)
   vi.mocked(flushPending).mockReset()
   vi.mocked(flushPending).mockResolvedValue(0)
   getDb().exec('DELETE FROM notes; DELETE FROM sync_queue; DELETE FROM app_meta')
@@ -148,9 +151,9 @@ describe('pushNote', () => {
 
   it('touches nothing without a session or for a note that does not exist', async () => {
     const note = notes.createNote('Mine')
-    vi.mocked(getSessionToken).mockReturnValue(null)
+    vi.mocked(hasSession).mockReturnValue(false)
     expect(await sync.pushNote(note.id)).toBe(false)
-    vi.mocked(getSessionToken).mockReturnValue('session-token')
+    vi.mocked(hasSession).mockReturnValue(true)
     expect(await sync.pushNote('missing')).toBe(false)
     expect(requests).toEqual([])
     expect(dirtyIds()).toEqual([note.id])
@@ -316,7 +319,7 @@ describe('pullNotes', () => {
 describe('syncNow', () => {
   it('does nothing without a session', async () => {
     notes.createNote('Mine')
-    vi.mocked(getSessionToken).mockReturnValue(null)
+    vi.mocked(hasSession).mockReturnValue(false)
     expect(await sync.syncNow()).toEqual({ pushed: 0, pulled: 0, ok: false })
     expect(requests).toEqual([])
     expect(notes.getAppMeta('last_sync_at')).toBeNull()

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, DEFAULT_API_URL, apiBaseUrl, apiFetch, apiJson } from '../api'
 import { getSessionToken } from '../session'
 
-vi.mock('../session', () => ({ getSessionToken: vi.fn((): string | null => null) }))
+vi.mock('../session', () => ({ getSessionToken: vi.fn(async (): Promise<string | null> => null) }))
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   vi.stubEnv('MAIN_VITE_API_URL', undefined)
   fetchMock.mockReset()
-  vi.mocked(getSessionToken).mockReturnValue(null)
+  vi.mocked(getSessionToken).mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -64,7 +64,7 @@ describe('apiFetch', () => {
 
   it('carries the session as a bearer token when there is one, keeping other headers', async () => {
     vi.stubEnv('MAIN_VITE_API_URL', 'https://api.example.com')
-    vi.mocked(getSessionToken).mockReturnValue('session-token')
+    vi.mocked(getSessionToken).mockResolvedValue('session-token')
     fetchMock.mockResolvedValue(json({ ok: true }))
     await apiFetch('/media/usage', { headers: { 'Content-Type': 'image/png' } })
     const { headers } = lastRequest()

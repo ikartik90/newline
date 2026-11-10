@@ -16,7 +16,7 @@ import {
   setAppMeta,
   upsertFromRemote
 } from './notes'
-import { getSessionToken } from './session'
+import { hasSession } from './session'
 
 // ---------------------------------------------------------------------------
 // Notes sync against the Worker's `/notes` routes (`worker/README.md`,
@@ -62,7 +62,7 @@ function notifyChanged(): void {
  * reached.
  */
 export async function pushNote(id: string): Promise<boolean> {
-  if (getSessionToken() === null) return false
+  if (!hasSession()) return false
   const note = getNoteIncludingDeleted(id)
   if (!note) return false
 
@@ -161,7 +161,7 @@ export function syncNow(): Promise<SyncResult> {
 }
 
 async function runCycle(): Promise<SyncResult> {
-  if (getSessionToken() === null) return { pushed: 0, pulled: 0, ok: false }
+  if (!hasSession()) return { pushed: 0, pulled: 0, ok: false }
   let pushed = 0
   try {
     pushed += await pushDirty()

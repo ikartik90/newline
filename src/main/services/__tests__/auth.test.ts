@@ -22,12 +22,13 @@ vi.mock('electron', async () => {
     BrowserWindow: { getAllWindows: vi.fn(() => []) },
     shell: { openExternal: vi.fn(async () => {}) },
     safeStorage: {
-      isEncryptionAvailable: vi.fn(() => true),
-      encryptString: vi.fn((text: string) => Buffer.from(`${PREFIX}${text}`)),
-      decryptString: vi.fn((buffer: Buffer) => {
+      // Only the async API: the sync one is deprecated, and calling it here throws.
+      isAsyncEncryptionAvailable: vi.fn(async () => true),
+      encryptStringAsync: vi.fn(async (text: string) => Buffer.from(`${PREFIX}${text}`)),
+      decryptStringAsync: vi.fn(async (buffer: Buffer) => {
         const text = buffer.toString()
         if (!text.startsWith(PREFIX)) throw new Error('not ours')
-        return text.slice(PREFIX.length)
+        return { shouldReEncrypt: false, result: text.slice(PREFIX.length) }
       })
     }
   }
@@ -118,7 +119,7 @@ beforeEach(() => {
   flows.length = 0
   obtainCode.mockClear()
   bringToFront.mockClear()
-  vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true)
+  vi.mocked(safeStorage.isAsyncEncryptionAvailable).mockResolvedValue(true)
   auth.setSignInDeps({ obtainCode, bringToFront })
   getDb().exec('DELETE FROM app_meta')
 })
@@ -186,19 +187,20 @@ describe('signInWithGoogle', () => {
     const stored = meta('session_token')!
     expect(stored).toBe(Buffer.from('enc:session-token').toString('base64'))
     expect(stored).not.toContain('session-token')
-    expect(safeStorage.encryptString).toHaveBeenCalledWith('session-token')
+    expect(safeStorage.encryptStringAsync).toHaveBeenCalledWith('session-token')
     expect(JSON.parse(meta('session_user')!)).toEqual(user)
-    expect(auth.getSessionToken()).toBe('session-token')
+    expect(await auth.getSessionToken()).toBe('session-token')
+    expect(auth.hasSession()).toBe(true)
     expect(auth.currentUser()).toEqual(user)
   })
 
   it('falls back to plain text, with a warning, when the OS cannot encrypt', async () => {
-    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
+    vi.mocked(safeStorage.isAsyncEncryptionAvailable).mockResolvedValue(false)
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await signIn()
     expect(meta('session_token')).toBe('plain:session-token')
     expect(warn).toHaveBeenCalled()
-    expect(auth.getSessionToken()).toBe('session-token')
+    expect(await auth.getSessionToken()).toBe('session-token')
   })
 
   it('never opens the browser when the Worker has no client id to give', async () => {
@@ -207,7 +209,7 @@ describe('signInWithGoogle', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 500, code: 'misconfigured' })
     expect(obtainCode).not.toHaveBeenCalled()
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
   })
 
   it('refuses a config without a client id', async () => {
@@ -225,7 +227,7 @@ describe('signInWithGoogle', () => {
     const error = await pending.catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 401, code: 'invalid_code' })
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
     expect(bringToFront).not.toHaveBeenCalled()
   })
@@ -247,7 +249,7 @@ describe('signInWithGoogle', () => {
     flows[0].reject(new SignInCancelledError())
     await expect(pending).rejects.toBeInstanceOf(SignInCancelledError)
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
   })
 
   it('replaces an earlier session', async () => {
@@ -258,7 +260,7 @@ describe('signInWithGoogle', () => {
     await vi.waitFor(() => expect(flows.length).toBe(2))
     flows[1].resolve(code)
     await pending
-    expect(auth.getSessionToken()).toBe('second')
+    expect(await auth.getSessionToken()).toBe('second')
     expect(auth.currentUser()?.name).toBe('Renamed')
   })
 })
@@ -273,7 +275,7 @@ describe('cancelSignIn', () => {
     expect(flows[0].cancel).toHaveBeenCalledTimes(1)
     await expect(pending).rejects.toBeInstanceOf(SignInCancelledError)
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
     expect(bringToFront).not.toHaveBeenCalled()
   })
@@ -301,7 +303,7 @@ describe('cancelSignIn', () => {
     await signIn()
     auth.cancelSignIn()
     expect(flows[0].cancel).not.toHaveBeenCalled()
-    expect(auth.getSessionToken()).toBe('session-token')
+    expect(await auth.getSessionToken()).toBe('session-token')
   })
 })
 
@@ -319,7 +321,7 @@ describe('a second sign-in while one is pending', () => {
     await vi.waitFor(() => expect(flows.length).toBe(2))
     flows[1].resolve(code)
     await expect(second).resolves.toEqual({ user })
-    expect(auth.getSessionToken()).toBe('session-token')
+    expect(await auth.getSessionToken()).toBe('session-token')
     expect(bringToFront).toHaveBeenCalledTimes(1)
   })
 
@@ -335,21 +337,33 @@ describe('a second sign-in while one is pending', () => {
     auth.cancelSignIn()
     expect(flows[1].cancel).toHaveBeenCalledTimes(1)
     await expect(second).rejects.toBeInstanceOf(SignInCancelledError)
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
   })
 })
 
 describe('getSessionToken / currentUser', () => {
-  it('answer null before any sign-in', () => {
-    expect(auth.getSessionToken()).toBeNull()
+  it('answer null before any sign-in', async () => {
+    expect(auth.hasSession()).toBe(false)
+    expect(await auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
   })
 
   it('round-trip through the encryption on every read', async () => {
     await signIn()
-    vi.mocked(safeStorage.decryptString).mockClear()
-    expect(auth.getSessionToken()).toBe('session-token')
-    expect(safeStorage.decryptString).toHaveBeenCalledWith(Buffer.from('enc:session-token'))
+    vi.mocked(safeStorage.decryptStringAsync).mockClear()
+    expect(await auth.getSessionToken()).toBe('session-token')
+    expect(safeStorage.decryptStringAsync).toHaveBeenCalledWith(Buffer.from('enc:session-token'))
+  })
+
+  it('store the token again when the keychain asks for it to be re-encrypted', async () => {
+    await signIn()
+    vi.mocked(safeStorage.decryptStringAsync).mockResolvedValueOnce({
+      shouldReEncrypt: true,
+      result: 'session-token'
+    })
+    vi.mocked(safeStorage.encryptStringAsync).mockResolvedValueOnce(Buffer.from('enc:rotated'))
+    expect(await auth.getSessionToken()).toBe('session-token')
+    expect(meta('session_token')).toBe(Buffer.from('enc:rotated').toString('base64'))
   })
 
   it('treat a token this machine can no longer decrypt as no session', async () => {
@@ -358,8 +372,11 @@ describe('getSessionToken / currentUser', () => {
     getDb()
       .prepare('UPDATE app_meta SET value = ? WHERE key = ?')
       .run(Buffer.from('other-machine').toString('base64'), 'session_token')
-    expect(auth.getSessionToken()).toBeNull()
+    expect(auth.hasSession()).toBe(true)
+    expect(await auth.getSessionToken()).toBeNull()
     expect(warn).toHaveBeenCalled()
+    // Known unreadable now, so sync and uploads stop trying with it.
+    expect(auth.hasSession()).toBe(false)
   })
 
   it('treat a user row that does not parse as no user', async () => {
@@ -378,7 +395,7 @@ describe('signOut', () => {
     expect(url).toBe('https://api.example.com/auth/signout')
     expect(init.method).toBe('POST')
     expect(headers.get('Authorization')).toBe('Bearer session-token')
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
     expect(meta('session_token')).toBeNull()
     expect(meta('session_user')).toBeNull()
@@ -389,7 +406,7 @@ describe('signOut', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     fetchMock.mockRejectedValueOnce(new TypeError('fetch failed'))
     await expect(auth.signOut()).resolves.toBeUndefined()
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
     expect(auth.currentUser()).toBeNull()
     expect(warn).toHaveBeenCalled()
   })
@@ -399,7 +416,7 @@ describe('signOut', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     fetchMock.mockResolvedValueOnce(json({ error: 'unauthorized' }, 401))
     await auth.signOut()
-    expect(auth.getSessionToken()).toBeNull()
+    expect(await auth.getSessionToken()).toBeNull()
   })
 
   it('does not call the Worker when there is no session to end', async () => {

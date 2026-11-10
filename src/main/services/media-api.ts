@@ -1,5 +1,5 @@
 import { ApiError, apiFetch, apiJson } from './api'
-import { getSessionToken } from './session'
+import { hasSession } from './session'
 
 // ---------------------------------------------------------------------------
 // The Worker's media store (`worker/README.md`, Media), as kartik.to's
@@ -48,7 +48,7 @@ export function posterKeyFor(mediaKey: string): string | null {
 
 /** Signed in: without a session, an upload has nowhere to go. */
 export function isMediaApiAvailable(): boolean {
-  return getSessionToken() !== null
+  return hasSession()
 }
 
 /**
