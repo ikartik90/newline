@@ -124,6 +124,22 @@
   --radius-xl: 16px;
   --radius-2xl: 20px;
 
+  /* Named steps for p-md, gap-lg and the rest, beside Tailwind's numeric 4px
+     scale. md is newline's own 6px; from lg up each name holds the size
+     Panda's step below it does, so kartik.to's p-md is p-lg here. */
+  --spacing-3xs: 0.5px;
+  --spacing-2xs: 1px;
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 6px;
+  --spacing-lg: 8px;
+  --spacing-xl: 12px;
+  --spacing-2xl: 16px;
+  --spacing-3xl: 20px;
+  --spacing-4xl: 32px;
+  --spacing-5xl: 40px;
+  --spacing-6xl: 80px;
+
   --breakpoint-md: 820px;
   --breakpoint-lg: 1200px;
 

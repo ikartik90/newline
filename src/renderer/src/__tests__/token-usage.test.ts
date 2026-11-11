@@ -23,6 +23,10 @@ import { describe, expect, it } from 'vitest'
 //    `--color-field` to get the on-surface fill reassigns nothing; the variable
 //    the utilities actually read is `--field-bg`.
 //
+// 3. Tailwind looks a width up in `--spacing-*` before `--container-*`, so
+//    with the named spacing scale a container width written by name sizes
+//    the box by the spacing step instead: the 24rem column is 4px.
+//
 // Same convention as option-list-classes: the renderer's tsconfig has no Node
 // types, so the path comes from this file's own URL and the scanner does the
 // file reading.
@@ -60,5 +64,11 @@ describe('token usage', () => {
 
   it('overrides the field fill through the variable the utilities read', () => {
     expect(candidates().filter((c) => c.includes('--color-field:'))).toEqual([])
+  })
+
+  it('sizes no width by a container name the spacing scale shadows', () => {
+    const shadowed = /(^|:)(max-w|min-w)-(3xs|2xs|xs|sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl)$/
+
+    expect(candidates().filter((c) => shadowed.test(c))).toEqual([])
   })
 })
