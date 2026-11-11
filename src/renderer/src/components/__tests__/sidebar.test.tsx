@@ -186,6 +186,17 @@ describe('Sidebar', () => {
     expect(classes.some((c) => /^border(-t)?$/.test(c))).toBe(false)
   })
 
+  it('inks its text in its own grey, base 700 light and base 200 dark, and leaves the rest of the app alone', () => {
+    renderSidebar()
+    const aside = screen.getByRole('complementary', { name: 'Notes' })
+    expect(aside.className.split(/\s+/)).toContain('[--fg-default:var(--fg-sidebar)]')
+    const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
+    expect(block(':root')).toMatch(/--fg-sidebar: var\(--color-base-700\);/)
+    expect(block('\\.dark')).toMatch(/--fg-sidebar: var\(--color-base-200\);/)
+    expect(block(':root')).toMatch(/--fg-default: var\(--color-neutral-700\);/)
+    expect(block('\\.dark')).toMatch(/--fg-default: var\(--color-neutral-200\);/)
+  })
+
   it('creates a note and opens the search from its head', () => {
     const { props } = renderSidebar()
     fireEvent.click(screen.getByRole('button', { name: 'New note' }))

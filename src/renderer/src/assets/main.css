@@ -200,6 +200,8 @@
   --bg-branded: var(--color-sky-400);
 
   --fg-default: var(--color-neutral-700);
+  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --fg-default. */
+  --fg-sidebar: var(--color-base-700);
   --fg-title: var(--color-neutral-900);
   --fg-body: var(--color-neutral-500);
   --fg-branded: var(--color-neutral-900);
@@ -305,6 +307,7 @@
   --bg-branded: var(--color-sky-400);
 
   --fg-default: var(--color-neutral-200);
+  --fg-sidebar: var(--color-base-200);
   --fg-title: var(--color-neutral-100);
   --fg-body: var(--color-neutral-400);
   --fg-highlight: var(--color-sky-400);

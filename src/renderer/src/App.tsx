@@ -39,8 +39,9 @@ const iconButton =
 // draws over that corner (main/index.ts centres them in these 48px), or at the
 // edge elsewhere. The bar is the window's drag handle; what scrolls does so in
 // the pane below it.
+// Its toggle is inked in the sidebar's grey, as the sidebar's own glyphs are.
 const topBar =
-  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out'
+  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--fg-default:var(--fg-sidebar)]'
 // The traffic lights start 16px in (main/index.ts) and are three 14px buttons
 // 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
 // Where there are no lights (full screen, other platforms) it takes the first

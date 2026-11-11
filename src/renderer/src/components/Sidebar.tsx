@@ -34,8 +34,10 @@ const VIRTUALISE_FROM = 100
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
+// Its `text-fg` is the sidebar's own grey: `inline` makes the utility read
+// `--fg-default` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
+  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out [--fg-default:var(--fg-sidebar)]'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`

@@ -253,6 +253,8 @@ describe('App chrome', () => {
       const button = await screen.findByRole('button', { name })
       expect(classesOf(button)).toContain('text-fg')
       expect(classesOf(button)).not.toContain('text-fg-body')
+      // Both stand where the sidebar's own grey is the ink.
+      expect(button.closest('[class~="[--fg-default:var(--fg-sidebar)]"]')).not.toBeNull()
     }
   })
 
