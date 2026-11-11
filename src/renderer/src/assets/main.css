@@ -51,17 +51,17 @@
 
   /* Palettes from palettes.html: ten shades a hue, 50 lightest to 900 darkest,
      all in oklch. */
-  /* base: hue 0, chroma peaking at 900, lightness 20–95%, min chroma 0.01 */
-  --color-base-50: oklch(95% 0.01 0);
-  --color-base-100: oklch(90.59% 0.01 0);
-  --color-base-200: oklch(81.76% 0.01 0);
-  --color-base-300: oklch(72.94% 0.01 0);
-  --color-base-400: oklch(64.12% 0.01 0);
-  --color-base-500: oklch(55.29% 0.01 0);
-  --color-base-600: oklch(46.47% 0.01 0);
-  --color-base-700: oklch(37.65% 0.01 0);
-  --color-base-800: oklch(28.82% 0.01 0);
-  --color-base-900: oklch(20% 0.01 0);
+  /* base: hue 0, chroma peaking at 900, lightness 20–95%, min chroma 0 */
+  --color-base-50: oklch(95% 0 0);
+  --color-base-100: oklch(90.59% 0 0);
+  --color-base-200: oklch(81.76% 0 0);
+  --color-base-300: oklch(72.94% 0 0);
+  --color-base-400: oklch(64.12% 0 0);
+  --color-base-500: oklch(55.29% 0 0);
+  --color-base-600: oklch(46.47% 0 0);
+  --color-base-700: oklch(37.65% 0 0);
+  --color-base-800: oklch(28.82% 0 0);
+  --color-base-900: oklch(20% 0 0);
 
   /* sky: hue 264, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
   --color-sky-50: oklch(95% 0.04 264);
