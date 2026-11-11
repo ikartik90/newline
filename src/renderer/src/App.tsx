@@ -49,10 +49,9 @@ const toggleSlotAtEdge = 'flex items-center h-full pl-[9px]'
 const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 
 // The note pane runs to the window's edges with no margin of its own; its
-// spacing is inside it. Its first 48px are under the bar. Beside the rail a
-// hairline is the only line between the two; alone it needs none.
+// spacing is inside it. Its first 48px are under the bar. The line between
+// it and the rail is the rail's own edge.
 const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
-const notePaneBesideRail = `${notePane} border-l border-divider`
 
 // Once the note has scrolled under the bar, a hairline rules the bar off from
 // it. It stands on the note column's top, which is the bar's foot.
@@ -306,7 +305,7 @@ function App() {
         />
       )}
 
-      <div className={sidebarCollapsed ? notePane : notePaneBesideRail}>
+      <div className={notePane}>
         <div className="relative flex-1 flex flex-col min-w-0">
           {activeNote && initialDocument ? (
             <main

@@ -163,6 +163,16 @@ describe('Sidebar', () => {
     expect(names.at(-1)).toBe('Account')
   })
 
+  it('draws its right edge on its own fill, as it rules off its footer', () => {
+    renderSidebar()
+    const edge = document.querySelector('[data-rail-edge]') as HTMLElement
+    expect(edge.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['absolute', 'inset-y-0', 'right-0', 'w-px', 'bg-divider'])
+    )
+    // Over the fills, which stand behind the rail's contents.
+    expect(edge.className).not.toMatch(/-z-/)
+  })
+
   it('rules the footer off from the list always, scrolled or not', () => {
     renderSidebar()
     const foot = screen.getByRole('button', { name: 'Account' }).parentElement!

@@ -405,10 +405,13 @@ describe('App chrome', () => {
     installApi([makeNote()])
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    // Past the divider's handle, which stands on the pane's edge.
+    // Past the divider's handle, which stands on the rail's edge.
     const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
-    expect(classesOf(pane)).toContain('border-divider')
+    // The line between them is the rail's, on the rail's own fill as its
+    // footer's rule is, so the two lines are one weight.
+    expect(classesOf(pane).some((c) => c.startsWith('border'))).toBe(false)
+    expect(sidebar.querySelector('[data-rail-edge]')).not.toBeNull()
     expect(hasMargin(pane)).toBe(false)
     expect(classesOf(pane)).toContain('bg-canvas')
     expect(classesOf(pane).some((c) => c.startsWith('rounded'))).toBe(false)

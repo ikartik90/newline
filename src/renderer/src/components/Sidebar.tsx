@@ -29,7 +29,7 @@ const NOTE_ROW_HEIGHT = 34
 /** Below this many notes the list renders plainly; above it, virtualised. */
 const VIRTUALISE_FROM = 100
 
-// The note pane's edge is the only line between the rail and the pane. Its
+// The rail's own edge is the only line between it and the note pane. Its
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
@@ -55,6 +55,10 @@ const railFillTop =
 const railFillTopClear = `${railFillTop} opacity-0`
 const railFillTopSolid = `${railFillTop} opacity-100`
 const railBodyFill = 'absolute inset-x-0 top-0 -bottom-2 -z-10 bg-sidebar pointer-events-none'
+// The divider is glass, so the ground under it sets its weight: on the rail's
+// fill, as the footer's rule is, the two read alike; on the canvas it read
+// fainter. Collapsed, the rail's clip hides it.
+const railEdge = 'absolute inset-y-0 right-0 w-px bg-divider pointer-events-none'
 
 // New note and Search head the rail as rows, their glyphs on the line the
 // notes' titles start on. The rail and every row are padded alike, 6.5px, so a
@@ -249,6 +253,7 @@ export default function Sidebar({
         )}
         {!collapsed && <div className={footStyle}>{footer}</div>}
       </div>
+      <div aria-hidden data-rail-edge="" className={railEdge} />
     </aside>
   )
 }
