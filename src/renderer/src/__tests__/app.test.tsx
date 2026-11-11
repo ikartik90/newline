@@ -420,14 +420,14 @@ describe('App chrome', () => {
     expect(hasMargin(pane)).toBe(false)
   })
 
-  it('grounds the note pane in the canvas, #f5f5f5 in the light theme and #191919 in the dark', async () => {
+  it('grounds the note pane in the canvas, #f5f5f5 in the light theme and base-900 in the dark', async () => {
     installApi([makeNote()])
     render(<App />)
     const handle = await screen.findByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
     expect(classesOf(pane)).toContain('bg-canvas')
     const dark = css.match(/\n\.dark \{([^}]*)\}/)![1]
-    expect(dark).toMatch(/--bg-canvas: #191919;/)
+    expect(dark).toMatch(/--bg-canvas: var\(--color-base-900\);/)
     const light = css.match(/\n:root \{([^}]*)\}/)![1]
     expect(light).toMatch(/--bg-canvas: #f5f5f5;/)
   })

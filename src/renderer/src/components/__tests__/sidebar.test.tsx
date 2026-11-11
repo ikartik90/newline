@@ -346,7 +346,7 @@ describe('Sidebar', () => {
 
     it('is a colour of its own, apart from the surfaces popovers and dialogs use', () => {
       const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
-      expect(block('\\.dark')).toMatch(/--bg-sidebar: #262626;/)
+      expect(block('\\.dark')).toMatch(/--bg-sidebar: var\(--color-base-800\);/)
       expect(block(':root')).toMatch(/--bg-sidebar: #e8e8e8;/)
       expect(css).toMatch(/--color-sidebar: var\(--bg-sidebar\);/)
     })

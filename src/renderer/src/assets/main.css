@@ -276,10 +276,10 @@
 .dark {
   color-scheme: dark;
 
-  /* Plain neutral greys, as in the light theme. */
-  --bg-canvas: #191919;
+  /* The base palette's two darkest shades, the rail the lighter. */
+  --bg-canvas: var(--color-base-900);
   --bg-surface: var(--color-neutral-800);
-  --bg-sidebar: #262626;
+  --bg-sidebar: var(--color-base-800);
   --bg-surface-glass: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
   --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--color-neutral-800));
   --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
