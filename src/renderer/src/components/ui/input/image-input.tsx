@@ -143,7 +143,6 @@ export function ImageInput({
       {filename ? (
         <Button
           type="button"
-          size="sm"
           variant="icon"
           emphasis="tertiary"
           aria-label={`Replace ${noun}`}

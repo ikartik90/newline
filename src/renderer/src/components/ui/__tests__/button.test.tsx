@@ -110,26 +110,25 @@ describe('Button', () => {
     })
   })
 
-  describe('size', () => {
-    it('defaults a text button to md (the 40px chip)', () => {
+  describe('shape', () => {
+    it('makes every text button the one 32px body-sm chip', () => {
       render(<Button>Save</Button>)
-      expect(screen.getByRole('button', { name: 'Save' }).dataset.size).toBe('md')
+      const button = screen.getByRole('button', { name: 'Save' })
+      expect(button.className).toContain('h-8')
+      expect(button.className).toContain('text-style-body-sm')
+      expect(button.className).not.toContain('h-10')
+      expect(button.dataset.size).toBeUndefined()
     })
 
-    it('takes the 32px chip at size=sm', () => {
-      render(<Button size="sm">Save</Button>)
-      expect(screen.getByRole('button', { name: 'Save' }).dataset.size).toBe('sm')
-    })
-
-    it('keeps the size independent of emphasis', () => {
+    it('corners an icon button as the shell does: 12px, eased into a squircle', () => {
       render(
-        <Button size="sm" emphasis="tertiary">
-          Save
+        <Button aria-label="Close">
+          <svg />
         </Button>
       )
-      const button = screen.getByRole('button', { name: 'Save' })
-      expect(button.dataset.size).toBe('sm')
-      expect(button.dataset.emphasis).toBe('tertiary')
+      const button = screen.getByRole('button', { name: 'Close' })
+      expect(button.className).toContain('rounded-lg squircle')
+      expect(button.className).not.toContain('rounded-sm')
     })
   })
 

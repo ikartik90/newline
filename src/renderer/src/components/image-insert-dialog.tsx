@@ -465,23 +465,17 @@ export function ImageInsertDialog(props: ImageInsertDialogProps) {
 
       <Dialog.Footer>
         <Dialog.FooterGroup>
-          <Button
-            type="button"
-            size="sm"
-            emphasis="tertiary"
-            disabled={isBusy}
-            onClick={handleClose}
-          >
+          <Button type="button" emphasis="tertiary" disabled={isBusy} onClick={handleClose}>
             Cancel
           </Button>
           {phase === 'library' ? (
-            <Button type="button" size="sm" disabled={isBusy} onClick={goToUpload}>
+            <Button type="button" disabled={isBusy} onClick={goToUpload}>
               Upload {noun}...
             </Button>
           ) : (
             // Absent rather than disabled while there is nothing to pick from.
             hasLibraryImages && (
-              <Button type="button" size="sm" disabled={isBusy} onClick={() => void openLibrary()}>
+              <Button type="button" disabled={isBusy} onClick={() => void openLibrary()}>
                 Insert from Library...
               </Button>
             )
@@ -489,7 +483,6 @@ export function ImageInsertDialog(props: ImageInsertDialogProps) {
         </Dialog.FooterGroup>
         <Button
           type="button"
-          size="sm"
           disabled={
             isBusy || phase !== 'library' || (isMultiple ? selectedCount === 0 : !selectedKey)
           }

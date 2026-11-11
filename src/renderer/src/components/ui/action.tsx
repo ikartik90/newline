@@ -30,33 +30,19 @@ export type ActionVariant = 'text' | 'icon' | 'link'
  */
 export type ActionEmphasis = 'primary' | 'secondary' | 'tertiary' | 'glass'
 
-/**
- * The scale a Button/Link takes, orthogonal to both axes above. `md` is the
- * 40px chip; `sm` the 32px one. Only the `text` shape has two sizes: an icon
- * button has one inset (a smaller icon is a smaller glyph in the same chip),
- * and a link is inline text.
- */
-export type ActionSize = 'md' | 'sm'
-
 export interface ActionStyleOptions {
   variant: ActionVariant
   emphasis: ActionEmphasis
-  size: ActionSize
 }
 
 // Composed icons track the resolved text colour and hold a 20px box.
 const baseStyle =
   'cursor-pointer appearance-none border-none no-underline w-fit transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none [&_svg]:block [&_svg]:size-5 [&_svg]:shrink-0'
 
-// The standalone CTA: a chip that hugs its label with an 80px floor so a short
-// one (Cancel / OK) is still substantial. `md` is the 40px/body-lg chip on a
-// 12px inset; `sm` is 32px/body-sm on 8px — at that height the wider inset
-// reads as a stretched pill rather than a smaller button.
-const textStyle = 'inline-flex items-center justify-center gap-2 min-w-20 rounded-md'
-const textSize: Record<ActionSize, string> = {
-  md: 'h-10 px-3 text-style-body-lg',
-  sm: 'h-8 px-2 text-style-body-sm'
-}
+// The standalone CTA: a 32px/body-sm chip on an 8px inset that hugs its label,
+// with an 80px floor so a short one (Cancel / OK) is still substantial.
+const textStyle =
+  'inline-flex items-center justify-center gap-2 min-w-20 h-8 px-2 rounded-md text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
   primary: 'bg-branded text-fg-branded',
   secondary: 'bg-button-secondary text-fg-body hover:bg-button-secondary-hover',
@@ -64,14 +50,15 @@ const textEmphasis: Record<ActionEmphasis, string> = {
   glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
 }
 
-// The compact toolbar chip: a 20px glyph on a 4px inset, `color: inherit` so
+// The compact toolbar chip: a 20px glyph on a 4px inset, cornered as the
+// shell's own sidebar toggle and settings button are, `color: inherit` so
 // the surface owns the glyph hue. The hover wash is for buttons that are NOT
 // on: an on toggle (`aria-pressed`) wears the brand chip every pressed toggle
 // in the system wears, and hover cannot reach past it — the press still can,
 // as a fill rather than the base's scale, since scaling drags a lone glyph off
 // the pixel grid.
 const iconStyle =
-  'relative inline-flex items-center justify-center gap-1 p-1 rounded-sm text-inherit text-style-body-sm active:transform-none active:bg-field-pressed aria-pressed:bg-field-active aria-pressed:text-field-fg-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-focus-ring)]'
+  'relative inline-flex items-center justify-center gap-1 p-1 rounded-lg squircle text-inherit text-style-body-sm active:transform-none active:bg-field-pressed aria-pressed:bg-field-active aria-pressed:text-field-fg-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-focus-ring)]'
 const iconEmphasis: Record<ActionEmphasis, string> = {
   primary: 'bg-branded text-fg-branded',
   // Tertiary by nature: transparent at rest, the neutral wash on hover.
@@ -88,10 +75,10 @@ const linkStyle =
   'inline p-0 bg-transparent text-fg-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
 
 /** The Tailwind classes for an action's look — shared by Button and Link. */
-export function actionStyles({ variant, emphasis, size }: ActionStyleOptions): string {
+export function actionStyles({ variant, emphasis }: ActionStyleOptions): string {
   switch (variant) {
     case 'text':
-      return `${baseStyle} ${textStyle} ${textSize[size]} ${textEmphasis[emphasis]}`
+      return `${baseStyle} ${textStyle} ${textEmphasis[emphasis]}`
     case 'icon':
       return `${baseStyle} ${iconStyle} ${iconEmphasis[emphasis]}`
     case 'link':
