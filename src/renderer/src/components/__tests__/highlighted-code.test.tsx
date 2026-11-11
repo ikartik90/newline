@@ -27,22 +27,19 @@ describe('HighlightedCode', () => {
     expect(spans.map((span) => span.getAttribute('data-syntax-role'))).toContain('secondary')
   })
 
-  it('inks each role with its own theme colour', () => {
+  it('inks both accented roles in the one accent, apart from plain code and comments', () => {
     // A JS string, not a JSX attribute literal — the latter keeps `\n` as two
     // characters, and the comment would then swallow the whole line.
     const source = "// note\nconst value = 'ok';"
     const { container } = render(<HighlightedCode code={source} language="javascript" />)
     const classOf = (role: string) =>
       container.querySelector(`[data-syntax-role="${role}"]`)?.className ?? ''
-    // Both accents must FOLLOW the theme. `text-brand-*` does not — it is the
-    // same hue in light and dark, and orange on the light code block is
-    // 1.36:1, which is how every string and number went missing there.
+    // Code has one accent, the prose's, for both accented roles.
     expect(classOf('primary')).toContain('text-fg-highlight')
-    expect(classOf('secondary')).toContain('text-syntax-secondary')
+    expect(classOf('secondary')).toContain('text-fg-highlight')
     expect(classOf('neutral')).toContain('text-fg')
     expect(classOf('comment')).toContain('text-fg-body')
-    // Four distinct inks — no two roles are dressed the same.
-    expect(new Set(['primary', 'secondary', 'neutral', 'comment'].map(classOf)).size).toBe(4)
+    expect(new Set(['primary', 'neutral', 'comment'].map(classOf)).size).toBe(3)
   })
 
   it('accepts language aliases the way the highlighter does', () => {
