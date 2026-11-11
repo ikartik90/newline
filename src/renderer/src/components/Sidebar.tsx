@@ -39,8 +39,11 @@ const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
-// The rail paints nothing: as in any macOS sidebar, the window's vibrancy
-// shows through it top to bottom, and only the note pane beside it is solid.
+// As in Finder, the rail is solid at its centre and the window's vibrancy
+// shows only in a rim that fades in from every edge, rounded at the corners:
+// a tint in the rail's fill, inset from its edges and blurred. Being first and
+// unstacked, it paints under everything else the rail holds.
+const railTint = 'absolute inset-4 rounded-[40px] bg-sidebar blur-xl pointer-events-none'
 const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
 // The rail's edge stands on the rail, on the same glass as the footer's rule,
@@ -164,6 +167,7 @@ export default function Sidebar({
       data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
+      <div aria-hidden data-rail-tint="" className={railTint} />
       <div className={railTop}>
         {!collapsed && (
           <div className={headStyle}>

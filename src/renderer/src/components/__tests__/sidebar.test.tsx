@@ -321,8 +321,10 @@ describe('Sidebar', () => {
       fireEvent.scroll(scroller)
     }
 
-    // A macOS sidebar is the window's vibrancy, top to bottom, with nothing
-    // painted over it: no fill, no tint, no mask.
+    // A macOS sidebar is solid at its centre, and the window's vibrancy shows
+    // only in a rim that fades in from every edge, rounded at the corners: one
+    // tint in the sidebar's fill, inset from its edges and blurred, is all the
+    // rail paints.
     const painted = () =>
       [
         screen.getByRole('complementary', { name: 'Notes' }),
@@ -333,19 +335,28 @@ describe('Sidebar', () => {
           .some((c) => /^(bg-(sidebar|surface|canvas)|mask-)/.test(c))
       )
 
-    it('stands wholly on the window’s glass, as a macOS sidebar does', () => {
+    it('is solid at its centre and fades to the window’s glass at every edge, as macOS draws it', () => {
       renderSidebar()
-      expect(painted()).toEqual([])
-      expect(
-        document.querySelector('[data-rail-fill], [data-rail-fill-top], [data-rail-body-fill]')
-      ).toBeNull()
+      const tint = document.querySelector('[data-rail-tint]') as HTMLElement
+      expect(painted()).toEqual([tint])
+      expect(tint.className.split(/\s+/)).toEqual(
+        expect.arrayContaining([
+          'absolute',
+          'inset-4',
+          'rounded-[40px]',
+          'bg-sidebar',
+          'blur-xl',
+          'pointer-events-none'
+        ])
+      )
+      expect(tint.getAttribute('aria-hidden')).toBe('true')
       expect(css).not.toMatch(/mask-rail-glass/)
     })
 
-    it('stays clear as the notes scroll under its head', () => {
+    it('stays as it is as the notes scroll under its head', () => {
       renderSidebar()
       scrollList(30)
-      expect(painted()).toEqual([])
+      expect(painted()).toEqual([document.querySelector('[data-rail-tint]')])
     })
 
     it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
