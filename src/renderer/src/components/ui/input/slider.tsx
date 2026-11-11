@@ -256,7 +256,9 @@ function SliderTrack({
           style={{ left: `${tick * 100}%` }}
         />
       ))}
-      <BaseSlider.Track className="absolute inset-0">
+      {/* Base UI pins the track `position: relative` inline, so it fills the strip by
+          its height rather than by an inset the inline style would override. */}
+      <BaseSlider.Track className="h-full">
         <BaseSlider.Thumb
           data-slider-thumb
           data-control
