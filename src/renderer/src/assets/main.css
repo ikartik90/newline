@@ -124,12 +124,8 @@
   --bg-highlight: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
   --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  /* A gradient: use with `background`, never `background-color`. */
-  --bg-branded-emphasis: linear-gradient(
-    135deg,
-    var(--color-brand-orange) 0%,
-    var(--color-brand-pink) 60%
-  );
+  /* The theme's brand colour, flat: pink here, orange in the dark. */
+  --bg-branded: var(--color-brand-pink);
 
   --fg-default: var(--color-neutral-700);
   --fg-title: var(--color-neutral-900);
@@ -139,7 +135,7 @@
   --fg-highlight: var(--color-brand-pink);
 
   /* Status inks. kartik.to has no success/warning/danger family — it paints
-     every notice in the brand gradient — but sync state has to say WHICH state
+     every notice in the brand colour — but sync state has to say WHICH state
      it is, so these are newline's own. Each is chosen to clear 4.5:1 on its
      own canvas, which no Tailwind default does: every stock hue is tuned for a
      dark ground and lands between 1.5:1 and 3.4:1 on ours. Used as ink and as
@@ -230,11 +226,7 @@
   --bg-highlight: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
   --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --bg-branded-emphasis: linear-gradient(
-    135deg,
-    var(--color-brand-pink) 0%,
-    var(--color-brand-orange) 60%
-  );
+  --bg-branded: var(--color-brand-orange);
 
   --fg-default: var(--color-neutral-200);
   --fg-title: var(--color-neutral-100);
@@ -285,6 +277,7 @@
   --color-highlight: var(--bg-highlight);
   --color-button-secondary: var(--bg-button-secondary);
   --color-button-secondary-hover: var(--bg-button-secondary-hover);
+  --color-branded: var(--bg-branded);
 
   --color-fg: var(--fg-default);
   --color-fg-title: var(--fg-title);
@@ -389,17 +382,6 @@
   line-height: 1.72;
 }
 
-/* Brand gradient as ink — the sidenote ordinal, the metric value. */
-@utility text-branded {
-  background: var(--bg-branded-emphasis);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-@utility bg-branded {
-  background: var(--bg-branded-emphasis);
-}
 /* Corners that ease into the straight (a squircle) rather than a circular
    arc; pair with a rounded-* radius. */
 @utility squircle {
@@ -426,13 +408,13 @@
 }
 
 /* The underline is two stacked background bars, not text-decoration, so the
-   hover state can be the brand gradient. */
+   hover can grow the brand-coloured bar over the muted one. */
 @utility article-link {
   text-decoration-line: none;
   color: var(--fg-default);
   padding-bottom: 2px;
   background-image:
-    var(--bg-branded-emphasis),
+    linear-gradient(var(--bg-branded), var(--bg-branded)),
     linear-gradient(
       color-mix(in srgb, var(--fg-body) 50%, transparent),
       color-mix(in srgb, var(--fg-body) 50%, transparent)
@@ -506,28 +488,17 @@
   display: inline;
   &::after {
     content: attr(data-sidenote-number);
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
+    color: var(--bg-branded);
   }
 }
 
-/* Only clip the gradient once there is text, or an empty editor field turns
-   its own placeholder transparent. */
 @utility article-eyebrow {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
   width: fit-content;
   word-break: break-word;
-  &:not(:empty):not([data-empty]) {
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  color: var(--bg-branded);
 }
 
 @utility article-metric-value {
@@ -537,15 +508,10 @@
   width: fit-content;
   max-width: 100%;
   word-break: break-word;
-  &:not(:empty):not([data-empty]) {
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  color: var(--bg-branded);
 }
 
-/* The 52px quote mark: the gradient body at 15% under a 1px full-strength
+/* The 52px quote mark: the brand colour at 15% under a 1px full-strength
    edge, both masked off the same glyph path. */
 @utility article-blockquote-mark {
   position: relative;
@@ -566,13 +532,13 @@
     -webkit-mask-position: center;
   }
   &::before {
-    background: var(--bg-branded-emphasis);
+    background: var(--bg-branded);
     opacity: 0.15;
     mask-image: var(--quote-glyph-fill);
     -webkit-mask-image: var(--quote-glyph-fill);
   }
   &::after {
-    background: var(--bg-branded-emphasis);
+    background: var(--bg-branded);
     mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
     mask-composite: intersect;
     -webkit-mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
@@ -594,8 +560,7 @@
   pointer-events: none;
 }
 
-/* The ordinal pill: gradient clipped to the digits over a chip clipped to the
-   padding box — two background layers on one element. */
+/* The ordinal pill: brand-coloured digits on a list-marker chip. */
 @utility list-marker {
   flex-shrink: 0;
   display: inline-flex;
@@ -607,10 +572,8 @@
   /* Optical centring for digits, which have no descender. */
   padding-block-end: 0.107em;
   border-radius: var(--radius-lg);
-  background-image: var(--bg-branded-emphasis), linear-gradient(var(--bg-list-marker) 0 0);
-  background-clip: text, padding-box;
-  -webkit-background-clip: text, padding-box;
-  -webkit-text-fill-color: transparent;
+  background-color: var(--bg-list-marker);
+  color: var(--bg-branded);
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
@@ -621,7 +584,7 @@
   pointer-events: none;
 }
 
-/* The 8px gradient dot. */
+/* The 8px brand-coloured dot. */
 @utility list-bullet {
   flex-shrink: 0;
   display: inline-flex;
@@ -637,7 +600,7 @@
     width: var(--size-list-bullet);
     height: var(--size-list-bullet);
     border-radius: 50%;
-    background: var(--bg-branded-emphasis);
+    background: var(--bg-branded);
   }
 }
 
@@ -652,8 +615,8 @@
   pointer-events: none;
 }
 
-/* The 16px chip holding a brand-gradient check or cross, masked from the
-   glyph's alpha because currentColor can only ever be a flat colour. */
+/* The 16px chip holding a brand-coloured check or cross, masked from the
+   glyph's alpha so the glyph files need no fill of their own. */
 @utility list-bullet-circle {
   position: relative;
   flex-shrink: 0;
@@ -672,7 +635,7 @@
     width: var(--size-list-bullet-glyph);
     height: var(--size-list-bullet-glyph);
     transform: translate(-50%, -50%);
-    background: var(--bg-branded-emphasis);
+    background: var(--bg-branded);
     mask-size: contain;
     mask-repeat: no-repeat;
     mask-position: center;
