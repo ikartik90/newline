@@ -79,7 +79,7 @@ Token names in `src/renderer/src/assets/main.css`. Mapping from Panda recipes:
 
 Data attributes drive state styling exactly as in kartik.to (`data-active`, `data-indented`, `data-align`, `data-slash-anchor`, `data-sidenote-rail`, `data-media-pending`, `data-keyboard-focus`, `data-control-dragging`).
 
-**Every divider is 1px.** kartik.to draws its dividers at 0.5px; here a line in the divider token is `border`, `border-t` and the like (or `h-px` / `inset_0_-1px_0`), and the token itself is glass — the theme's ink at 10%. `src/renderer/src/__tests__/token-usage.test.ts` refuses a half-pixel divider.
+**Every divider is 1px.** kartik.to draws its dividers at 0.5px; here a line in the divider token is `border`, `border-t` and the like (or `h-px` / `inset_0_-1px_0`), and the token itself is glass — the theme's ink at 15% light and 20% dark, a test keeping it apart from both the sidebar and the note pane. `src/renderer/src/__tests__/token-usage.test.ts` refuses a half-pixel divider.
 
 **A named spacing step shadows a container width.** Tailwind reads `--spacing-*` before `--container-*` for `w-`, `min-w-` and `max-w-`, so `max-w-sm` is 4px, not 24rem; name a container width as `max-w-(--container-sm)`. `src/renderer/src/__tests__/token-usage.test.ts` guards `min-w-` and `max-w-`.
 
