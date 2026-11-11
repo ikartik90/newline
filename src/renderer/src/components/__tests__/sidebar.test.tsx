@@ -321,11 +321,8 @@ describe('Sidebar', () => {
       fireEvent.scroll(scroller)
     }
 
-    // A macOS sidebar is solid towards the app's centre: the window's vibrancy
-    // comes in only from its outer edges (left, top and bottom), fading out
-    // gradually in a rounded shape, while its side against the note pane is
-    // solid to the edge. One tint in the sidebar's fill, reaching past that
-    // side and blurred wide, is all the rail paints.
+    // The window's native Liquid Glass makes the sidebar (main/window-glass.ts);
+    // the rail paints nothing over it: no fill, no tint, no mask, no blur.
     const painted = () =>
       [
         screen.getByRole('complementary', { name: 'Notes' }),
@@ -333,37 +330,20 @@ describe('Sidebar', () => {
       ].filter((el) =>
         (el.getAttribute('class') ?? '')
           .split(/\s+/)
-          .some((c) => /^(bg-(sidebar|surface|canvas)|mask-)/.test(c))
+          .some((c) => /^(bg-(sidebar|surface|canvas)|mask-|blur-)/.test(c))
       )
 
-    it('fades to the window’s glass from its outer edges, solid against the note pane, as macOS draws it', () => {
+    it('stands wholly on the window’s native glass', () => {
       renderSidebar()
-      const tint = document.querySelector('[data-rail-tint]') as HTMLElement
-      expect(painted()).toEqual([tint])
-      expect(tint.className.split(/\s+/)).toEqual(
-        expect.arrayContaining([
-          'absolute',
-          'left-8',
-          'top-8',
-          'bottom-8',
-          'rounded-[96px]',
-          'bg-sidebar',
-          'blur-3xl',
-          'pointer-events-none'
-        ])
-      )
-      // Past the side against the note pane by twice the blur, so no glass
-      // shows there.
-      expect(tint.className.split(/\s+/)).toContain('-right-32')
-      expect(tint.className).not.toMatch(/\binset-/)
-      expect(tint.getAttribute('aria-hidden')).toBe('true')
+      expect(painted()).toEqual([])
+      expect(document.querySelector('[data-rail-tint]')).toBeNull()
       expect(css).not.toMatch(/mask-rail-glass/)
     })
 
-    it('stays as it is as the notes scroll under its head', () => {
+    it('stays clear as the notes scroll under its head', () => {
       renderSidebar()
       scrollList(30)
-      expect(painted()).toEqual([document.querySelector('[data-rail-tint]')])
+      expect(painted()).toEqual([])
     })
 
     it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {

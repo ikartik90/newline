@@ -26,6 +26,7 @@
     "@base-ui/react": "^1.8.0",
     "better-sqlite3": "^13.0.3",
     "cmdk": "^1.1.1",
+    "electron-liquid-glass": "^1.1.1",
     "electron-updater": "^6.8.3",
     "marked": "^17.0.3",
     "react": "^19.2.4",

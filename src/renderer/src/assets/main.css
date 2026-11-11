@@ -772,8 +772,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* On macOS the window behind the page is frosted glass (main/index.ts sets
-     the sidebar material), and it shows wherever the page paints nothing:
+  /* On macOS the window behind the page is native glass (main/window-glass.ts), and it shows wherever the page paints nothing:
      the top bar and the whole sidebar. */
   html[data-frosted] body {
     background: transparent;

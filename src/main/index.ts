@@ -6,6 +6,8 @@ import { registerIpcHandlers } from './ipc'
 import { getMediaPath } from './services/media'
 import { onSyncChanged, startSyncScheduler, stopSyncScheduler } from './services/sync'
 import { pathToFileURL } from 'url'
+import liquidGlass from 'electron-liquid-glass'
+import { applyGlass, glassWindowOptions } from './window-glass'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -62,15 +64,7 @@ function createWindow(): void {
     minWidth: 680,
     minHeight: 400,
     show: false,
-    // On macOS the window itself is the frosted sidebar material, and the page
-    // is clear over it except where it paints (the note panel) — see
-    // `html[data-frosted]` in main.css. Electron leaves the web contents
-    // transparent for a vibrant window, so no colour is set there. Elsewhere
-    // Electron's default is white, which flashes on launch and shows through
-    // while resizing in dark mode; these are the two `--bg-canvas` values.
-    ...(process.platform === 'darwin'
-      ? { vibrancy: 'sidebar' as const }
-      : { backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6' }),
+    ...glassWindowOptions(process.platform, liquidGlass, nativeTheme.shouldUseDarkColors),
     // The OS's own close/minimise/zoom buttons, drawn over the content and
     // centred in the renderer's 48px top bar: 14px tall from y 17, a centre of 24,
     // level with the sidebar toggle that sits past them.
@@ -84,6 +78,12 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  // A clear window hides its buttons unless told otherwise.
+  if (process.platform === 'darwin') mainWindow.setWindowButtonVisibility(true)
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (mainWindow) applyGlass(liquidGlass, mainWindow.getNativeWindowHandle())
   })
 
   // macOS hides the window's buttons in full screen; the renderer moves the

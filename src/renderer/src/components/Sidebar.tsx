@@ -39,15 +39,8 @@ const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
-// As in Finder, the rail is solid towards the app's centre and the window's
-// vibrancy comes in only from its outer edges, fading out gradually in a
-// rounded shape: a tint in the rail's fill, 32px in from the left, top and
-// bottom and blurred 64px, so it is about a third solid at the window's edge
-// and whole some 160px in. It reaches 128px past the side against the note
-// pane, twice the blur, so no glass shows there. Being first and unstacked,
-// it paints under everything else the rail holds.
-const railTint =
-  'absolute left-8 top-8 bottom-8 -right-32 rounded-[96px] bg-sidebar blur-3xl pointer-events-none'
+// The rail paints nothing: the window's native Liquid Glass, in the sidebar
+// material Finder's sidebar is drawn in, is its ground (main/window-glass.ts).
 const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
 // The rail's edge stands on the rail, on the same glass as the footer's rule,
@@ -171,7 +164,6 @@ export default function Sidebar({
       data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
-      <div aria-hidden data-rail-tint="" className={railTint} />
       <div className={railTop}>
         {!collapsed && (
           <div className={headStyle}>
