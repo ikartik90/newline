@@ -134,4 +134,30 @@ describe('Switch', () => {
     expect(() => render(<Switch />)).toThrow(/must be used within <Field>/)
     spy.mockRestore()
   })
+  // jsdom lays nothing out, so the geometry is read from the classes, each a
+  // step of the 4px spacing scale: the thumb sits inset alike on every side,
+  // off and on.
+  it.each(['sm', 'md', 'lg'] as const)('rests the %s thumb as far from either end', (size) => {
+    render(
+      <Field>
+        <Switch size={size} />
+        <Field.Label>Wi-Fi</Field.Label>
+      </Field>
+    )
+    const track = screen.getByRole('switch')
+    const thumb = track.firstElementChild as HTMLElement
+    const step = (className: string, prefix: string) => {
+      const match = new RegExp(`(?:^|\\s)${prefix}-([\\d.]+)(?:\\s|$)`).exec(className)
+      if (!match) throw new Error(`no ${prefix}- in "${className}"`)
+      return Number(match[1]) * 4
+    }
+    const width = step(track.className, 'w')
+    const height = step(track.className, 'h')
+    const knob = step(thumb.className, 'size')
+    const inset = step(thumb.className, 'left')
+    const travel = step(thumb.className, 'data-\\[checked\\]:translate-x')
+    expect(step(thumb.className, 'top')).toBe(inset)
+    expect(height).toBe(knob + 2 * inset)
+    expect(inset + travel + knob).toBe(width - inset)
+  })
 })

@@ -23,10 +23,10 @@ export interface SwitchProps extends Omit<
 }
 
 // Track height = thumb + 2·inset, travel = width − 2·inset − thumb, so nothing
-// is arbitrary: lg 48×24 on a 16px thumb, md 40×20 on 12, sm 20×12 on 8.
+// is arbitrary: lg 40×24 on a 16px thumb, md 32×20 on 12, sm 20×12 on 8.
 const GEOMETRY = {
-  lg: { track: 'w-12 h-6', thumb: 'size-4 top-1 left-1 data-[checked]:translate-x-4' },
-  md: { track: 'w-10 h-5', thumb: 'size-3 top-1 left-1 data-[checked]:translate-x-3' },
+  lg: { track: 'w-10 h-6', thumb: 'size-4 top-1 left-1 data-[checked]:translate-x-4' },
+  md: { track: 'w-8 h-5', thumb: 'size-3 top-1 left-1 data-[checked]:translate-x-3' },
   sm: { track: 'w-5 h-3', thumb: 'size-2 top-0.5 left-0.5 data-[checked]:translate-x-2' }
 } as const
 
