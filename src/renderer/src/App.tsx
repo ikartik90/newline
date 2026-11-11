@@ -17,6 +17,7 @@ import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
+import { useSidebarGlass } from '@/hooks/use-sidebar-glass'
 import { useScrolled } from '@/hooks/use-scrolled'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
@@ -78,6 +79,8 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
+  const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null)
+  useSidebarGlass(sidebarElement)
   const noteScroll = useScrolled()
   // Only macOS hides its title bar into the content, and only out of full
   // screen; elsewhere the window's controls are in a frame of their own.
@@ -273,6 +276,7 @@ function App() {
       </header>
 
       <Sidebar
+        ref={setSidebarElement}
         notes={notes}
         activeId={activeId}
         onSelect={setActiveId}

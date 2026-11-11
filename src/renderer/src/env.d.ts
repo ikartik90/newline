@@ -76,6 +76,8 @@ declare global {
       /** The window itself: whether it fills the screen, where macOS hides its buttons. */
       window: {
         isFullScreen: () => Promise<boolean>
+        /** The sidebar's width in CSS pixels, for the macOS glass laid under it. */
+        setSidebarWidth: (width: number) => void
         /** Hear the window enter or leave full screen. Returns the unsubscribe. */
         onFullScreenChange: (listener: (fullScreen: boolean) => void) => () => void
       }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { List, type RowComponentProps } from 'react-window'
 import { SwipeActions } from '@/components/swipe-actions'
 import { useHasCursor } from '@/hooks/use-has-cursor'
@@ -22,6 +22,7 @@ interface SidebarProps {
   collapsed: boolean
   /** While its divider is being dragged the rail follows the pointer, not its clock. */
   resizing?: boolean
+  ref?: Ref<HTMLElement>
 }
 
 /** A row is as tall as New note and Search (h-8), plus the 2px gap below it. */
@@ -39,8 +40,8 @@ const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
-// The rail paints nothing: the window's native Liquid Glass, in the sidebar
-// material Finder's sidebar is drawn in, is its ground (main/window-glass.ts).
+// The rail paints nothing: AppKit's own sidebar, the one Finder's is, lies
+// under it as its ground (main/sidebar-glass.ts).
 const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
 // The rail's edge stands on the rail, on the same glass as the footer's rule,
@@ -88,7 +89,8 @@ export default function Sidebar({
   onSearch,
   footer,
   collapsed,
-  resizing = false
+  resizing = false,
+  ref
 }: SidebarProps) {
   const hasCursor = useHasCursor()
   const newNoteShortcut = useShortcutLabel('N')
@@ -160,6 +162,7 @@ export default function Sidebar({
 
   return (
     <aside
+      ref={ref}
       aria-label="Notes"
       data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}

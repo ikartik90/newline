@@ -772,8 +772,8 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* On macOS the window behind the page is native glass (main/window-glass.ts), and it shows wherever the page paints nothing:
-     the top bar and the whole sidebar. */
+  /* On macOS AppKit's own sidebar glass lies under the page's sidebar
+     (main/sidebar-glass.ts), and shows wherever the page paints nothing there. */
   html[data-frosted] body {
     background: transparent;
     overflow: hidden;

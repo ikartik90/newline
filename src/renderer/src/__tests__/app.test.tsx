@@ -78,6 +78,7 @@ function installApi(notes: Note[]) {
     theme: { setSource: vi.fn(async () => {}) },
     window: {
       isFullScreen: vi.fn(async () => false),
+      setSidebarWidth: vi.fn(),
       onFullScreenChange: vi.fn((listener: (fullScreen: boolean) => void) => {
         fullScreenListeners.add(listener)
         return () => {
@@ -470,6 +471,15 @@ describe('App chrome', () => {
     const shell = sidebar.parentElement!
     expect(classesOf(shell)).not.toContain('bg-surface')
     expect(sidebar.className).not.toMatch(/bg-surface/)
+  })
+
+  it('tells main how wide the sidebar is, for AppKit’s glass under it', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    sidebar.getBoundingClientRect = () => ({ width: 256 }) as DOMRect
+    window.dispatchEvent(new Event('resize'))
+    expect(api.window.setSidebarWidth).toHaveBeenLastCalledWith(256)
   })
 
   it('paints its own shell where the window has no glass', async () => {

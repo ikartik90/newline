@@ -6,10 +6,12 @@ import { registerIpcHandlers } from './ipc'
 import { getMediaPath } from './services/media'
 import { onSyncChanged, startSyncScheduler, stopSyncScheduler } from './services/sync'
 import { pathToFileURL } from 'url'
-import liquidGlass from 'electron-liquid-glass'
-import { applyGlass, glassWindowOptions } from './window-glass'
+import { glassWindowOptions, loadSidebarGlass, requireSidebarGlass } from './sidebar-glass'
 
 let mainWindow: BrowserWindow | null = null
+
+// AppKit's sidebar glass, laid under the page's sidebar; null where there is none.
+const sidebarGlass = loadSidebarGlass(process.platform, requireSidebarGlass)
 
 // The About panel reads the RUNNING bundle's strings, which from source are
 // Electron's own; `productName` in package.json only reaches `app.name`.
@@ -64,7 +66,7 @@ function createWindow(): void {
     minWidth: 680,
     minHeight: 400,
     show: false,
-    ...glassWindowOptions(process.platform, liquidGlass, nativeTheme.shouldUseDarkColors),
+    ...glassWindowOptions(process.platform, sidebarGlass, nativeTheme.shouldUseDarkColors),
     // The OS's own close/minimise/zoom buttons, drawn over the content and
     // centred in the renderer's 48px top bar: 14px tall from y 17, a centre of 24,
     // level with the sidebar toggle that sits past them.
@@ -78,12 +80,6 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
-  })
-
-  // A clear window hides its buttons unless told otherwise.
-  if (process.platform === 'darwin') mainWindow.setWindowButtonVisibility(true)
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (mainWindow) applyGlass(liquidGlass, mainWindow.getNativeWindowHandle())
   })
 
   // macOS hides the window's buttons in full screen; the renderer moves the
@@ -108,7 +104,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   registerLocalProtocol()
   initDatabase()
-  registerIpcHandlers()
+  registerIpcHandlers(sidebarGlass)
 
   createWindow()
   // The first cycle pushes whatever was saved while the app was closed and

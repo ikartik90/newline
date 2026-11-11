@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   window: {
     isFullScreen: () => ipcRenderer.invoke('window:isFullScreen'),
+    setSidebarWidth: (width: number) => ipcRenderer.send('window:sidebarWidth', width),
     onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
       const handler = (_event: unknown, fullScreen: boolean): void => listener(fullScreen)
       ipcRenderer.on('window:fullScreen', handler)

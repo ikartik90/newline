@@ -4,8 +4,9 @@ import * as notesService from './services/notes'
 import * as mediaService from './services/media'
 import { pushNote, syncNow } from './services/sync'
 import { getSyncStatus } from './services/sync-status'
+import { showSidebarGlass, type SidebarGlassAddon } from './sidebar-glass'
 
-export function registerIpcHandlers(): void {
+export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): void {
   ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
     return notesService.createNote(title, body)
   })
@@ -51,6 +52,12 @@ export function registerIpcHandlers(): void {
     if (source === 'light' || source === 'dark' || source === 'system') {
       nativeTheme.themeSource = source
     }
+  })
+
+  // The page's sidebar width, in CSS pixels, for AppKit's glass under it.
+  ipcMain.on('window:sidebarWidth', (event, width: number) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) showSidebarGlass(sidebarGlass, window, width)
   })
 
   ipcMain.handle('window:isFullScreen', (event) => {

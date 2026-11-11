@@ -120,6 +120,7 @@ Object.defineProperty(window, 'api', {
     // The page's own full screen stands in for the window's.
     window: {
       isFullScreen: async () => document.fullscreenElement !== null,
+      setSidebarWidth: () => {},
       onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
         const handler = () => listener(document.fullscreenElement !== null)
         document.addEventListener('fullscreenchange', handler)

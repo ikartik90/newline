@@ -321,7 +321,7 @@ describe('Sidebar', () => {
       fireEvent.scroll(scroller)
     }
 
-    // The window's native Liquid Glass makes the sidebar (main/window-glass.ts);
+    // AppKit's own sidebar glass lies under the rail (main/sidebar-glass.ts);
     // the rail paints nothing over it: no fill, no tint, no mask, no blur.
     const painted = () =>
       [
@@ -333,7 +333,7 @@ describe('Sidebar', () => {
           .some((c) => /^(bg-(sidebar|surface|canvas)|mask-|blur-)/.test(c))
       )
 
-    it('stands wholly on the window’s native glass', () => {
+    it('stands wholly on AppKit’s sidebar glass', () => {
       renderSidebar()
       expect(painted()).toEqual([])
       expect(document.querySelector('[data-rail-tint]')).toBeNull()
