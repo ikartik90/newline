@@ -55,6 +55,68 @@
   --color-brand-rust: color-mix(in srgb, #ffab6f 15%, #1f2123);
   --color-brand-rosemilk: color-mix(in srgb, #ff4d97 15%, #eef2f6);
 
+  /* Palettes from palettes.html: ten shades a hue, 50 lightest to 900 darkest,
+     each in the format it was made in. */
+  /* candy: hue 11.26, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-candy-50: #ffe4e8;
+  --color-candy-100: #ffd0d5;
+  --color-candy-200: #ffa6b2;
+  --color-candy-300: #f87a8f;
+  --color-candy-400: #eb476d;
+  --color-candy-500: #bf3b59;
+  --color-candy-600: #953046;
+  --color-candy-700: #6d2433;
+  --color-candy-800: #481922;
+  --color-candy-900: #250e11;
+
+  /* sky: hue 264, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-sky-50: oklch(95% 0.04 264);
+  --color-sky-100: oklch(90.59% 0.07 264);
+  --color-sky-200: oklch(81.76% 0.13 264);
+  --color-sky-300: oklch(72.94% 0.19 264);
+  --color-sky-400: oklch(64.12% 0.25 264);
+  --color-sky-500: oklch(55.29% 0.208 264);
+  --color-sky-600: oklch(46.47% 0.166 264);
+  --color-sky-700: oklch(37.65% 0.124 264);
+  --color-sky-800: oklch(28.82% 0.082 264);
+  --color-sky-900: oklch(20% 0.04 264);
+
+  /* mint: hue 164, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-mint-50: oklch(95% 0.04 164);
+  --color-mint-100: oklch(90.59% 0.0628 164);
+  --color-mint-200: oklch(81.76% 0.1086 164);
+  --color-mint-300: oklch(72.94% 0.1543 164);
+  --color-mint-400: oklch(64.12% 0.2 164);
+  --color-mint-500: oklch(55.29% 0.168 164);
+  --color-mint-600: oklch(46.47% 0.136 164);
+  --color-mint-700: oklch(37.65% 0.104 164);
+  --color-mint-800: oklch(28.82% 0.072 164);
+  --color-mint-900: oklch(20% 0.04 164);
+
+  /* base: hue 0, chroma peaking at 900, lightness 20–95%, min chroma 0.01 */
+  --color-base-50: #f5ecee;
+  --color-base-100: #e6dddf;
+  --color-base-200: #c9c1c3;
+  --color-base-300: #ada5a7;
+  --color-base-400: #928a8c;
+  --color-base-500: #787072;
+  --color-base-600: #5e5759;
+  --color-base-700: #463f41;
+  --color-base-800: #2f292b;
+  --color-base-900: #1a1416;
+
+  /* mango: hue 79.28, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-mango-50: #fdecd1;
+  --color-mango-100: #f7dcb1;
+  --color-mango-200: #e9bb6f;
+  --color-mango-300: #da9a00;
+  --color-mango-400: #cb7700;
+  --color-mango-500: #a56100;
+  --color-mango-600: #814c00;
+  --color-mango-700: #5e3800;
+  --color-mango-800: #3d2500;
+  --color-mango-900: #201401;
+
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 8px;
