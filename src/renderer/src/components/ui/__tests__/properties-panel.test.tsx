@@ -159,6 +159,21 @@ describe('PropertiesPanel', () => {
   })
 })
 
+describe('the panel’s lines', () => {
+  it('start their rules past its edge, so no two glass lines lie over each other', () => {
+    render(<Harness />)
+    const header = screen.getByText('Media Properties').parentElement!
+    const section = document.querySelector('[data-property-section]') as HTMLElement
+    for (const element of [header, section]) {
+      const classes = element.className.split(/\s+/)
+      expect(classes).toEqual(
+        expect.arrayContaining(['after:bottom-0', 'after:left-px', 'after:right-0', 'after:h-px'])
+      )
+      expect(element.className).not.toMatch(/inset_0_-1px/)
+    }
+  })
+})
+
 describe('PropertiesPanel.Header', () => {
   // The strip is `space-between` — a title at one end, the dismiss button at
   // the other — so an action put in it has to join the button rather than

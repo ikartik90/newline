@@ -75,6 +75,10 @@ const TRIGGER_SELECTOR = '[data-properties-trigger]'
 const EXIT_MS = 200
 
 /** The strip's ink, stated once: the buttons in it paint in `currentColor`. */
+// A strip's or a section's foot, from past the panel's edge to its end.
+const RULE =
+  'after:content-[""] after:absolute after:bottom-0 after:left-px after:right-0 after:h-px after:bg-divider after:pointer-events-none'
+
 const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-fg-body'
 
 /** A control that fills the panel stops where the FIELD column stops. */
@@ -257,9 +261,10 @@ function PropertiesPanelHeader({
         STRIP,
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
-        // an opaque child).
+        // an opaque child). Its rule starts past that edge, as a section's does.
         'sticky top-0 z-1 bg-surface [--field-bg:var(--field-bg-on-surface)]',
-        'shadow-[inset_1px_0_0_var(--border-divider),inset_0_-1px_0_var(--border-divider)]'
+        'shadow-[inset_1px_0_0_var(--border-divider)]',
+        RULE
       )}
     >
       <Typography
@@ -337,10 +342,10 @@ function PropertiesPanelSection({
   )
 }
 
-// Sections are content-sized and the panel scrolls. The divider is a shadow,
-// for the reason the root's hairline is one — as a border each one pushed
-// every section below it another half pixel down.
-const SECTION = 'shrink-0 flex flex-col items-stretch shadow-[inset_0_-1px_0_var(--border-divider)]'
+// Sections are content-sized and the panel scrolls. The divider is drawn
+// over the section, taking no room, and starts a pixel in, past the panel's
+// edge: the two lines are glass, and laid over each other would draw darker.
+const SECTION = `relative shrink-0 flex flex-col items-stretch ${RULE}`
 
 const SECTION_TITLE =
   'flex items-center gap-1 min-w-0 [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block'

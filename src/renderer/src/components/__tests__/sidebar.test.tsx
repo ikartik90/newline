@@ -176,9 +176,14 @@ describe('Sidebar', () => {
   it('rules the footer off from the list always, scrolled or not', () => {
     renderSidebar()
     const foot = screen.getByRole('button', { name: 'Account' }).parentElement!
-    expect(foot.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['border-t', 'border-divider'])
+    const classes = foot.className.split(/\s+/)
+    expect(classes).toEqual(
+      expect.arrayContaining(['before:top-0', 'before:h-px', 'before:bg-divider'])
     )
+    // It stops a pixel short of the rail's edge, so the two glass lines never
+    // lie over each other where they meet.
+    expect(classes).toEqual(expect.arrayContaining(['before:left-0', 'before:right-px']))
+    expect(classes.some((c) => /^border(-t)?$/.test(c))).toBe(false)
   })
 
   it('creates a note and opens the search from its head', () => {
@@ -273,8 +278,9 @@ describe('Sidebar', () => {
     it('rules the head off once the notes scroll under it, and not before', () => {
       renderSidebar()
       expect(edge().className.split(/\s+/)).toEqual(
-        expect.arrayContaining(['top-0', 'border-divider', 'opacity-0'])
+        expect.arrayContaining(['top-0', 'left-0', 'right-px', 'border-divider', 'opacity-0'])
       )
+      expect(edge().className).not.toMatch(/inset-x-0/)
       scrollList(30)
       expect(shown()).toBe(true)
       scrollList(0)

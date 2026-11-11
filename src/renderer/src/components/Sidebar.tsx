@@ -80,15 +80,17 @@ const listInset = 'relative flex-1 min-h-0 overflow-hidden pl-[6.5px] pr-[0.5px]
 const listScroll = '[scrollbar-gutter:stable]'
 
 // Once the notes have scrolled under the head, a hairline rules it off from
-// them, across the rail's full width.
+// them, across the rail to its edge, short of the edge's own line.
 const listEdge =
-  'absolute top-0 inset-x-0 border-t border-divider pointer-events-none transition-opacity duration-150'
+  'absolute top-0 left-0 right-px border-t border-divider pointer-events-none transition-opacity duration-150'
 const listEdgeHidden = `${listEdge} opacity-0`
 const listEdgeShown = `${listEdge} opacity-100`
 
 // The account and settings are ruled off from the list for good, not only
-// once it scrolls: the rail's full width, 8px above them.
-const footStyle = 'flex items-center gap-1 px-[6.5px] pt-2 shrink-0 border-t border-divider'
+// once it scrolls: across the rail to its edge's line, 8px above them.
+const footStyle =
+  'relative flex items-center gap-1 px-[6.5px] pt-[9px] shrink-0 ' +
+  'before:content-[""] before:absolute before:top-0 before:left-0 before:right-px before:h-px before:bg-divider before:pointer-events-none'
 
 export default function Sidebar({
   notes,
