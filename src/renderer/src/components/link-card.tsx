@@ -56,10 +56,11 @@ const scrimStyle = 'relative flex flex-col justify-end min-h-[25%]'
 
 // The tone reassigns the wash's colour and the caption's ink together, so a
 // band pinned light stays light words on a light wash whatever the page does.
+// The washes are that theme's sidebar fill, as every surface's is.
 const toneStyle: Record<LinkCardTone, string> = {
   light:
-    '[--bg-surface:var(--color-neutral-200)] [--fg-title:var(--color-neutral-900)] [--fg-body:var(--color-neutral-900)] [--fg-default:var(--color-neutral-900)]',
-  dark: '[--bg-surface:var(--color-neutral-800)] [--fg-title:var(--color-neutral-100)] [--fg-body:var(--color-neutral-100)] [--fg-default:var(--color-neutral-100)]'
+    '[--bg-surface:#e8e8e8] [--fg-title:var(--color-neutral-900)] [--fg-body:var(--color-neutral-900)] [--fg-default:var(--color-neutral-900)]',
+  dark: '[--bg-surface:var(--color-base-800)] [--fg-title:var(--color-neutral-100)] [--fg-body:var(--color-neutral-100)] [--fg-default:var(--color-neutral-100)]'
 }
 
 // The frosting: a backdrop blur that fades out towards the top of the band,

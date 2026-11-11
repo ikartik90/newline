@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { LinkCardConfig } from '@shared/domain/link-card'
 import type { MediaNode } from '@shared/domain/nodes'
+import css from '@/assets/main.css?raw'
 import { LinkCard } from '../link-card'
 
 /** A cover is a media object; these two spell the constant parts once. */
@@ -213,6 +214,26 @@ describe('LinkCard', () => {
       />
     )
     expect(scrim()?.getAttribute('data-tone')).toBe('dark')
+  })
+
+  it("washes a pinned band in that theme's sidebar fill, as every surface is", () => {
+    const sidebar = (selector: string) =>
+      css.match(new RegExp(`\n${selector} \\{[^}]*--bg-sidebar: ([^;]+);`))![1]
+    const band = (tone: 'light' | 'dark') => {
+      cleanup()
+      render(
+        <LinkCard
+          config={{
+            media: { light: picture('/p.png') },
+            content: { title: 'Shader', tone },
+            link: external('https://p.test/')
+          }}
+        />
+      )
+      return scrim()!.className
+    }
+    expect(band('light')).toContain(`[--bg-surface:${sidebar(':root')}]`)
+    expect(band('dark')).toContain(`[--bg-surface:${sidebar('\\.dark')}]`)
   })
 
   it("lets the words follow the reader's theme when no tone is set", () => {
