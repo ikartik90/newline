@@ -172,13 +172,13 @@
 
   /* The note pane and the notes rail are a plain neutral grey, without the
      cool cast of the scale; the rail a step darker than the pane, as it is a
-     step lighter in the dark theme. Its ground is its own, apart from the
-     surfaces popovers and dialogs stand on. */
+     step lighter in the dark theme. Popovers, dialogs and toolbars stand on
+     the rail's ground. */
   --bg-canvas: #f5f5f5;
-  --bg-surface: var(--color-neutral-200);
   --bg-sidebar: #e8e8e8;
-  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-200) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--color-neutral-200));
+  --bg-surface: var(--bg-sidebar);
+  --bg-surface-glass: color-mix(in srgb, var(--bg-sidebar) 75%, transparent);
+  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--bg-sidebar));
   --bg-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --bg-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --bg-list-marker: var(--color-neutral-200);
@@ -278,10 +278,10 @@
 
   /* The base palette's two darkest shades, the rail the lighter. */
   --bg-canvas: var(--color-base-900);
-  --bg-surface: var(--color-neutral-800);
   --bg-sidebar: var(--color-base-800);
-  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--color-neutral-800));
+  --bg-surface: var(--bg-sidebar);
+  --bg-surface-glass: color-mix(in srgb, var(--bg-sidebar) 75%, transparent);
+  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--bg-sidebar));
   --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
   --bg-list-marker: var(--color-neutral-800);
   --bg-selection: var(--color-brand-pink);

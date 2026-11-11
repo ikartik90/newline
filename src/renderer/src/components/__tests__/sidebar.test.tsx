@@ -344,11 +344,16 @@ describe('Sidebar', () => {
       expect(mask).not.toMatch(/at 50% \d|to bottom/)
     })
 
-    it('is a colour of its own, apart from the surfaces popovers and dialogs use', () => {
+    it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
       const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
       expect(block('\\.dark')).toMatch(/--bg-sidebar: var\(--color-base-800\);/)
       expect(block(':root')).toMatch(/--bg-sidebar: #e8e8e8;/)
       expect(css).toMatch(/--color-sidebar: var\(--bg-sidebar\);/)
+      for (const theme of [block(':root'), block('\\.dark')]) {
+        expect(theme).toMatch(/--bg-surface: var\(--bg-sidebar\);/)
+        expect(theme).toMatch(/--bg-surface-glass: color-mix\(in srgb, var\(--bg-sidebar\) 75%/)
+        expect(theme).toMatch(/--bg-surface-raised: color-mix\([^;]*, var\(--bg-sidebar\)\);/)
+      }
     })
 
     it('fills the list and the footer solid', () => {
