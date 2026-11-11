@@ -105,17 +105,17 @@
   --color-base-800: #2f292b;
   --color-base-900: #1a1416;
 
-  /* mango: hue 79.28, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
-  --color-mango-50: #fdecd1;
-  --color-mango-100: #f7dcb1;
-  --color-mango-200: #e9bb6f;
-  --color-mango-300: #da9a00;
-  --color-mango-400: #cb7700;
-  --color-mango-500: #a56100;
-  --color-mango-600: #814c00;
-  --color-mango-700: #5e3800;
-  --color-mango-800: #3d2500;
-  --color-mango-900: #201401;
+  /* honey: hue 79.28, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-honey-50: #fdecd1;
+  --color-honey-100: #f7dcb1;
+  --color-honey-200: #e9bb6f;
+  --color-honey-300: #da9a00;
+  --color-honey-400: #cb7700;
+  --color-honey-500: #a56100;
+  --color-honey-600: #814c00;
+  --color-honey-700: #5e3800;
+  --color-honey-800: #3d2500;
+  --color-honey-900: #201401;
 
   --radius-xs: 2px;
   --radius-sm: 4px;
