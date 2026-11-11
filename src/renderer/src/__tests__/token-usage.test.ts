@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 //    they resolve to `--color-field`, the field's FILL, and compile to
 //    `border-color: var(--field-bg)`. The frame then draws at the fill's alpha
 //    (light 15% where 25% was meant, dark 25% where 50% was), and the active
-//    one is worse: it paints the opaque rosemilk/rust fill over a background
+//    one is worse: it paints the opaque brand-tinted fill over a background
 //    already using it, so a focused field loses its edge.
 //
 //    The spellings are deliberately NOT written out anywhere in this file:

@@ -49,12 +49,6 @@
   --color-neutral-800: #2e3338;
   --color-neutral-900: #1f2123;
 
-  --color-brand-orange: #ffab6f;
-  --color-brand-pink: #ff4d97;
-  /* The bright hue at 15% over its theme's canvas. */
-  --color-brand-rust: color-mix(in srgb, #ffab6f 15%, #1f2123);
-  --color-brand-rosemilk: color-mix(in srgb, #ff4d97 15%, #eef2f6);
-
   /* Palettes from palettes.html: ten shades a hue, 50 lightest to 900 darkest,
      all in oklch. */
   /* base: hue 0, chroma peaking at 900, lightness 20–95%, min chroma 0.01 */
@@ -198,19 +192,19 @@
   --bg-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --bg-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --bg-list-marker: var(--color-neutral-200);
-  --bg-selection: var(--color-brand-orange);
-  --bg-highlight: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
+  --bg-selection: var(--color-sky-400);
+  --bg-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
   --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  /* The theme's brand colour, flat: pink here, orange in the dark. */
-  --bg-branded: var(--color-brand-pink);
+  /* The brand colour, flat: Sky 400 in both themes. */
+  --bg-branded: var(--color-sky-400);
 
   --fg-default: var(--color-neutral-700);
   --fg-title: var(--color-neutral-900);
   --fg-body: var(--color-neutral-500);
   --fg-branded: var(--color-neutral-900);
   --fg-selection: var(--color-neutral-900);
-  --fg-highlight: var(--color-brand-pink);
+  --fg-highlight: var(--color-sky-400);
 
   /* Status inks. kartik.to has no success/warning/danger family — it paints
      every notice in the brand colour — but sync state has to say WHICH state
@@ -230,24 +224,24 @@
 
   --border-divider: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
-  --border-focus-ring: var(--color-brand-pink);
+  --border-focus-ring: var(--color-sky-400);
 
   --field-bg: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
-  --field-bg-active: var(--color-brand-rosemilk);
-  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
-  --field-bg-popover: var(--color-brand-rosemilk);
+  --field-bg-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
+  --field-bg-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --field-bg-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
   --field-bg-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
   --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-pink) 10%, transparent);
+  --field-bg-hover-brand: color-mix(in srgb, var(--color-sky-400) 10%, transparent);
   --field-border: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
+  --field-border-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
   --field-fg: var(--color-neutral-600);
   --field-fg-muted: color-mix(in srgb, var(--color-neutral-600) 50%, var(--color-neutral-200));
   --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-600) 25%, transparent);
-  --field-fg-active: var(--color-brand-pink);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
+  --field-fg-active: var(--color-sky-400);
+  --field-fg-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.25;
 
@@ -300,44 +294,45 @@
   --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--bg-sidebar));
   --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
   --bg-list-marker: var(--color-neutral-800);
-  --bg-selection: var(--color-brand-pink);
-  --bg-highlight: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
+  --bg-selection: var(--color-sky-400);
+  --bg-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
   --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --bg-branded: var(--color-brand-orange);
+  --bg-branded: var(--color-sky-400);
 
   --fg-default: var(--color-neutral-200);
   --fg-title: var(--color-neutral-100);
   --fg-body: var(--color-neutral-400);
-  --fg-highlight: var(--color-brand-orange);
+  --fg-highlight: var(--color-sky-400);
 
   --fg-danger: #ff9aa8;
   --fg-warning: #ffc766;
   --fg-success: #5fd6a8;
   --fg-info: #8fb6ff;
 
-  --fg-syntax-secondary: var(--color-brand-orange);
+  /* The second accent, apart from the brand's ink as the light theme's is. */
+  --fg-syntax-secondary: #ffab6f;
 
   --border-divider: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --border-focus-ring: var(--color-brand-orange);
+  --border-focus-ring: var(--color-sky-400);
 
   --field-bg: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --field-bg-active: var(--color-brand-rust);
-  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
-  --field-bg-popover: var(--color-brand-rust);
+  --field-bg-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
+  --field-bg-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --field-bg-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
   --field-bg-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
   --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-orange) 5%, transparent);
+  --field-bg-hover-brand: color-mix(in srgb, var(--color-sky-400) 5%, transparent);
   --field-border: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
+  --field-border-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
   --field-fg: var(--color-neutral-400);
   --field-fg-muted: color-mix(in srgb, var(--color-neutral-400) 50%, var(--color-neutral-800));
   --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-400) 25%, transparent);
-  --field-fg-active: var(--color-brand-orange);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
+  --field-fg-active: var(--color-sky-400);
+  --field-fg-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.5;
 }
