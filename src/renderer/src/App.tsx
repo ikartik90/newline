@@ -52,12 +52,12 @@ const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 // spacing is inside it. Its first 48px are under the bar. Beside the rail a
 // hairline is the only line between the two; alone it needs none.
 const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
-const notePaneBesideRail = `${notePane} border-l-[0.5px] border-divider`
+const notePaneBesideRail = `${notePane} border-l border-divider`
 
 // Once the note has scrolled under the bar, a hairline rules the bar off from
 // it. It stands on the note column's top, which is the bar's foot.
 const noteEdge =
-  'absolute top-0 inset-x-0 border-t-[0.5px] border-divider pointer-events-none transition-opacity duration-150'
+  'absolute top-0 inset-x-0 border-t border-divider pointer-events-none transition-opacity duration-150'
 const noteEdgeHidden = `${noteEdge} opacity-0`
 const noteEdgeShown = `${noteEdge} opacity-100`
 

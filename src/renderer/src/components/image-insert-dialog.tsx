@@ -38,14 +38,14 @@ const libraryBodyStyle = 'flex flex-auto items-stretch w-full min-h-0'
 // The frame around the listbox: width, divider and inset. The listbox owns
 // the scrolling.
 const sidebarStyle =
-  'w-(--size-library-sidebar) shrink-0 self-stretch flex flex-col min-h-0 overflow-hidden py-2 px-1 border-r-[0.5px] border-solid border-divider'
+  'w-(--size-library-sidebar) shrink-0 self-stretch flex flex-col min-h-0 overflow-hidden py-2 px-1 border-r border-solid border-divider'
 
 // The sidebar owns the frame, so the list's own popover framing — its inset
 // and its 7-row cap — is taken off and the list fills the column.
 const libraryListStyle = 'flex-auto min-h-0 max-h-none! p-0!'
 
 const thumbnailStyle = cx(
-  'relative shrink-0 size-8 rounded-xs border-[0.5px] border-solid border-divider overflow-hidden',
+  'relative shrink-0 size-8 rounded-xs border border-solid border-divider overflow-hidden',
   'flex items-center justify-center [&>svg]:size-5 [&>svg]:text-fg-body/50',
   '[&_:is(img,video)]:absolute [&_:is(img,video)]:inset-0 [&_:is(img,video)]:size-full [&_:is(img,video)]:object-cover [&_:is(img,video)]:block'
 )

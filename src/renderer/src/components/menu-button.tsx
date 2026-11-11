@@ -67,7 +67,7 @@ const rowStyle = 'flex items-center gap-0.5'
 // reads as a single box changing what it says rather than two chips trading
 // places. Then the handover described above.
 const shortcutStyle =
-  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-surface text-fg-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
+  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-surface text-fg-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
 
 // The `menuPopover` recipe, expanded: a 200px column on the surface.
 export const menuPopupStyle =
@@ -81,7 +81,7 @@ export const menuItemIconStyle = 'shrink-0 size-5'
 // The `hotkey` recipe inside a menu: the wash a hovered row wears, held against
 // the far end of the row.
 const itemShortcutStyle =
-  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
 
 export function MenuButton({
   items,

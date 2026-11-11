@@ -217,7 +217,7 @@ function PropertiesPanelRoot({
           // Docked, not floating: no radius, and the hairline on the one edge
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
-          'bg-surface shadow-[inset_0.5px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+          'bg-surface shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
           // Fields on the panel's surface take the on-surface fill.
           '[--field-bg:var(--field-bg-on-surface)]',
           // The panel IS the scroll container; the sticky header stays put.
@@ -259,7 +259,7 @@ function PropertiesPanelHeader({
         // and the panel's edge redrawn (the root's inset hairline paints under
         // an opaque child).
         'sticky top-0 z-1 bg-surface [--field-bg:var(--field-bg-on-surface)]',
-        'shadow-[inset_0.5px_0_0_var(--border-divider),inset_0_-0.5px_0_var(--border-divider)]'
+        'shadow-[inset_1px_0_0_var(--border-divider),inset_0_-1px_0_var(--border-divider)]'
       )}
     >
       <Typography
@@ -340,8 +340,7 @@ function PropertiesPanelSection({
 // Sections are content-sized and the panel scrolls. The divider is a shadow,
 // for the reason the root's hairline is one — as a border each one pushed
 // every section below it another half pixel down.
-const SECTION =
-  'shrink-0 flex flex-col items-stretch shadow-[inset_0_-0.5px_0_var(--border-divider)]'
+const SECTION = 'shrink-0 flex flex-col items-stretch shadow-[inset_0_-1px_0_var(--border-divider)]'
 
 const SECTION_TITLE =
   'flex items-center gap-1 min-w-0 [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block'

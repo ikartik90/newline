@@ -167,7 +167,7 @@ describe('Sidebar', () => {
     renderSidebar()
     const foot = screen.getByRole('button', { name: 'Account' }).parentElement!
     expect(foot.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['border-t-[0.5px]', 'border-divider'])
+      expect.arrayContaining(['border-t', 'border-divider'])
     )
   })
 

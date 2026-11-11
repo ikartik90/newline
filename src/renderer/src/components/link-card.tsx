@@ -31,7 +31,7 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 const rootStyle = cx(
   'relative flex flex-col justify-end aspect-video w-full min-w-0 rounded-xl overflow-hidden',
   'bg-surface [--field-bg:var(--field-bg-on-surface)] no-underline',
-  'after:content-[""] after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-solid after:border-divider after:pointer-events-none',
+  'after:content-[""] after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-divider after:pointer-events-none',
   // Over a picture the caption takes the theme's STRONGEST ink — done by
   // reassigning the tokens the words resolve through, so `Typography` need
   // not know it is standing on a picture.

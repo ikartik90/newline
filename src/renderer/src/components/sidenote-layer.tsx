@@ -21,7 +21,7 @@ import type { SidenoteEntry } from '@/utils/sidenotes'
 // at the START of the reveal so Edit auto-focus has something to land on.
 const cardStyle =
   'fixed z-40 flex flex-col gap-1 p-2 max-w-(--size-sidenote-max-width) ' +
-  'bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md border-[0.5px] border-divider ' +
+  'bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md border border-divider ' +
   'shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] text-fg ' +
   'opacity-0 invisible pointer-events-none transition-[opacity,visibility] duration-[120ms] ease-out [transition-behavior:allow-discrete] ' +
   'data-[active]:opacity-100 data-[active]:visible data-[active]:pointer-events-auto'
@@ -44,7 +44,7 @@ const bodyStyle =
 // selection toolbar (an Esc key-cap followed by a muted label).
 const hintStyle = 'flex items-center gap-1 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border-[0.5px] border-divider bg-item-hover text-fg text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-divider bg-item-hover text-fg text-style-caption whitespace-nowrap'
 const hintLabelStyle = 'text-fg/50 text-style-caption whitespace-nowrap'
 
 // Horizontal geometry (mirrors the `--size-sidenote-*` tokens in main.css).

@@ -80,7 +80,7 @@ const editRailStyle = 'flex items-center gap-2 h-10 px-1.5 w-80'
 // "Esc to exit" — a key-cap and a muted label (the `inlineEditRow` hint).
 const hintStyle = 'flex items-center gap-1 shrink-0 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border-[0.5px] border-divider bg-item-hover text-fg text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-divider bg-item-hover text-fg text-style-caption whitespace-nowrap'
 const hintLabelStyle = 'text-fg/50 text-style-caption whitespace-nowrap'
 // Pairs with a stylesheet that positions against the same target.
 const selectionAnchor = '--selection-popover'

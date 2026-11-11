@@ -222,7 +222,9 @@
      `--bg-surface` (the code block's ground) rather than on the canvas. */
   --fg-syntax-secondary: #8a4b00;
 
-  --border-divider: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  /* Glass: the theme's ink, faint enough for what is behind a line to show
+     through it. */
+  --border-divider: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --border-focus-ring: var(--color-sky-400);
 
@@ -313,7 +315,7 @@
   /* The second accent, apart from the brand's ink as the light theme's is. */
   --fg-syntax-secondary: #ffab6f;
 
-  --border-divider: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --border-divider: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
   --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
   --border-focus-ring: var(--color-sky-400);
 

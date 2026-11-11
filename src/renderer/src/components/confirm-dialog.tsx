@@ -67,7 +67,7 @@ interface Answer {
 // Its 12px inset lands the title on the line the row icons sit on (group 4px +
 // row 8px).
 const headerStyle =
-  'flex items-center gap-2 h-10 px-3 border-b-[0.5px] border-divider shrink-0 text-fg-body'
+  'flex items-center gap-2 h-10 px-3 border-b border-divider shrink-0 text-fg-body'
 const titleStyle = 'm-0 p-0 text-style-body-sm text-fg-body [font-weight:inherit] text-balance'
 
 // Inset to the header's 12px, so the title, the question and the row icons
@@ -87,7 +87,7 @@ const iconStyle = 'shrink-0 size-5'
 // The row's key, held against the far end of it — the palette's chip, on the
 // wash a hovered row wears so the hint sits at the depth of the thing it hints.
 const hotkeyStyle =
-  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
 
 export function ConfirmDialog({
   open,

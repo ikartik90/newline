@@ -23,7 +23,10 @@ import { describe, expect, it } from 'vitest'
 //    `--color-field` to get the on-surface fill reassigns nothing; the variable
 //    the utilities actually read is `--field-bg`.
 //
-// 3. Tailwind looks a width up in `--spacing-*` before `--container-*`, so
+// 3. Every divider is a 1px line. A class list drawing in the divider token
+//    at half a pixel is a hairline left over from before.
+//
+// 4. Tailwind looks a width up in `--spacing-*` before `--container-*`, so
 //    with the named spacing scale a container width written by name sizes
 //    the box by the spacing step instead: the 24rem column is 4px.
 //
@@ -34,6 +37,13 @@ import { describe, expect, it } from 'vitest'
 
 const HERE = decodeURIComponent(new URL(import.meta.url).pathname)
 const RENDERER_SRC = HERE.slice(0, HERE.indexOf('/__tests__/'))
+
+// The class lists as written, for checks that need a class's neighbours.
+const SOURCES = import.meta.glob(['../**/*.ts', '../**/*.tsx', '!../**/__tests__/**'], {
+  query: '?raw',
+  import: 'default',
+  eager: true
+}) as Record<string, string>
 
 let scanned: string[] | null = null
 function candidates(): string[] {
@@ -64,6 +74,18 @@ describe('token usage', () => {
 
   it('overrides the field fill through the variable the utilities read', () => {
     expect(candidates().filter((c) => c.includes('--color-field:'))).toEqual([])
+  })
+
+  it('draws every divider a full pixel wide', () => {
+    const halfPixel = Object.entries(SOURCES).flatMap(([file, source]) =>
+      [...source.matchAll(/'[^'\n]*'|"[^"\n]*"|`[^`]*`/g)]
+        .map(([literal]) => literal)
+        .filter((literal) => literal.includes('divider') && literal.includes('0.5px'))
+        .map((literal) => `${file}: ${literal}`)
+    )
+
+    expect(Object.keys(SOURCES).length).toBeGreaterThan(50)
+    expect(halfPixel).toEqual([])
   })
 
   it('sizes no width by a container name the spacing scale shadows', () => {

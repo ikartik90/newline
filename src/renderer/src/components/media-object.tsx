@@ -174,7 +174,7 @@ export function MediaObject({
 export const mediaObjectRailStyle = cx(
   'flex items-center gap-1 h-10 px-[6px] rounded-md w-max bg-surface [--field-bg:var(--field-bg-on-surface)]',
   'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[3]',
-  'border-[0.5px] border-solid border-divider shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+  'border border-solid border-divider shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
   'overflow-hidden max-w-[calc(100%-24px)]',
   'opacity-0 pointer-events-none transition-opacity duration-150',
   'group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto',

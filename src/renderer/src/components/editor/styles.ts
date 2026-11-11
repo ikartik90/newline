@@ -17,9 +17,9 @@ export const editorCodeBlockStyle =
 export const editorCodeBlockWrapperStyle = 'relative group/code'
 
 export const editorCodeLanguageSelectStyle =
-  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border-[0.5px] border-solid border-divider [--field-bg:var(--field-bg-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
+  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border border-solid border-divider [--field-bg:var(--field-bg-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
 
-export const editorHrStyle = 'border-none h-[0.5px] bg-divider my-0'
+export const editorHrStyle = 'border-none h-px bg-divider my-0'
 
 export const editorHrShellStyle = 'relative w-full py-8'
 
@@ -36,7 +36,7 @@ export const mediaBlockStyles = {
   root: 'relative grid self-stretch w-full',
   /** The positioned box the ground fills and a clip's transport pins to. */
   frame: 'relative flex w-full min-w-0 rounded-xl',
-  image: 'w-full block border-[0.5px] border-solid border-divider relative z-[1]'
+  image: 'w-full block border border-solid border-divider relative z-[1]'
 }
 
 export const editorImgStyle = `${mediaBlockStyles.image} ${editorShowcaseMediaStyle}`
@@ -47,7 +47,7 @@ export const editorImageOverlayStyle =
   'absolute inset-0 flex items-center justify-center pointer-events-auto'
 
 export const editorImageOverlayTintStyle =
-  'absolute inset-0 bg-canvas border-[0.5px] border-solid border-divider rounded-xl pointer-events-none opacity-85'
+  'absolute inset-0 bg-canvas border border-solid border-divider rounded-xl pointer-events-none opacity-85'
 
 export const editorImageOverlayActionsStyle =
   'relative z-[1] flex items-center justify-center gap-2'

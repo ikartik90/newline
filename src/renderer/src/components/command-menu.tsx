@@ -60,7 +60,7 @@ export const RECENT_LIMIT = 8
 // Its 12px inset lands the field on the line the row icons sit on (group 4px +
 // row 8px).
 const headerStyle =
-  'flex items-center gap-2 h-10 px-3 border-b-[0.5px] border-divider shrink-0 text-fg-body'
+  'flex items-center gap-2 h-10 px-3 border-b border-divider shrink-0 text-fg-body'
 const inputStyle =
   'flex-1 min-w-0 bg-transparent border-none outline-none text-style-body-sm text-fg-body placeholder:text-fg-body/25'
 const iconStyle = 'shrink-0 size-5'
@@ -89,7 +89,7 @@ const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-fg-body/50 white
 // The `hotkey` recipe on a menu: the wash a hovered row wears, so the hint
 // sits at the depth of the thing it hints.
 const hotkeyStyle =
-  'flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
 const itemHotkeyStyle = `ml-auto ${hotkeyStyle}`
 
 export function CommandMenu({ open, onClose, actions, onOpenNote }: CommandMenuProps) {
