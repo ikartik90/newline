@@ -315,49 +315,37 @@ describe('Sidebar', () => {
   })
 
   describe('its fill', () => {
-    const classes = (selector: string) =>
-      (document.querySelector(selector) as HTMLElement).className.split(/\s+/)
     const scrollList = (top: number) => {
       const scroller = document.querySelector('.\\[scrollbar-gutter\\:stable\\]') as HTMLElement
       scroller.scrollTop = top
       fireEvent.scroll(scroller)
     }
 
-    it('stands its menu and the Notes heading on the glass, however many items the menu has', () => {
-      renderSidebar()
-      const sidebar = screen.getByRole('complementary', { name: 'Notes' })
-      expect(sidebar.className.split(/\s+/)).toContain('isolate')
-      // The glass is drawn behind the box that holds the menu and the heading,
-      // so an item added to the menu grows it, and the glass with it.
-      const fill = document.querySelector('[data-rail-fill]') as HTMLElement
-      const top = fill.parentElement!
-      expect(top.contains(screen.getByRole('button', { name: 'New note' }))).toBe(true)
-      expect(top.contains(screen.getByRole('button', { name: 'Search' }))).toBe(true)
-      expect(top.contains(screen.getByText('Notes', { selector: 'div' }))).toBe(true)
-      expect(top.contains(row('Apples'))).toBe(false)
-      // It reaches up through the top bar's 48px, behind what it holds.
-      expect(classes('[data-rail-fill]')).toEqual(
-        expect.arrayContaining(['absolute', '-top-12', 'bottom-0', '-z-10', 'bg-sidebar'])
+    // A macOS sidebar is the window's vibrancy, top to bottom, with nothing
+    // painted over it: no fill, no tint, no mask.
+    const painted = () =>
+      [
+        screen.getByRole('complementary', { name: 'Notes' }),
+        ...screen.getByRole('complementary', { name: 'Notes' }).querySelectorAll('*')
+      ].filter((el) =>
+        (el.getAttribute('class') ?? '')
+          .split(/\s+/)
+          .some((c) => /^(bg-(sidebar|surface|canvas)|mask-)/.test(c))
       )
-      expect(classes('[data-rail-fill]')).toContain('mask-rail-glass')
+
+    it('stands wholly on the window’s glass, as a macOS sidebar does', () => {
+      renderSidebar()
+      expect(painted()).toEqual([])
+      expect(
+        document.querySelector('[data-rail-fill], [data-rail-fill-top], [data-rail-body-fill]')
+      ).toBeNull()
+      expect(css).not.toMatch(/mask-rail-glass/)
     })
 
-    it('measures the dome from the Notes heading, not from the window’s top', () => {
-      const mask = css
-        .match(/@utility mask-rail-glass \{([^}]*)\}/)![1]
-        .replace(/\s+/g, ' ')
-        .replace(/\( /g, '(')
-        .replace(/ \)/g, ')')
-      // A wide, flat ellipse centred 106px below the heading's foot: whole
-      // 24px above the foot mid-rail, where the heading's text starts, and
-      // only 10px lower at the sides. From about 100px above the foot it
-      // thins to a 40% tint of the fill, never clear, so text over the glass
-      // reads. It is solid all the way down to the foot by itself.
-      expect(mask).toMatch(
-        /radial-gradient\(ellipse 200% 200px at 50% calc\(100% \+ 106px\), black 65%, rgb\(0 0 0 \/ 40%\) 103%\)/
-      )
-      // Nothing in it is placed from the top.
-      expect(mask).not.toMatch(/at 50% \d|to bottom/)
+    it('stays clear as the notes scroll under its head', () => {
+      renderSidebar()
+      scrollList(30)
+      expect(painted()).toEqual([])
     })
 
     it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
@@ -370,30 +358,6 @@ describe('Sidebar', () => {
         expect(theme).toMatch(/--bg-surface-glass: color-mix\(in srgb, var\(--bg-sidebar\) 75%/)
         expect(theme).toMatch(/--bg-surface-raised: color-mix\([^;]*, var\(--bg-sidebar\)\);/)
       }
-    })
-
-    it('fills the list and the footer solid', () => {
-      renderSidebar()
-      const body = document.querySelector('[data-rail-body-fill]') as HTMLElement
-      expect(body.className.split(/\s+/)).toEqual(
-        expect.arrayContaining(['absolute', '-z-10', 'bg-sidebar'])
-      )
-      expect(body.className).not.toMatch(/mask/)
-      expect(body.parentElement!.contains(row('Apples'))).toBe(true)
-      expect(body.parentElement!.contains(screen.getByRole('button', { name: 'Account' }))).toBe(
-        true
-      )
-    })
-
-    it('fills in over the glass once the notes scroll, and clears again at the top', () => {
-      renderSidebar()
-      expect(classes('[data-rail-fill-top]')).toEqual(
-        expect.arrayContaining(['bg-sidebar', '-top-12', 'bottom-0', 'opacity-0'])
-      )
-      scrollList(30)
-      expect(classes('[data-rail-fill-top]')).toContain('opacity-100')
-      scrollList(0)
-      expect(classes('[data-rail-fill-top]')).toContain('opacity-0')
     })
   })
 })

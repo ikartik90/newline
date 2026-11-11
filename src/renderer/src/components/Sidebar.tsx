@@ -33,31 +33,18 @@ const VIRTUALISE_FROM = 100
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
-// It isolates its fill, which stands behind its contents.
 const sidebarShell =
-  'relative isolate flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
+  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
 
-// The rail is solid, but for its top, where the window's glass shows. The
-// menu and the Notes heading share a box whose fill reaches up through the top
-// bar and is cleared above a gentle dome measured from the heading (main.css),
-// so an item added to the menu stands on the glass and grows it. Once the
-// notes scroll under the head, the top fills in as well. The list and the
-// footer have a plain solid fill, down through the rail's bottom padding.
+// The rail paints nothing: as in any macOS sidebar, the window's vibrancy
+// shows through it top to bottom, and only the note pane beside it is solid.
 const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
-const railFill =
-  'absolute inset-x-0 -top-12 bottom-0 -z-10 bg-sidebar pointer-events-none mask-rail-glass'
-const railFillTop =
-  'absolute inset-x-0 -top-12 bottom-0 -z-10 bg-sidebar pointer-events-none transition-opacity duration-150'
-const railFillTopClear = `${railFillTop} opacity-0`
-const railFillTopSolid = `${railFillTop} opacity-100`
-const railBodyFill = 'absolute inset-x-0 top-0 -bottom-2 -z-10 bg-sidebar pointer-events-none'
-// The divider is glass, so the ground under it sets its weight: on the rail's
-// fill, as the footer's rule is, the two read alike; on the canvas it read
-// fainter. Collapsed, the rail's clip hides it.
+// The rail's edge stands on the rail, on the same glass as the footer's rule,
+// so the two read alike. Collapsed, the rail's clip hides it.
 const railEdge = 'absolute inset-y-0 right-0 w-px bg-divider pointer-events-none'
 
 // New note and Search head the rail as rows, their glyphs on the line the
@@ -178,12 +165,6 @@ export default function Sidebar({
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
       <div className={railTop}>
-        <div aria-hidden data-rail-fill="" className={railFill} />
-        <div
-          aria-hidden
-          data-rail-fill-top=""
-          className={listScrolled.scrolled ? railFillTopSolid : railFillTopClear}
-        />
         {!collapsed && (
           <div className={headStyle}>
             <button
@@ -214,7 +195,6 @@ export default function Sidebar({
         {!collapsed && <div className={sectionLabelStyle}>Notes</div>}
       </div>
       <div className={railBody}>
-        <div aria-hidden data-rail-body-fill="" className={railBodyFill} />
         {!collapsed && (
           <div ref={listRef} className={listInset}>
             {notes.length === 0 ? (

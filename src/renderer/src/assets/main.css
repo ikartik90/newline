@@ -745,22 +745,6 @@
   }
 }
 
-/* The sidebar's fill behind its menu and Notes heading, cleared where the
-   window's glass shows. Everything is measured up from the box's foot — the
-   heading's — so the glass grows with the menu. A wide, flat ellipse centred
-   106px below the foot leaves a gentle dome: whole 24px above the foot
-   mid-rail, where the heading's text starts, and only 10px lower at the
-   sides. From about 100px above the foot it thins to a 40% tint of the fill
-   and goes no clearer, so the glass shows through but text over it still
-   reads. The ellipse is solid down to the foot by itself. */
-@utility mask-rail-glass {
-  mask-image: radial-gradient(
-    ellipse 200% 200px at 50% calc(100% + 106px),
-    black 65%,
-    rgb(0 0 0 / 40%) 103%
-  );
-}
-
 :root {
   --check-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.05994 10.1813L9.14253 12.6249L12.9396 7.62488' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --cross-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.5 7.5L7.5 12.5M12.5 12.5L7.5 7.5' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -790,7 +774,7 @@
 
   /* On macOS the window behind the page is frosted glass (main/index.ts sets
      the sidebar material), and it shows wherever the page paints nothing:
-     the top bar, and the top of the sidebar above its Notes heading. */
+     the top bar and the whole sidebar. */
   html[data-frosted] body {
     background: transparent;
     overflow: hidden;
