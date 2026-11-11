@@ -59,15 +59,23 @@ const textEmphasis: Record<ActionEmphasis, string> = {
 // the pixel grid.
 const iconStyle =
   'relative inline-flex items-center justify-center gap-1 p-1 rounded-lg squircle text-inherit text-style-body-sm active:transform-none active:bg-field-pressed aria-pressed:bg-field-active aria-pressed:text-field-fg-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-focus-ring)]'
-const iconEmphasis: Record<ActionEmphasis, string> = {
-  primary: 'bg-branded text-fg-branded',
-  // Tertiary by nature: transparent at rest, the neutral wash on hover.
-  secondary: 'bg-transparent not-aria-pressed:hover:bg-field-hover',
+// An icon button is tertiary or glass — never a filled or branded chip.
+type IconEmphasis = Extract<ActionEmphasis, 'tertiary' | 'glass'>
+const iconEmphasis: Record<IconEmphasis, string> = {
   tertiary: 'bg-transparent not-aria-pressed:hover:bg-field-hover',
   // The one chip that floats ON a picture: the surface at 75% and the app's
   // one blur keep the glyph legible over whatever moves underneath; opaque on
   // hover, the chip comes forward as you reach for it.
   glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
+}
+
+/**
+ * The emphasis an action wears: `secondary` for text, `tertiary` for an icon. An icon
+ * asked for `primary` or `secondary` gets `tertiary`, since it has only that and glass.
+ */
+export function resolveEmphasis(variant: ActionVariant, emphasis?: ActionEmphasis): ActionEmphasis {
+  if (variant !== 'icon') return emphasis ?? (variant === 'text' ? 'secondary' : 'tertiary')
+  return emphasis === 'glass' ? 'glass' : 'tertiary'
 }
 
 // The inline underlined affordance, in the brand ink.
@@ -80,7 +88,7 @@ export function actionStyles({ variant, emphasis }: ActionStyleOptions): string 
     case 'text':
       return `${baseStyle} ${textStyle} ${textEmphasis[emphasis]}`
     case 'icon':
-      return `${baseStyle} ${iconStyle} ${iconEmphasis[emphasis]}`
+      return `${baseStyle} ${iconStyle} ${iconEmphasis[emphasis === 'glass' ? 'glass' : 'tertiary']}`
     case 'link':
       return `${baseStyle} ${linkStyle}`
   }

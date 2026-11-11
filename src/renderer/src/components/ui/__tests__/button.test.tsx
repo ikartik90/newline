@@ -100,13 +100,27 @@ describe('Button', () => {
       expect(screen.getByRole('button', { name: 'Close' }).dataset.emphasis).toBe('tertiary')
     })
 
-    it('lets an explicit emphasis override the inferred default', () => {
+    it('lets an icon button be glass, the one other emphasis it has', () => {
       render(
-        <Button variant="icon" emphasis="secondary" aria-label="Close">
+        <Button emphasis="glass" aria-label="Play">
           <svg />
         </Button>
       )
-      expect(screen.getByRole('button', { name: 'Close' }).dataset.emphasis).toBe('secondary')
+      expect(screen.getByRole('button', { name: 'Play' }).dataset.emphasis).toBe('glass')
+    })
+
+    it('never gives an icon button a primary or secondary chip', () => {
+      for (const emphasis of ['primary', 'secondary'] as const) {
+        const { unmount } = render(
+          <Button emphasis={emphasis} aria-label="Close">
+            <svg />
+          </Button>
+        )
+        const button = screen.getByRole('button', { name: 'Close' })
+        expect(button.dataset.emphasis).toBe('tertiary')
+        expect(button.className).not.toContain('bg-branded')
+        unmount()
+      }
     })
   })
 

@@ -3,6 +3,7 @@ import {
   ActionText,
   ActionTooltipHost,
   actionStyles,
+  resolveEmphasis,
   useActionTooltip,
   type ActionEmphasis,
   type ActionVariant
@@ -33,7 +34,8 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   variant?: ActionVariant
   /**
    * Fill prominence, independent of `variant` (the shape). Left unset it
-   * defaults to `secondary` for text links and `tertiary` for icon links.
+   * defaults to `secondary` for text links and `tertiary` for icon links,
+   * which take only `tertiary` or `glass`.
    */
   emphasis?: ActionEmphasis
 }
@@ -55,7 +57,7 @@ function LinkRoot(
 ) {
   const { content, hasText, tooltip, hasTooltip, visible, show, hide } = useActionTooltip(children)
   const resolvedVariant = variant ?? (hasText ? 'text' : 'icon')
-  const resolvedEmphasis = emphasis ?? (resolvedVariant === 'text' ? 'secondary' : 'tertiary')
+  const resolvedEmphasis = resolveEmphasis(resolvedVariant, emphasis)
   // Never ship a target="_blank" without the reverse-tabnabbing guard.
   const safeRel = rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)
   const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis })

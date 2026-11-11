@@ -3,6 +3,7 @@ import {
   ActionText,
   ActionTooltipHost,
   actionStyles,
+  resolveEmphasis,
   useActionTooltip,
   type ActionEmphasis,
   type ActionVariant
@@ -44,7 +45,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ActionVariant
   /**
    * Fill prominence, independent of `variant` (the shape). Left unset it
-   * defaults to `secondary` for text buttons and `tertiary` for icon buttons.
+   * defaults to `secondary` for text buttons and `tertiary` for icon buttons,
+   * which take only `tertiary` or `glass`.
    */
   emphasis?: ActionEmphasis
 }
@@ -64,7 +66,7 @@ function ButtonRoot(
 ) {
   const { content, hasText, tooltip, hasTooltip, visible, show, hide } = useActionTooltip(children)
   const resolvedVariant = variant ?? (hasText ? 'text' : 'icon')
-  const resolvedEmphasis = emphasis ?? (resolvedVariant === 'text' ? 'secondary' : 'tertiary')
+  const resolvedEmphasis = resolveEmphasis(resolvedVariant, emphasis)
   const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis })
 
   const button = (
