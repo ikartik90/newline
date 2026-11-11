@@ -321,10 +321,11 @@ describe('Sidebar', () => {
       fireEvent.scroll(scroller)
     }
 
-    // A macOS sidebar is solid at its centre, and the window's vibrancy shows
-    // only in a rim that fades in from every edge, rounded at the corners: one
-    // tint in the sidebar's fill, inset from its edges and blurred, is all the
-    // rail paints.
+    // A macOS sidebar is solid towards the app's centre: the window's vibrancy
+    // comes in only from its outer edges (left, top and bottom), fading out
+    // gradually in a rounded shape, while its side against the note pane is
+    // solid to the edge. One tint in the sidebar's fill, reaching past that
+    // side and blurred wide, is all the rail paints.
     const painted = () =>
       [
         screen.getByRole('complementary', { name: 'Notes' }),
@@ -335,20 +336,26 @@ describe('Sidebar', () => {
           .some((c) => /^(bg-(sidebar|surface|canvas)|mask-)/.test(c))
       )
 
-    it('is solid at its centre and fades to the window’s glass at every edge, as macOS draws it', () => {
+    it('fades to the window’s glass from its outer edges, solid against the note pane, as macOS draws it', () => {
       renderSidebar()
       const tint = document.querySelector('[data-rail-tint]') as HTMLElement
       expect(painted()).toEqual([tint])
       expect(tint.className.split(/\s+/)).toEqual(
         expect.arrayContaining([
           'absolute',
-          'inset-4',
-          'rounded-[40px]',
+          'left-8',
+          'top-8',
+          'bottom-8',
+          'rounded-[96px]',
           'bg-sidebar',
-          'blur-xl',
+          'blur-3xl',
           'pointer-events-none'
         ])
       )
+      // Past the side against the note pane by twice the blur, so no glass
+      // shows there.
+      expect(tint.className.split(/\s+/)).toContain('-right-32')
+      expect(tint.className).not.toMatch(/\binset-/)
       expect(tint.getAttribute('aria-hidden')).toBe('true')
       expect(css).not.toMatch(/mask-rail-glass/)
     })
