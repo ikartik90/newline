@@ -425,6 +425,26 @@
   --surface-field-pressed: var(--surface-4);
 }
 
+/* On macOS a sheet's ground is AppKit's glass (`html[data-frosted]`). What
+   stands on it keeps its level's steps, at the glass's 75% as a sheet's chip
+   on a picture is, so the glass shows through a hover or a press. In the
+   utilities layer, where it outranks the level by specificity. */
+@layer utilities {
+  html[data-frosted] [data-on-glass].surface-level-1 {
+    --surface-button-primary-default: color-mix(
+      in oklab,
+      var(--surface-inverse-2) 75%,
+      transparent
+    );
+    --surface-button-primary-hover: color-mix(in oklab, var(--surface-inverse-3) 75%, transparent);
+    --surface-button-secondary-default: color-mix(in oklab, var(--surface-2) 75%, transparent);
+    --surface-button-secondary-hover: color-mix(in oklab, var(--surface-3) 75%, transparent);
+    --surface-field-default: color-mix(in oklab, var(--surface-2) 75%, transparent);
+    --surface-field-hover: color-mix(in oklab, var(--surface-2) 75%, transparent);
+    --surface-field-pressed: color-mix(in oklab, var(--surface-3) 75%, transparent);
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Text styles (kartik.to `textStyles`), all set with no letter spacing.
 --------------------------------------------------------------------------- */
