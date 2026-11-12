@@ -189,7 +189,7 @@
   --surface-default: var(--surface-sidebar);
   --surface-glass: color-mix(in srgb, var(--surface-sidebar) 75%, transparent);
   --surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--surface-sidebar));
-  --surface-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-item-hover: var(--color-base-100);
   --surface-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --surface-list-marker: var(--color-neutral-200);
   --surface-selection: var(--color-sky-400);
@@ -292,6 +292,7 @@
   --surface-default: var(--surface-sidebar);
   --surface-glass: color-mix(in srgb, var(--surface-sidebar) 75%, transparent);
   --surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--surface-sidebar));
+  --surface-item-hover: var(--color-base-800);
   --surface-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
   --surface-list-marker: var(--color-neutral-800);
   --surface-selection: var(--color-sky-400);
