@@ -426,22 +426,18 @@
 }
 
 /* On macOS a sheet's ground is AppKit's glass (`html[data-frosted]`). What
-   stands on it keeps its level's steps, at the glass's 60%, as the chip
-   on a picture is, so the glass shows through a hover or a press. In the
-   utilities layer, where it outranks the level by specificity. */
+   stands on it steps in the ink at a low alpha, a step at 6% and the one
+   above at 10%, so a hover or a press is the glass a shade darker in light
+   and lighter in dark, its colour kept. A primary keeps its solid fill, for
+   its flipped ink. In the utilities layer, where it outranks the level by
+   specificity. */
 @layer utilities {
   html[data-frosted] [data-on-glass].surface-level-1 {
-    --surface-button-primary-default: color-mix(
-      in oklab,
-      var(--surface-inverse-2) 60%,
-      transparent
-    );
-    --surface-button-primary-hover: color-mix(in oklab, var(--surface-inverse-3) 60%, transparent);
-    --surface-button-secondary-default: color-mix(in oklab, var(--surface-2) 60%, transparent);
-    --surface-button-secondary-hover: color-mix(in oklab, var(--surface-3) 60%, transparent);
-    --surface-field-default: color-mix(in oklab, var(--surface-2) 60%, transparent);
-    --surface-field-hover: color-mix(in oklab, var(--surface-2) 60%, transparent);
-    --surface-field-pressed: color-mix(in oklab, var(--surface-3) 60%, transparent);
+    --surface-button-secondary-default: color-mix(in oklab, var(--glyph-title) 6%, transparent);
+    --surface-button-secondary-hover: color-mix(in oklab, var(--glyph-title) 10%, transparent);
+    --surface-field-default: color-mix(in oklab, var(--glyph-title) 6%, transparent);
+    --surface-field-hover: color-mix(in oklab, var(--glyph-title) 6%, transparent);
+    --surface-field-pressed: color-mix(in oklab, var(--glyph-title) 10%, transparent);
   }
 }
 
