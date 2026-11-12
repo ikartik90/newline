@@ -69,7 +69,9 @@ describe('token usage', () => {
 
   it('raises what stands on a sheet through the step utility, never by hand', () => {
     const byHand = candidates().filter((c) =>
-      /(^|:)\[--surface-(field-default|button-secondary-default|item-hover):/.test(c)
+      /(^|:)\[--surface-(field-(default|hover|pressed)|button-(primary|secondary)-(default|hover)):/.test(
+        c
+      )
     )
     expect(byHand).toEqual([])
   })
@@ -94,12 +96,14 @@ describe('token usage', () => {
 
   it('never writes a surface primitive in a component, only the system tokens over it', () => {
     const utility =
-      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-surface-\d(\/|$)/
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-surface-(inverse-)?\d(\/|$)/
     expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
   it('paints a sheet in --surface-sheet, the one name it has', () => {
-    expect(candidates().filter((c) => /surface-(default|sidebar)(\/|\)|$)/.test(c))).toEqual([])
+    expect(
+      candidates().filter((c) => /surface-(default|sidebar|item-hover)(\/|\)|$)/.test(c))
+    ).toEqual([])
   })
 
   it('floats the chip on a picture in the sheet at 75%, with no token of its own', () => {

@@ -124,7 +124,7 @@ function Harness() {
         <button
           type="button"
           onClick={() => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')}
-          className="ml-auto h-7 px-2 rounded-sm bg-surface-field-default text-glyph-field-default hover:bg-surface-field-hover"
+          className="ml-auto h-7 px-2 rounded-sm bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover"
         >
           {effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme'}
         </button>

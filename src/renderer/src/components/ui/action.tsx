@@ -44,7 +44,8 @@ const baseStyle =
 const textStyle =
   'inline-flex items-center justify-center gap-2 min-w-20 h-8 px-2 rounded-md text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
-  primary: 'bg-surface-branded text-glyph-branded',
+  primary:
+    'bg-surface-button-primary-default text-glyph-button-primary-default hover:bg-surface-button-primary-hover',
   secondary:
     'bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover',
   tertiary: 'bg-transparent text-glyph-body hover:bg-surface-field-hover',

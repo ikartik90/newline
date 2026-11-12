@@ -44,7 +44,7 @@ const bodyStyle =
 // selection toolbar (an Esc key-cap followed by a muted label).
 const hintStyle = 'flex items-center gap-1 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-surface-item-hover text-glyph-default text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-default text-style-caption whitespace-nowrap'
 const hintLabelStyle = 'text-glyph-default/50 text-style-caption whitespace-nowrap'
 
 // Horizontal geometry (mirrors the `--size-sidenote-*` tokens in main.css).

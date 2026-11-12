@@ -94,7 +94,7 @@ const uploadSlotStyle = 'flex flex-col items-center justify-center flex-1 w-full
 
 const uploadBodyStyle = cx(
   'flex flex-col items-center justify-center gap-0.5 w-(--size-image-preview-max) h-40 shrink-0 cursor-pointer text-center',
-  'data-[drag-over]:bg-surface-item-hover data-[drag-over]:rounded-sm',
+  'data-[drag-over]:bg-surface-field-hover data-[drag-over]:rounded-sm',
   'aria-disabled:cursor-default'
 )
 
