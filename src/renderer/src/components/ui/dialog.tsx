@@ -58,12 +58,12 @@ const backdropStyle =
 // beside the panel reaches the backdrop and counts as an outside press.
 const viewportStyle = 'fixed inset-0 z-50 flex overflow-y-auto pointer-events-none'
 
-// The `dialogPanel` recipe: a clipped column on the surface, with fields inside
-// taking the on-surface fill. The surface owns the glyph hue — the header's
+// The `dialogPanel` recipe: a clipped column on the surface, a sheet whose
+// fields stand a step up, on surface 2. The surface owns the glyph hue — the header's
 // icon buttons are `color: inherit`. Enters scaling up from 95%, leaves the
 // same way.
 const panelStyle =
-  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] text-glyph-body rounded-md border border-border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
+  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface-default surface-level-1 text-glyph-body rounded-md border border-border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // 16px (`xl`) of viewport on either side is the least a panel keeps.
 const sizeStyle: Record<DialogSize, string> = {

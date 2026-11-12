@@ -222,8 +222,8 @@ function PropertiesPanelRoot({
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
           'bg-surface-default shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
-          // Fields on the panel's surface take the on-surface fill.
-          '[--surface-field-default:var(--surface-field-on-surface)]',
+          // A sheet: its fields stand a step up, on surface 2.
+          'surface-level-1',
           // The panel IS the scroll container; the sticky header stays put.
           'overflow-auto overscroll-contain',
           exiting ? 'animate-panel-out' : 'animate-panel-in'
@@ -262,7 +262,7 @@ function PropertiesPanelHeader({
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
         // an opaque child). Its rule starts past that edge, as a section's does.
-        'sticky top-0 z-1 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)]',
+        'sticky top-0 z-1 bg-surface-default surface-level-1',
         'shadow-[inset_1px_0_0_var(--border-divider)]',
         RULE
       )}

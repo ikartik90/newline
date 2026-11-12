@@ -75,7 +75,7 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
                 removeTag(note.tags[note.tags.length - 1])
               }
             }}
-            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-surface-field-on-surface text-glyph-field-default placeholder:text-glyph-field-placeholder border-[0.5px] border-solid border-border-field-default outline-none focus:border-border-field-active focus:bg-surface-field-active"
+            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-surface-field-default text-glyph-field-default placeholder:text-glyph-field-placeholder border-[0.5px] border-solid border-border-field-default outline-none focus:border-border-field-active focus:bg-surface-field-active"
           />
         </div>
       </PropertiesPanel.Group>

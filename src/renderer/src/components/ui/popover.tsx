@@ -94,10 +94,10 @@ export interface PopoverProps {
 }
 
 // The `selectionPopover` recipe: the hairline, the elevation and a clip, on the
-// surface. Fields inside take the on-surface fill. Layout is the caller's — a
+// surface: a sheet, so its fields stand a step up, on surface 2. Layout is the caller's — a
 // rail and a column list want different things from the same shell.
 const chromeStyle =
-  'bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] rounded-md border border-border-divider overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] outline-none'
+  'bg-surface-default surface-level-1 rounded-md border border-border-divider overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] outline-none'
 
 /** Base UI's own open/close requests are ignored: `useDismiss` owns dismissal. */
 const keepOpen = () => {}

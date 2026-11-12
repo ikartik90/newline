@@ -14,8 +14,9 @@ import { describe, expect, it } from 'vitest'
 //
 // 2. Because that theme block is `inline`, Tailwind substitutes the value and
 //    no utility ever reads `--color-surface-field-default`. A surface that
-//    reassigns it to get the on-surface fill reassigns nothing; the variable
-//    the utilities actually read is `--surface-field-default`.
+//    reassigns it to step its fields up reassigns nothing; the variable the
+//    utilities actually read is `--surface-field-default`, and only the
+//    `surface-level-*` utilities reassign it.
 //
 // 3. Every divider is a 1px line. A class list drawing in the divider token
 //    at half a pixel is a hairline left over from before.
@@ -64,6 +65,31 @@ describe('token usage', () => {
 
   it('overrides the field fill through the variable the utilities read', () => {
     expect(candidates().filter((c) => c.includes('--color-surface-field-default:'))).toEqual([])
+  })
+
+  it('raises what stands on a sheet through the step utility, never by hand', () => {
+    const byHand = candidates().filter((c) =>
+      /(^|:)\[--surface-(field|button-secondary)-default:/.test(c)
+    )
+    expect(byHand).toEqual([])
+  })
+
+  it('makes every sheet that holds fields or buttons a level-1 surface', () => {
+    const sheets = [
+      '../components/ui/popover.tsx',
+      '../components/ui/dialog.tsx',
+      '../components/ui/properties-panel.tsx',
+      '../components/menu-button.tsx',
+      '../components/sidenote-layer.tsx',
+      '../components/media-object.tsx',
+      '../components/Sidebar.tsx'
+    ]
+    const flat = sheets.filter((file) => !/\bsurface-level-1\b/.test(SOURCES[file] ?? ''))
+    expect(flat).toEqual([])
+  })
+
+  it('stands the code block’s language picker, on the block, on surface 2', () => {
+    expect(SOURCES['../components/editor/styles.ts']).toMatch(/bg-surface-2 surface-level-2/)
   })
 
   it('draws every divider a full pixel wide', () => {

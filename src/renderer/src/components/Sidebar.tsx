@@ -37,7 +37,7 @@ const VIRTUALISE_FROM = 100
 // Its `text-glyph-default` is the sidebar's own grey: `inline` makes the utility read
 // `--glyph-default` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out [--glyph-default:var(--glyph-sidebar)]'
+  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`

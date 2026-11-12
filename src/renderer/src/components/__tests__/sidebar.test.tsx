@@ -363,16 +363,20 @@ describe('Sidebar', () => {
       expect(painted()).toEqual([])
     })
 
-    it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
+    it('is a sheet: surface 1, the ground popovers, dialogs and toolbars share', () => {
       const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
-      expect(block('\\.dark')).toMatch(/--surface-sidebar: var\(--color-base-800\);/)
-      expect(block(':root')).toMatch(/--surface-sidebar: var\(--color-base-100\);/)
+      expect(block(':root')).toMatch(/--surface-sidebar: var\(--surface-1\);/)
+      expect(block(':root')).toMatch(/--surface-default: var\(--surface-1\);/)
       expect(css).toMatch(/--color-surface-sidebar: var\(--surface-sidebar\);/)
-      for (const theme of [block(':root'), block('\\.dark')]) {
-        expect(theme).toMatch(/--surface-default: var\(--surface-sidebar\);/)
-        expect(theme).toMatch(/--surface-glass: color-mix\(in srgb, var\(--surface-sidebar\) 75%/)
-        expect(theme).toMatch(/--surface-raised: color-mix\([^;]*, var\(--surface-sidebar\)\);/)
-      }
+      expect(block(':root')).toMatch(
+        /--surface-glass: color-mix\(in srgb, var\(--surface-sidebar\) 75%/
+      )
+    })
+
+    it('raises what stands on it a step, to surface 2', () => {
+      renderSidebar()
+      const rail = screen.getByRole('complementary', { name: 'Notes' })
+      expect(rail.className.split(/\s+/)).toContain('surface-level-1')
     })
   })
 })

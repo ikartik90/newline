@@ -71,7 +71,7 @@ const shortcutStyle =
 
 // The `menuPopover` recipe, expanded: a 200px column on the surface.
 export const menuPopupStyle =
-  'flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
+  'flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface-default surface-level-1 rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 export const menuItemStyle =
