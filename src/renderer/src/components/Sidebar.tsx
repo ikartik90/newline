@@ -33,14 +33,23 @@ const VIRTUALISE_FROM = 100
 // The rail's own edge is the only line between it and the note pane. Its
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
-// dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
+// dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all,
+// the note pane's edge gliding over in the same 150ms.
 // Its `text-glyph-default` is the sidebar's own grey: `inline` makes the utility read
 // `--glyph-default` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
+  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-150 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
+
+// What the rail holds is not cut off by its narrowing edge: held at the open
+// width, it slides 8px toward the edge and fades in the same 150ms, and comes
+// back the same way. It stays mounted until the fade ends, out of reach.
+const railContents =
+  'flex flex-1 min-h-0 flex-col w-(--size-sidebar) shrink-0 transition-[opacity,translate] duration-150 ease-in-out'
+const railContentsShown = `${railContents} opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
+const railContentsHiding = `${railContents} opacity-0 -translate-x-2`
 
 // The rail paints nothing: AppKit's own sidebar, the one Finder's is, lies
 // under it as its ground (main/sidebar-glass.ts).
@@ -98,6 +107,10 @@ export default function Sidebar({
   const newNoteShortcut = useShortcutLabel('N')
   const searchShortcut = useShortcutLabel('K')
   const listRef = useRef<HTMLDivElement>(null)
+  // Whether the rail's contents are mounted: from opening until the fade that
+  // follows a collapse has ended.
+  const [contentsMounted, setContentsMounted] = useState(!collapsed)
+  if (!collapsed && !contentsMounted) setContentsMounted(true)
   const [listHeight, setListHeight] = useState(400)
   // The one row slid aside to show its actions, if any.
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
@@ -117,7 +130,7 @@ export default function Sidebar({
     })
     observer.observe(listRef.current)
     return () => observer.disconnect()
-  }, [collapsed])
+  }, [contentsMounted])
 
   // A press anywhere but on the open row puts it back.
   useEffect(() => {
@@ -169,77 +182,86 @@ export default function Sidebar({
       data-on-glass=""
       className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
     >
-      <div className={railTop}>
-        {!collapsed && (
-          <div className={headStyle}>
-            <button
-              type="button"
-              className={headRowStyle}
-              aria-label="New note"
-              onClick={onNewNote}
-            >
-              <AddIcon className={headGlyphStyle} aria-hidden />
-              New note
-              {hasCursor && (
-                <kbd aria-hidden className={headShortcutStyle}>
-                  {newNoteShortcut}
-                </kbd>
-              )}
-            </button>
-            <button type="button" className={headRowStyle} aria-label="Search" onClick={onSearch}>
-              <SearchIcon className={headGlyphStyle} aria-hidden />
-              Search
-              {hasCursor && (
-                <kbd aria-hidden className={headShortcutStyle}>
-                  {searchShortcut}
-                </kbd>
-              )}
-            </button>
-          </div>
-        )}
-        {!collapsed && <div className={sectionLabelStyle}>Notes</div>}
-      </div>
-      <div className={railBody}>
-        {!collapsed && (
-          <div ref={listRef} className={listInset}>
-            {notes.length === 0 ? (
-              <p className="px-3 py-6 text-style-sidebar text-glyph-body/50 text-center">
-                No notes yet
-              </p>
-            ) : notes.length < VIRTUALISE_FROM ? (
-              <div
-                ref={trackListScroller}
-                className={`h-full overflow-y-auto ${listScroll}`}
-                onScroll={(event) => {
-                  setSwipeOpenId(null)
-                  onListScroll(event)
-                }}
+      {contentsMounted && (
+        <div
+          data-rail-contents=""
+          inert={collapsed}
+          aria-hidden={collapsed || undefined}
+          className={collapsed ? railContentsHiding : railContentsShown}
+          onTransitionEnd={(event) => {
+            if (event.target !== event.currentTarget || event.propertyName !== 'opacity') return
+            if (collapsed) setContentsMounted(false)
+          }}
+        >
+          <div className={railTop}>
+            <div className={headStyle}>
+              <button
+                type="button"
+                className={headRowStyle}
+                aria-label="New note"
+                onClick={onNewNote}
               >
-                {notes.map((note) => (
-                  <NoteItem key={note.id} note={note} {...rowProps} />
-                ))}
-              </div>
-            ) : (
-              <List
-                listRef={trackVirtualList}
-                onScroll={onListScroll}
-                className={listScroll}
-                style={{ height: listHeight }}
-                rowComponent={NoteRow}
-                rowCount={notes.length}
-                rowHeight={NOTE_ROW_HEIGHT}
-                rowProps={rowProps}
-              />
-            )}
-            <div
-              aria-hidden
-              data-list-edge=""
-              className={listScrolled.scrolled ? listEdgeShown : listEdgeHidden}
-            />
+                <AddIcon className={headGlyphStyle} aria-hidden />
+                New note
+                {hasCursor && (
+                  <kbd aria-hidden className={headShortcutStyle}>
+                    {newNoteShortcut}
+                  </kbd>
+                )}
+              </button>
+              <button type="button" className={headRowStyle} aria-label="Search" onClick={onSearch}>
+                <SearchIcon className={headGlyphStyle} aria-hidden />
+                Search
+                {hasCursor && (
+                  <kbd aria-hidden className={headShortcutStyle}>
+                    {searchShortcut}
+                  </kbd>
+                )}
+              </button>
+            </div>
+            <div className={sectionLabelStyle}>Notes</div>
           </div>
-        )}
-        {!collapsed && <div className={footStyle}>{footer}</div>}
-      </div>
+          <div className={railBody}>
+            <div ref={listRef} className={listInset}>
+              {notes.length === 0 ? (
+                <p className="px-3 py-6 text-style-sidebar text-glyph-body/50 text-center">
+                  No notes yet
+                </p>
+              ) : notes.length < VIRTUALISE_FROM ? (
+                <div
+                  ref={trackListScroller}
+                  className={`h-full overflow-y-auto ${listScroll}`}
+                  onScroll={(event) => {
+                    setSwipeOpenId(null)
+                    onListScroll(event)
+                  }}
+                >
+                  {notes.map((note) => (
+                    <NoteItem key={note.id} note={note} {...rowProps} />
+                  ))}
+                </div>
+              ) : (
+                <List
+                  listRef={trackVirtualList}
+                  onScroll={onListScroll}
+                  className={listScroll}
+                  style={{ height: listHeight }}
+                  rowComponent={NoteRow}
+                  rowCount={notes.length}
+                  rowHeight={NOTE_ROW_HEIGHT}
+                  rowProps={rowProps}
+                />
+              )}
+              <div
+                aria-hidden
+                data-list-edge=""
+                className={listScrolled.scrolled ? listEdgeShown : listEdgeHidden}
+              />
+            </div>
+            <div className={footStyle}>{footer}</div>
+          </div>
+        </div>
+      )}
       <div aria-hidden data-rail-edge="" className={railEdge} />
     </aside>
   )

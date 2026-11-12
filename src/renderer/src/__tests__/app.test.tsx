@@ -465,7 +465,7 @@ describe('App chrome', () => {
 
     fireEvent.pointerDown(handle, { clientX: 256, pointerId: 1, button: 0 })
     fireEvent.pointerMove(handle, { clientX: 300, pointerId: 1 })
-    // The rail follows the pointer at once, not on its 200ms width transition.
+    // The rail follows the pointer at once, not on its 150ms width transition.
     expect(shell.style.getPropertyValue('--size-sidebar')).toBe('300px')
     expect(classesOf(sidebar)).not.toContain('transition-[width,filter]')
     fireEvent.pointerUp(handle, { clientX: 300, pointerId: 1 })

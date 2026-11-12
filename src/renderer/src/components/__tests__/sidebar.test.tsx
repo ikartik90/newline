@@ -330,8 +330,73 @@ describe('Sidebar', () => {
       const { props, rerender } = renderSidebar()
       scrollList(30)
       rerender(<Sidebar {...props} collapsed />)
+      fireEvent.transitionEnd(document.querySelector('[data-rail-contents]')!, {
+        propertyName: 'opacity'
+      })
       rerender(<Sidebar {...props} collapsed={false} />)
       expect(shown()).toBe(false)
+    })
+  })
+
+  describe('as it collapses and opens', () => {
+    const rail = () => screen.getByRole('complementary', { name: 'Notes' })
+    const contents = () => document.querySelector('[data-rail-contents]') as HTMLElement | null
+    const classes = (el: Element) => el.className.split(/\s+/)
+    const fadeEnd = (el: Element, propertyName = 'opacity') =>
+      fireEvent.transitionEnd(el, { propertyName })
+
+    it('narrows in 150ms, the note pane’s edge gliding alongside', () => {
+      const { props, rerender } = renderSidebar()
+      expect(classes(rail())).toEqual(
+        expect.arrayContaining(['transition-[width,filter]', 'duration-150'])
+      )
+      rerender(<Sidebar {...props} collapsed />)
+      expect(classes(rail())).toEqual(
+        expect.arrayContaining(['w-0', 'transition-[width,filter]', 'duration-150'])
+      )
+    })
+
+    it('slides its contents 8px left and fades them out in those 150ms, rather than cutting them off', () => {
+      const { props, rerender } = renderSidebar()
+      rerender(<Sidebar {...props} collapsed />)
+      // Held at the open width, so they move as one and never reflow.
+      const fading = contents()!
+      expect(classes(fading)).toEqual(
+        expect.arrayContaining([
+          'w-(--size-sidebar)',
+          'transition-[opacity,translate]',
+          'duration-150',
+          'opacity-0',
+          '-translate-x-2'
+        ])
+      )
+      // Out of reach while they go.
+      expect(fading.hasAttribute('inert')).toBe(true)
+      expect(screen.queryByRole('button', { name: 'New note' })).toBeNull()
+
+      // A row's own colour change ending is not the fade ending.
+      fadeEnd(within(fading).getByText('Apples'), 'background-color')
+      expect(contents()).not.toBeNull()
+      fadeEnd(fading)
+      expect(contents()).toBeNull()
+    })
+
+    it('slides them in from 8px left and fades them up as it opens', () => {
+      const { props, rerender } = renderSidebar()
+      rerender(<Sidebar {...props} collapsed />)
+      fadeEnd(contents()!)
+      rerender(<Sidebar {...props} collapsed={false} />)
+      const shown = contents()!
+      expect(classes(shown)).toEqual(
+        expect.arrayContaining([
+          'opacity-100',
+          'translate-x-0',
+          'starting:opacity-0',
+          'starting:-translate-x-2'
+        ])
+      )
+      expect(shown.hasAttribute('inert')).toBe(false)
+      expect(screen.getByRole('button', { name: 'New note' })).toBeTruthy()
     })
   })
 
