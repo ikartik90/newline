@@ -258,6 +258,19 @@ describe('App chrome', () => {
     }
   })
 
+  it('stands the toggle on the open sidebar as the settings gear does, and on the canvas once it collapses', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const level = (button: Element) => button.closest('.surface-level-1')
+    const gear = await screen.findByRole('button', { name: 'Settings' })
+    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
+    // On the glass and on the sheet's level, so its hover steps as the gear's does.
+    expect(level(gear)?.hasAttribute('data-on-glass')).toBe(true)
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(true)
+    await userEvent.click(toggle)
+    expect(level(screen.getByRole('button', { name: 'Expand sidebar' }))).toBeNull()
+  })
+
   it('fixes the bar over the top of the window, so what scrolls passes under it', async () => {
     installApi([makeNote()])
     render(<App />)

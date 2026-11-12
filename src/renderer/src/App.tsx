@@ -40,8 +40,11 @@ const iconButton =
 // edge elsewhere. The bar is the window's drag handle; what scrolls does so in
 // the pane below it.
 // Its toggle is inked in the sidebar's grey, as the sidebar's own glyphs are.
+// While the sidebar is open the toggle stands on it, so it takes the sidebar's
+// level, as the settings gear does; collapsed, it stands on the canvas.
 const topBar =
   'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--glyph-default:var(--glyph-sidebar)]'
+const topBarOverSidebar = `${topBar} surface-level-1`
 // The traffic lights start 16px in (main/index.ts) and are three 14px buttons
 // 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
 // Where there are no lights (full screen, other platforms) it takes the first
@@ -261,7 +264,7 @@ function App() {
     >
       <header
         data-on-glass=""
-        className={topBar}
+        className={sidebarCollapsed ? topBar : topBarOverSidebar}
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <div className={windowControlsGutter ? toggleSlotPastWindowControls : toggleSlotAtEdge}>

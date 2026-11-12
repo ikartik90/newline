@@ -106,9 +106,13 @@ describe('token usage', () => {
     ).toEqual([])
   })
 
-  it('floats the chip on a picture in the sheet at 75%, with no token of its own', () => {
+  it('floats the chip on a picture as a secondary button at 60%, its hover stepped as any button’s', () => {
     expect(candidates().filter((c) => /surface-glass/.test(c))).toEqual([])
-    expect(SOURCES['../components/ui/action.tsx']).toMatch(/bg-surface-sheet\/75 backdrop-frost/)
+    const action = SOURCES['../components/ui/action.tsx']
+    const glass =
+      /glass:\s+'bg-surface-button-secondary-default\/60 backdrop-frost text-glyph-body hover:bg-surface-button-secondary-hover\/60'/g
+    expect(action.match(glass)).toHaveLength(2)
+    expect(action).not.toMatch(/hover:bg-surface-sheet/)
   })
 
   it('draws every divider a full pixel wide', () => {
