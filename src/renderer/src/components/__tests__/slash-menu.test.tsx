@@ -18,7 +18,6 @@ const ALL_LABELS = [
   'Eyebrow',
   'Paragraph',
   'Image or video',
-  'Link card',
   'Quote',
   'Numbered list',
   'Bulleted list',
@@ -63,10 +62,11 @@ describe('SlashMenu', () => {
   // Rendering
   // -------------------------------------------------------------------------
 
-  it('renders all eleven menu items when query is empty', () => {
+  it('renders all ten menu items when query is empty', () => {
     renderMenu()
     for (const label of ALL_LABELS) expect(screen.getByText(label)).toBeDefined()
-    expect(screen.getAllByRole('option')).toHaveLength(11)
+    expect(screen.queryByText('Link card')).toBeNull()
+    expect(screen.getAllByRole('option')).toHaveLength(10)
   })
 
   it('highlights the first item by default', () => {
@@ -121,7 +121,6 @@ describe('SlashMenu', () => {
     ['Eyebrow', 'eyebrow'],
     ['Paragraph', 'paragraph'],
     ['Image or video', 'media'],
-    ['Link card', 'link_card'],
     ['Quote', 'blockquote'],
     ['Numbered list', 'list_item'],
     ['Bulleted list', 'bullet_list_item'],

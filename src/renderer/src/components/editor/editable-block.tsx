@@ -1,19 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BlockNode, CodeLanguage, InlineNode } from '@shared/domain/nodes'
 import { CodeLanguageSchema } from '@shared/domain/nodes'
-import type { LinkCardConfig } from '@shared/domain/link-card'
 import { Button } from '@/components/ui/button'
-import { OptionList } from '@/components/ui/input/option-list'
 import { typographyStyles } from '@/components/ui/typography'
-import { MediaObject, mediaObjectRailStyle } from '@/components/media-object'
+import { MediaObject } from '@/components/media-object'
 import { MediaPropertiesPanel } from '@/components/media-properties-panel'
-import { LinkCard } from '@/components/link-card'
-import { LinkCardPropertiesPanel } from '@/components/link-card-properties-panel'
 import { useMediaProperties } from '@/hooks/use-media-properties'
 import type { ToggleableMark } from '@/components/selection-toolbar'
 import { CODE_LANGUAGE_LABELS } from '@/utils/syntax-highlight'
 import TrashIcon from '@/assets/icons/trash.svg'
-import SettingsIcon from '@/assets/icons/settings.svg'
 import {
   domToInlineNodes,
   escapeHtml,
@@ -49,7 +44,6 @@ import {
   editorCodeBlockStyle,
   editorCodeBlockWrapperStyle,
   editorCodeLanguageSelectStyle,
-  editorFurnitureWrapperStyle,
   editorHrShellStyle,
   editorHrStyle,
   editorHrWrapperStyle,
@@ -67,7 +61,6 @@ import {
   editorMetricCaptionStyle,
   editorMetricLabelStyle,
   editorMetricValueStyle,
-  editorShowcaseMediaStyle,
   editorShowcaseStyle,
   editorEyebrowStyle,
   mediaBlockStyles,
@@ -210,9 +203,6 @@ export function EditableBlock({
     // Rides `onChange`'s history debounce like every caption in the editor.
     if (next) onChange(next)
   })
-
-  // The link card's rail, mirroring the media inspector.
-  const [cardPropertiesOpen, setCardPropertiesOpen] = useState(false)
 
   // Keyboard handler for caret-less blocks: arrow keys navigate between
   // blocks, Backspace/Delete removes the block, Enter inserts a paragraph above.
@@ -1170,59 +1160,6 @@ export function EditableBlock({
           onInput={handleCaptionInput}
           onKeyDown={handleCaptionKeyDown}
         />
-      </figure>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
-  // Link card — a picture, some words and a destination, authored in the rail
-  // ---------------------------------------------------------------------------
-
-  if (block.type === 'link_card') {
-    const onConfigChange = (config: LinkCardConfig) => onChange({ ...block, config })
-
-    return (
-      <figure
-        ref={combinedRef as React.RefCallback<HTMLElement>}
-        className={editorShowcaseStyle}
-        data-block-index={blockIndex}
-        data-showcase-block=""
-      >
-        <div className={`${mediaBlockStyles.root} group/cell`}>
-          <div
-            tabIndex={0}
-            data-showcase-media=""
-            data-media-cell=""
-            className={`${mediaBlockStyles.frame} ${editorShowcaseMediaStyle} ${editorFurnitureWrapperStyle}`}
-            ref={showcaseMediaCallbackRef as React.RefCallback<HTMLDivElement>}
-            onKeyDown={handleShowcaseMediaKeyDown}
-          >
-            <LinkCard config={block.config} interactive={false} />
-          </div>
-          <div className={mediaObjectRailStyle}>
-            <OptionList direction="inline">
-              <OptionList.Toolbar aria-label="Link card actions">
-                <OptionList.Option
-                  aria-label="Card properties"
-                  aria-pressed={cardPropertiesOpen}
-                  onClick={() => setCardPropertiesOpen((open) => !open)}
-                >
-                  <SettingsIcon aria-hidden />
-                </OptionList.Option>
-                <OptionList.Option aria-label="Delete card" onClick={onDelete}>
-                  <TrashIcon aria-hidden />
-                </OptionList.Option>
-              </OptionList.Toolbar>
-            </OptionList>
-          </div>
-        </div>
-        {cardPropertiesOpen && (
-          <LinkCardPropertiesPanel
-            config={block.config}
-            onChange={onConfigChange}
-            onDismiss={() => setCardPropertiesOpen(false)}
-          />
-        )}
       </figure>
     )
   }

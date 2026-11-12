@@ -65,7 +65,7 @@ export function sidenoteBases(blocks: BlockNode[]): number[] {
 /**
  * Walk the document in order and collect one entry per distinct sidenote id,
  * numbered by first appearance. Blocks without an inline `children` array (rules,
- * media, link cards) carry no marks and are skipped.
+ * media) carry no marks and are skipped.
  */
 export function collectSidenotes(blocks: BlockNode[]): SidenoteEntry[] {
   const entries: SidenoteEntry[] = []

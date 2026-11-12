@@ -90,7 +90,7 @@ Write every Tailwind class out whole. Tailwind's scanner reads class names from 
 
 ## Document model
 
-`Document = { type: 'doc', content: BlockNode[] }`. Blocks: paragraph, heading, blockquote, list_item, bullet_list_item, code_block, horizontal_rule, media (image | video), metric, link_card. Inline: text nodes with marks (bold, italic, code, underline, strikethrough, highlight, link, sidenote). Lists are runs of consecutive item blocks. See `src/shared/domain/nodes.ts`.
+`Document = { type: 'doc', content: BlockNode[] }`. Blocks: paragraph, heading, blockquote, list_item, bullet_list_item, code_block, horizontal_rule, media (image | video), metric. Inline: text nodes with marks (bold, italic, code, underline, strikethrough, highlight, link, sidenote). Lists are runs of consecutive item blocks. See `src/shared/domain/nodes.ts`.
 
 SQLite `notes.body` holds the document as JSON text; `notes.plain_text` holds the derived text for FTS search. The Worker's D1 `notes` table mirrors the same fields.
 

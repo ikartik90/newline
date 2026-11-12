@@ -48,6 +48,23 @@ describe('DocumentSchema', () => {
     ])
   })
 
+  it('drops a link card, a block newline no longer has, and keeps the rest of the note', () => {
+    const parsed = parseDocument(
+      JSON.stringify({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', children: [text('Before')] },
+          { type: 'link_card', config: { content: { title: 'Docs' } } },
+          { type: 'paragraph', children: [text('After')] }
+        ]
+      })
+    )
+    expect(parsed.content).toEqual([
+      { type: 'paragraph', children: [text('Before')] },
+      { type: 'paragraph', children: [text('After')] }
+    ])
+  })
+
   it('carries a subheading’s indent onto the eyebrow lifted from it', () => {
     const parsed = parseDocument(
       JSON.stringify({
@@ -99,16 +116,6 @@ describe('blockText', () => {
       blockText({ type: 'media', kind: 'image', src: 'local://a.png', caption: 'A caption' })
     ).toBe('A caption')
     expect(blockText({ type: 'horizontal_rule' })).toBe('')
-  })
-
-  it('reads a link card by its words, then its destination', () => {
-    expect(blockText({ type: 'link_card', config: { content: { title: 'Docs' } } })).toBe('Docs')
-    expect(
-      blockText({
-        type: 'link_card',
-        config: { link: { kind: 'external', href: 'https://example.com' } }
-      })
-    ).toBe('https://example.com')
   })
 })
 

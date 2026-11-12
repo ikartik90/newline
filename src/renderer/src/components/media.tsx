@@ -21,8 +21,8 @@ import {
 // Media — one source, shown with whichever element can show it.
 //
 // The library takes clips as well as pictures, and every surface that renders
-// one — the editor's block, the lightbox, the library's preview, a link card's
-// cover — faces the same fork. It is settled here, once, and settled by `kind`
+// one — the editor's block, the lightbox, the library's preview — faces the
+// same fork. It is settled here, once, and settled by `kind`
 // rather than guessed from the filename: every caller holds a node or an
 // upload that already states what it is, so there is no fallback to forget
 // into.

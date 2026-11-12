@@ -15,12 +15,12 @@ export function isListItemType(type: BlockNode['type']): type is ListItemType {
 
 /** The blocks that hold no caret: focusable as a whole, deleted as a whole. */
 export function isCaretlessBlock(block: BlockNode): boolean {
-  return block.type === 'horizontal_rule' || block.type === 'media' || block.type === 'link_card'
+  return block.type === 'horizontal_rule' || block.type === 'media'
 }
 
 /** The blocks that stand on the showcase column and carry a caption below. */
 export function isShowcaseBlock(block: BlockNode): boolean {
-  return block.type === 'media' || block.type === 'link_card'
+  return block.type === 'media'
 }
 
 /** True if a block carries no text content. */

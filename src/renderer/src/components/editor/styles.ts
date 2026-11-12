@@ -82,10 +82,6 @@ export const articleBlockquoteBodyStyle = 'flex-auto min-w-0 flex flex-col gap-1
 
 export const articleBlockquoteStyle = 'text-style-quote text-glyph-default break-words pt-3'
 
-/** A caret-less block's shell: focusable, with a ring that reads as "selected". */
-export const editorFurnitureWrapperStyle =
-  'relative outline-none rounded-lg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-border-field-active focus-visible:outline-offset-4'
-
 export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cursor-default'
 
 export const editorListItemShellStyle = 'flex flex-row items-start gap-2'

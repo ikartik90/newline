@@ -77,13 +77,6 @@ const SAMPLE: Document = {
       caption: 'A picture with a caption'
     },
     {
-      type: 'link_card',
-      config: {
-        content: { title: 'Newline', meta: 'Project' },
-        link: { kind: 'external', href: 'https://example.com' }
-      }
-    },
-    {
       type: 'paragraph',
       children: [{ type: 'text', text: 'Type / on an empty line for the menu.' }]
     }

@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { linkCardTitle } from './link-card'
 import { BlockNodeSchema, type BlockNode, type InlineNode } from './nodes'
 
 // ---------------------------------------------------------------------------
@@ -25,9 +24,18 @@ function liftSubheadingCaptions(content: unknown): unknown {
   })
 }
 
+/** A link card was once a block; a note that still holds one keeps the rest. */
+function dropLinkCards(content: unknown): unknown {
+  if (!Array.isArray(content)) return content
+  return content.filter((block) => block?.type !== 'link_card')
+}
+
 export const DocumentSchema = z.object({
   type: z.literal('doc'),
-  content: z.preprocess(liftSubheadingCaptions, z.array(BlockNodeSchema))
+  content: z.preprocess(
+    (content) => liftSubheadingCaptions(dropLinkCards(content)),
+    z.array(BlockNodeSchema)
+  )
 })
 
 export type Document = z.infer<typeof DocumentSchema>
@@ -45,8 +53,7 @@ export function inlineText(nodes: InlineNode[]): string {
 
 /**
  * The words a block holds, for search and for naming a note. A picture
- * answers with its caption, a rule with nothing, a link card with the words
- * on it or failing that where it goes.
+ * answers with its caption, a rule with nothing.
  */
 export function blockText(block: BlockNode): string {
   switch (block.type) {
@@ -54,8 +61,6 @@ export function blockText(block: BlockNode): string {
       return ''
     case 'media':
       return block.caption ?? ''
-    case 'link_card':
-      return linkCardTitle(block.config) ?? ''
     case 'metric':
       return [block.caption, inlineText(block.children), block.subtext]
         .filter((part) => part && part.trim())

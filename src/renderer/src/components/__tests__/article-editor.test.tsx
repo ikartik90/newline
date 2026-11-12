@@ -25,7 +25,6 @@ vi.mock('@/components/slash-menu', () => ({
       <button onClick={() => onSelect('heading')}>heading</button>
       <button onClick={() => onSelect('paragraph')}>paragraph</button>
       <button onClick={() => onSelect('media')}>media</button>
-      <button onClick={() => onSelect('link_card')}>link_card</button>
       <button onClick={() => onSelect('list_item')}>list_item</button>
       <button onClick={() => onSelect('bullet_list_item')}>bullet_list_item</button>
       <button onClick={() => onSelect('horizontal_rule')}>horizontal_rule</button>
@@ -101,7 +100,6 @@ const image = (extra: Record<string, unknown> = {}): BlockNode =>
     src: 'https://example.com/photo.png',
     ...extra
   }) as BlockNode
-const linkCard = (): BlockNode => ({ type: 'link_card', config: {} })
 
 function docOf(content: BlockNode[]): Document {
   return { type: 'doc', content }
@@ -630,48 +628,6 @@ describe('ArticleEditor', () => {
       kind: 'video',
       src: 'https://cdn/8f2c-key'
     })
-  })
-
-  // ---------------------------------------------------------------------------
-  // Link card — an empty card is inserted at once and filled in from its rail
-  // ---------------------------------------------------------------------------
-
-  it('inserts an empty link card via the slash menu and focuses it', async () => {
-    renderEditor()
-
-    const block = blockAt(0)
-    openSlashMenuOnBlock(block)
-    fireEvent.click(screen.getByText('link_card'))
-
-    // No dialog: the card lands in the document straight away.
-    expect(screen.queryByTestId('image-dialog')).toBeNull()
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks[0]).toEqual({ type: 'link_card', config: {} })
-    expect(blocks[1]?.type).toBe('paragraph')
-
-    await flushTimers()
-    const host = document.querySelector('figure [data-showcase-media]') as HTMLElement
-    expect(document.activeElement).toBe(host)
-  })
-
-  it('deletes the focused link card on Backspace', () => {
-    renderEditor([linkCard(), paragraph('after')])
-
-    const host = document.querySelector('[data-showcase-media]') as HTMLElement
-    host.focus()
-    fireEvent.keyDown(host, { key: 'Backspace' })
-
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks.some((block) => block.type === 'link_card')).toBe(false)
-    expect(document.querySelector('figure')).toBeNull()
-  })
-
-  it('keeps a trailing paragraph after a terminal link card', () => {
-    renderEditor([linkCard()])
-
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks.map((b) => b.type)).toEqual(['link_card', 'paragraph'])
-    expect(document.querySelector("p[data-block-index='1']")).not.toBeNull()
   })
 
   it('populates the title from the note', () => {

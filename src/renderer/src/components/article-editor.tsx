@@ -909,7 +909,7 @@ export function ArticleEditor({
     blockType: SlashMenuBlockType,
     base = 0
   ) {
-    if (blockType === 'horizontal_rule' || blockType === 'link_card') return
+    if (blockType === 'horizontal_rule') return
     if (blockType === 'code_block') {
       el.innerHTML = children.map((n) => n.text).join('')
       return
@@ -957,10 +957,6 @@ export function ArticleEditor({
     } else if (type === 'code_block') {
       const plainText = keptChildren.map((n) => n.text).join('')
       newBlock = { type: 'code_block', children: [{ type: 'text', text: plainText }] }
-    } else if (type === 'link_card') {
-      // A card starts empty and is filled in from its rail; any text on the
-      // trigger line is dropped, as it is for a horizontal rule.
-      newBlock = { type: 'link_card', config: {} }
     } else {
       newBlock = { type: 'horizontal_rule' }
     }
@@ -974,9 +970,6 @@ export function ArticleEditor({
         // A rule takes no caret — focus the paragraph guaranteed after it.
         const trailing = blockRefs.current[index + 1]
         if (trailing) focusBlockAtStart(trailing)
-      } else if (type === 'link_card') {
-        const figure = blockRefs.current[index]
-        if (figure) focusBlockAtStart(figure)
       } else {
         blockRefs.current[index]?.focus()
       }
@@ -1661,10 +1654,7 @@ export function ArticleEditor({
           onChangeImage={block.type === 'media' ? () => handleChangeImage(i) : undefined}
           onInsertParagraphBefore={() => insertParagraphBefore(i)}
           onInsertParagraphAfter={
-            block.type === 'media' ||
-            block.type === 'link_card' ||
-            block.type === 'metric' ||
-            block.type === 'blockquote'
+            block.type === 'media' || block.type === 'metric' || block.type === 'blockquote'
               ? () => insertParagraphAfter(i)
               : undefined
           }

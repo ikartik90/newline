@@ -22,7 +22,6 @@ describe('isBlockEmpty', () => {
     expect(isBlockEmpty({ type: 'paragraph', children: [text('a')] })).toBe(false)
     expect(isBlockEmpty({ type: 'horizontal_rule' })).toBe(false)
     expect(isBlockEmpty({ type: 'media', kind: 'image', src: 'local://a.png' })).toBe(false)
-    expect(isBlockEmpty({ type: 'link_card', config: {} })).toBe(false)
   })
 })
 
@@ -71,7 +70,6 @@ describe('withTrailingParagraph / ensureBlocks', () => {
     for (const last of [
       { type: 'horizontal_rule' },
       { type: 'media', kind: 'image', src: 'local://a.png' },
-      { type: 'link_card', config: {} },
       { type: 'list_item', children: [text('x')] },
       { type: 'bullet_list_item', children: [text('x')] },
       { type: 'code_block', children: [text('x')] }

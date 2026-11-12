@@ -5,7 +5,6 @@ import EyebrowIcon from '@/assets/icons/eyebrow.svg'
 import SubheadingIcon from '@/assets/icons/subheading.svg'
 import ParagraphIcon from '@/assets/icons/paragraph.svg'
 import MediaIcon from '@/assets/icons/media.svg'
-import LinkIcon from '@/assets/icons/link.svg'
 import QuoteIcon from '@/assets/icons/quote.svg'
 import CodeIcon from '@/assets/icons/code.svg'
 import BorderIcon from '@/assets/icons/border.svg'
@@ -17,16 +16,15 @@ import MetricIcon from '@/assets/icons/metric.svg'
 // Types
 // ---------------------------------------------------------------------------
 
-// `media` and `link_card` are menu vocabulary, not finished blocks: selecting
-// one commits the block type and hands off to the editor, which opens the
-// picker / URL prompt that fills the remaining field. Both ride the same
-// onSelect(type) channel as every other item.
+// `media` is menu vocabulary, not a finished block: selecting it commits the
+// block type and hands off to the editor, which opens the picker that fills
+// the remaining field. It rides the same onSelect(type) channel as every
+// other item.
 export type SlashMenuBlockType =
   | 'eyebrow'
   | 'heading'
   | 'paragraph'
   | 'media'
-  | 'link_card'
   | 'blockquote'
   | 'list_item'
   | 'bullet_list_item'
@@ -64,7 +62,6 @@ const MENU_ITEMS: SlashMenuEntry[] = [
   { type: 'eyebrow', label: 'Eyebrow', Icon: EyebrowIcon },
   { type: 'paragraph', label: 'Paragraph', Icon: ParagraphIcon },
   { type: 'media', label: 'Image or video', Icon: MediaIcon },
-  { type: 'link_card', label: 'Link card', Icon: LinkIcon },
   { type: 'blockquote', label: 'Quote', Icon: QuoteIcon },
   { type: 'list_item', label: 'Numbered list', Icon: NumberedListIcon },
   { type: 'bullet_list_item', label: 'Bulleted list', Icon: BulletedListIcon },
