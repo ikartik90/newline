@@ -194,7 +194,7 @@
   --surface-list-marker: var(--color-neutral-200);
   --surface-selection: var(--color-sky-400);
   --surface-highlight: var(--color-sky-100);
-  --surface-button-secondary-default: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-button-secondary-default: var(--color-base-200);
   --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
   --surface-branded: var(--color-sky-500);
@@ -226,7 +226,7 @@
   --outline-image: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --outline-focus: var(--color-sky-400);
 
-  --surface-field-default: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-field-default: var(--color-base-200);
   --surface-field-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
   --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
   --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
@@ -297,7 +297,7 @@
   --surface-list-marker: var(--color-neutral-800);
   --surface-selection: var(--color-sky-400);
   --surface-highlight: var(--color-sky-800);
-  --surface-button-secondary-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-button-secondary-default: var(--color-base-700);
   --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
   --surface-branded: var(--color-sky-400);
 
@@ -316,7 +316,7 @@
   --outline-image: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
   --outline-focus: var(--color-sky-400);
 
-  --surface-field-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-field-default: var(--color-base-700);
   --surface-field-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
   --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
   --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
