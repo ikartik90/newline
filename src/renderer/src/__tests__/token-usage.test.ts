@@ -69,7 +69,7 @@ describe('token usage', () => {
 
   it('raises what stands on a sheet through the step utility, never by hand', () => {
     const byHand = candidates().filter((c) =>
-      /(^|:)\[--surface-(field|button-secondary)-default:/.test(c)
+      /(^|:)\[--surface-(field-default|button-secondary-default|item-hover):/.test(c)
     )
     expect(byHand).toEqual([])
   })
@@ -88,8 +88,14 @@ describe('token usage', () => {
     expect(flat).toEqual([])
   })
 
-  it('stands the code block’s language picker, on the block, on surface 2', () => {
-    expect(SOURCES['../components/editor/styles.ts']).toMatch(/bg-surface-2 surface-level-2/)
+  it('stands the code block’s language picker, raised on the block, a step above it', () => {
+    expect(SOURCES['../components/editor/styles.ts']).toMatch(/bg-surface-raised surface-level-2/)
+  })
+
+  it('never writes a surface primitive in a component, only the system tokens over it', () => {
+    const utility =
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-surface-\d(\/|$)/
+    expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
   it('draws every divider a full pixel wide', () => {

@@ -432,8 +432,7 @@ describe('App chrome', () => {
     const handle = await screen.findByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
     expect(classesOf(pane)).toContain('bg-surface-canvas')
-    const light = css.match(/\n:root \{([^}]*)\}/)![1]
-    expect(light).toMatch(/--surface-canvas: var\(--surface-0\);/)
+    expect(css).toMatch(/\n {2}--surface-canvas: var\(--surface-0\);/)
   })
 
   it('makes the divider between the rail and the note pane a handle that resizes the rail', async () => {

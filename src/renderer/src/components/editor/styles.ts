@@ -17,7 +17,7 @@ export const editorCodeBlockStyle =
 export const editorCodeBlockWrapperStyle = 'relative group/code'
 
 export const editorCodeLanguageSelectStyle =
-  'absolute top-2 right-2 z-[1] text-style-caption text-glyph-body bg-surface-2 surface-level-2 border border-solid border-border-divider rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
+  'absolute top-2 right-2 z-[1] text-style-caption text-glyph-body bg-surface-raised surface-level-2 border border-solid border-border-divider rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
 
 export const editorHrStyle = 'border-none h-px bg-border-divider my-0'
 

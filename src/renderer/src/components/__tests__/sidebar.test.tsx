@@ -190,7 +190,11 @@ describe('Sidebar', () => {
     renderSidebar()
     const aside = screen.getByRole('complementary', { name: 'Notes' })
     expect(aside.className.split(/\s+/)).toContain('[--glyph-default:var(--glyph-sidebar)]')
-    const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
+    // Every block of the theme's, the primitives' and the system tokens'.
+    const block = (selector: string) =>
+      [...css.matchAll(new RegExp(`\n${selector} \\{([^}]*)\\}`, 'g'))]
+        .map(([, body]) => body)
+        .join('')
     expect(block(':root')).toMatch(/--glyph-sidebar: var\(--color-base-600\);/)
     expect(block('\\.dark')).toMatch(/--glyph-sidebar: var\(--color-base-300\);/)
     expect(block(':root')).toMatch(/--glyph-default: var\(--color-base-800\);/)
@@ -364,13 +368,10 @@ describe('Sidebar', () => {
     })
 
     it('is a sheet: surface 1, the ground popovers, dialogs and toolbars share', () => {
-      const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
-      expect(block(':root')).toMatch(/--surface-sidebar: var\(--surface-1\);/)
-      expect(block(':root')).toMatch(/--surface-default: var\(--surface-1\);/)
+      expect(css).toMatch(/--surface-sidebar: var\(--surface-1\);/)
+      expect(css).toMatch(/--surface-default: var\(--surface-1\);/)
       expect(css).toMatch(/--color-surface-sidebar: var\(--surface-sidebar\);/)
-      expect(block(':root')).toMatch(
-        /--surface-glass: color-mix\(in srgb, var\(--surface-sidebar\) 75%/
-      )
+      expect(css).toMatch(/--surface-glass: color-mix\(in srgb, var\(--surface-sidebar\) 75%/)
     })
 
     it('raises what stands on it a step, to surface 2', () => {
