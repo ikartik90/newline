@@ -113,23 +113,23 @@ export function ImageInput({
           <span
             className={cx(
               'relative shrink-0 flex items-center justify-center size-4 rounded-sm overflow-hidden',
-              'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)]',
-              '[&>svg]:size-3 [&>svg]:text-field-fg-muted'
+              'bg-surface-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)]',
+              '[&>svg]:size-3 [&>svg]:text-glyph-field-muted'
             )}
           >
             {thumbnailFor(src, kind, poster)}
           </span>
           <span
             className={cx(
-              'self-stretch shrink-0 w-[0.5px] bg-field-border transition-colors duration-150',
-              whenFieldActive('bg-field-border-active')
+              'self-stretch shrink-0 w-[0.5px] bg-border-field-default transition-colors duration-150',
+              whenFieldActive('bg-border-field-active')
             )}
             aria-hidden
           />
           {/* One line, ellipsised: a library name is as long as it is. An empty
               slot ASKS, in the muted tone a placeholder is written in. */}
           <span
-            className="flex-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap data-[empty]:text-field-fg-muted"
+            className="flex-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap data-[empty]:text-glyph-field-muted"
             data-empty={filename ? undefined : ''}
           >
             {filename ?? `Add ${noun}`}

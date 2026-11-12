@@ -246,14 +246,14 @@ function FieldLabel({ children, type, className, ...rest }: FieldLabelProps) {
       htmlFor={controlId}
       data-size={size}
       className={cx(
-        'w-full break-words cursor-default text-field-fg-muted transition-colors duration-150',
-        whenFieldActive('text-field-fg-active'),
+        'w-full break-words cursor-default text-glyph-field-muted transition-colors duration-150',
+        whenFieldActive('text-glyph-field-active'),
         // Toggle archetype: the label is a full statement beside the control,
         // so it reads as resting field text rather than a muted label, and
         // clicking it toggles.
         toggle &&
           cx(
-            'row-start-1 w-auto text-field-fg cursor-pointer',
+            'row-start-1 w-auto text-glyph-field-default cursor-pointer',
             labelFirst ? 'col-start-1' : 'col-start-2'
           ),
         type ? TEXT_STYLE[type] : SIZE[size].label,
@@ -284,17 +284,17 @@ function FieldFrame({ children, className, onMouseDown, ...rest }: FieldFramePro
       data-size={size}
       className={cx(
         'flex items-center gap-2 w-full px-2 rounded-sm border-[0.5px] border-solid overflow-hidden cursor-text',
-        'bg-field border-field-border text-field-fg transition-[background-color,border-color,color] duration-150',
+        'bg-surface-field-default border-border-field-default text-glyph-field-default transition-[background-color,border-color,color] duration-150',
         // A multi-line control grows instead of holding the fixed height, and
         // the padding turns vertical because the frame no longer centres it.
         'has-[textarea]:items-start has-[textarea]:py-1',
         SIZE[size].frame,
-        whenFieldActive('bg-field-active'),
-        whenFieldActive('border-field-border-active'),
-        whenFieldActive('text-field-fg-active'),
+        whenFieldActive('bg-surface-field-active'),
+        whenFieldActive('border-border-field-active'),
+        whenFieldActive('text-glyph-field-active'),
         // The keyboard ring goes on the shell so it hugs the whole field, icon
         // included; inset, so `overflow: hidden` cannot clip it.
-        '[html[data-keyboard-focus]_[data-field]:has([data-control]:focus-visible)_&]:shadow-[inset_0_0_0_1.5px_var(--border-focus-ring)]',
+        '[html[data-keyboard-focus]_[data-field]:has([data-control]:focus-visible)_&]:shadow-[inset_0_0_0_1.5px_var(--outline-focus)]',
         '[&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:block [&>svg]:pointer-events-none [&>svg]:transition-colors',
         className
       )}
@@ -328,10 +328,10 @@ export function controlClass(size: FieldSize, fill = true): string {
   return cx(
     fill && 'flex-1 w-full',
     'min-w-0 m-0 p-0 border-none bg-transparent appearance-none text-inherit',
-    'caret-field-fg-active transition-colors duration-150',
-    'placeholder:text-field-fg-placeholder data-[placeholder]:text-field-fg-placeholder',
-    whenFieldActive('placeholder:text-field-fg-active-muted'),
-    whenFieldActive('data-[placeholder]:text-field-fg-active-muted'),
+    'caret-glyph-field-active transition-colors duration-150',
+    'placeholder:text-glyph-field-placeholder data-[placeholder]:text-glyph-field-placeholder',
+    whenFieldActive('placeholder:text-glyph-field-active-muted'),
+    whenFieldActive('data-[placeholder]:text-glyph-field-active-muted'),
     // The app-wide keyboard ring targets the raw <input>, which the frame's
     // overflow:hidden clips into an awkward inner rectangle. The frame carries
     // the ring instead.
@@ -416,7 +416,7 @@ function FieldHint({ children, type, className, ...rest }: FieldHintProps) {
       id={hintId}
       data-size={size}
       className={cx(
-        'w-full break-words mt-1 text-field-fg-muted',
+        'w-full break-words mt-1 text-glyph-field-muted',
         // Toggle archetype: the hint drops under the label, aligned to it.
         toggle && cx('row-start-2 w-auto mt-0', labelFirst ? 'col-start-1' : 'col-start-2'),
         type ? TEXT_STYLE[type] : SIZE[size].hint,

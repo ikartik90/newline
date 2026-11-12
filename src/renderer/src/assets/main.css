@@ -173,7 +173,7 @@
 
 /* ---------------------------------------------------------------------------
    Semantic tokens — light values on :root, dark values under .dark. Exposed
-   to utilities through `@theme inline` below so `bg-canvas` resolves at the
+   to utilities through `@theme inline` below so `bg-surface-canvas` resolves at the
    element and follows the theme.
 --------------------------------------------------------------------------- */
 :root {
@@ -184,64 +184,64 @@
      cool cast of the scale; the rail a step darker than the pane, as it is a
      step lighter in the dark theme. Popovers, dialogs and toolbars stand on
      the rail's ground. */
-  --bg-canvas: #f5f5f5;
-  --bg-sidebar: #e8e8e8;
-  --bg-surface: var(--bg-sidebar);
-  --bg-surface-glass: color-mix(in srgb, var(--bg-sidebar) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--bg-sidebar));
-  --bg-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --bg-list-marker: var(--color-neutral-200);
-  --bg-selection: var(--color-sky-400);
-  --bg-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-canvas: #f5f5f5;
+  --surface-sidebar: #e8e8e8;
+  --surface-default: var(--surface-sidebar);
+  --surface-glass: color-mix(in srgb, var(--surface-sidebar) 75%, transparent);
+  --surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--surface-sidebar));
+  --surface-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-list-marker: var(--color-neutral-200);
+  --surface-selection: var(--color-sky-400);
+  --surface-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --surface-button-secondary-default: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
   /* The brand colour, flat: Sky 400 in both themes. */
-  --bg-branded: var(--color-sky-400);
+  --surface-branded: var(--color-sky-400);
 
-  --fg-default: var(--color-neutral-700);
-  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --fg-default. */
-  --fg-sidebar: var(--color-base-600);
-  --fg-title: var(--color-neutral-900);
-  --fg-body: var(--color-neutral-500);
-  --fg-branded: var(--color-neutral-900);
-  --fg-selection: var(--color-neutral-900);
-  --fg-highlight: var(--color-sky-400);
+  --glyph-default: var(--color-neutral-700);
+  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --glyph-default. */
+  --glyph-sidebar: var(--color-base-600);
+  --glyph-title: var(--color-neutral-900);
+  --glyph-body: var(--color-neutral-500);
+  --glyph-branded: var(--color-neutral-900);
+  --glyph-selection: var(--color-neutral-900);
+  --glyph-highlight: var(--color-sky-400);
 
   /* Status inks. kartik.to has no success/warning/danger family — it paints
      every notice in the brand colour — but sync state has to say WHICH state
      it is, so these are newline's own, from the palettes: 500 light, 400
      dark. Used as ink and as the status dot's fill, so `text-*` and `bg-*`
      both resolve. */
-  --fg-danger: var(--color-candy-500);
-  --fg-warning: var(--color-honey-500);
-  --fg-success: var(--color-mint-500);
-  --fg-info: var(--color-sky-500);
+  --glyph-danger: var(--color-candy-500);
+  --glyph-warning: var(--color-honey-500);
+  --glyph-success: var(--color-mint-500);
+  --glyph-info: var(--color-sky-500);
 
   /* Glass: the theme's ink, faint enough for what is behind a line to show
      through it, yet apart from the canvas and the sidebar it is drawn on. Being
      glass, two lines over one pixel draw it darker: where two meet, one stops
      a pixel short. */
   --border-divider: color-mix(in srgb, var(--color-neutral-900) 7.5%, transparent);
-  --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
-  --border-focus-ring: var(--color-sky-400);
+  --outline-image: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
+  --outline-focus: var(--color-sky-400);
 
-  --field-bg: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
-  --field-bg-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
-  --field-bg-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --field-bg-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
-  --field-bg-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
-  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-sky-400) 10%, transparent);
-  --field-border: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
-  --field-fg: var(--color-neutral-600);
-  --field-fg-muted: color-mix(in srgb, var(--color-neutral-600) 50%, var(--color-neutral-200));
-  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-600) 25%, transparent);
-  --field-fg-active: var(--color-sky-400);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --surface-field-default: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-field-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
+  --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --surface-field-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
+  --surface-field-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
+  --surface-field-hover: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  --surface-field-pressed: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-field-hover-brand: color-mix(in srgb, var(--color-sky-400) 10%, transparent);
+  --border-field-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --border-field-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --glyph-field-default: var(--color-neutral-600);
+  --glyph-field-muted: color-mix(in srgb, var(--color-neutral-600) 50%, var(--color-neutral-200));
+  --glyph-field-placeholder: color-mix(in srgb, var(--color-neutral-600) 25%, transparent);
+  --glyph-field-active: var(--color-sky-400);
+  --glyph-field-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.25;
 
@@ -287,101 +287,101 @@
   color-scheme: dark;
 
   /* The base palette's two darkest shades, the rail the lighter. */
-  --bg-canvas: var(--color-base-900);
-  --bg-sidebar: var(--color-base-800);
-  --bg-surface: var(--bg-sidebar);
-  --bg-surface-glass: color-mix(in srgb, var(--bg-sidebar) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--bg-sidebar));
-  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --bg-list-marker: var(--color-neutral-800);
-  --bg-selection: var(--color-sky-400);
-  --bg-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --bg-branded: var(--color-sky-400);
+  --surface-canvas: var(--color-base-900);
+  --surface-sidebar: var(--color-base-800);
+  --surface-default: var(--surface-sidebar);
+  --surface-glass: color-mix(in srgb, var(--surface-sidebar) 75%, transparent);
+  --surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--surface-sidebar));
+  --surface-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  --surface-list-marker: var(--color-neutral-800);
+  --surface-selection: var(--color-sky-400);
+  --surface-highlight: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --surface-button-secondary-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --surface-branded: var(--color-sky-400);
 
-  --fg-default: var(--color-neutral-200);
-  --fg-sidebar: var(--color-base-300);
-  --fg-title: var(--color-neutral-100);
-  --fg-body: var(--color-neutral-400);
-  --fg-highlight: var(--color-sky-400);
+  --glyph-default: var(--color-neutral-200);
+  --glyph-sidebar: var(--color-base-300);
+  --glyph-title: var(--color-neutral-100);
+  --glyph-body: var(--color-neutral-400);
+  --glyph-highlight: var(--color-sky-400);
 
-  --fg-danger: var(--color-candy-400);
-  --fg-warning: var(--color-honey-400);
-  --fg-success: var(--color-mint-400);
-  --fg-info: var(--color-sky-400);
+  --glyph-danger: var(--color-candy-400);
+  --glyph-warning: var(--color-honey-400);
+  --glyph-success: var(--color-mint-400);
+  --glyph-info: var(--color-sky-400);
 
   --border-divider: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --border-focus-ring: var(--color-sky-400);
+  --outline-image: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
+  --outline-focus: var(--color-sky-400);
 
-  --field-bg: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --field-bg-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
-  --field-bg-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --field-bg-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
-  --field-bg-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
-  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-sky-400) 5%, transparent);
-  --field-border: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
-  --field-fg: var(--color-neutral-400);
-  --field-fg-muted: color-mix(in srgb, var(--color-neutral-400) 50%, var(--color-neutral-800));
-  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-400) 25%, transparent);
-  --field-fg-active: var(--color-sky-400);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --surface-field-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-field-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
+  --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
+  --surface-field-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
+  --surface-field-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
+  --surface-field-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-field-pressed: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
+  --surface-field-hover-brand: color-mix(in srgb, var(--color-sky-400) 5%, transparent);
+  --border-field-default: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
+  --border-field-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --glyph-field-default: var(--color-neutral-400);
+  --glyph-field-muted: color-mix(in srgb, var(--color-neutral-400) 50%, var(--color-neutral-800));
+  --glyph-field-placeholder: color-mix(in srgb, var(--color-neutral-400) 25%, transparent);
+  --glyph-field-active: var(--color-sky-400);
+  --glyph-field-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.5;
 }
 
 @theme inline {
-  --color-canvas: var(--bg-canvas);
-  --color-surface: var(--bg-surface);
-  --color-sidebar: var(--bg-sidebar);
-  --color-surface-glass: var(--bg-surface-glass);
-  --color-surface-raised: var(--bg-surface-raised);
-  --color-item-hover: var(--bg-item-hover);
-  --color-notice: var(--bg-notice);
-  --color-list-marker: var(--bg-list-marker);
-  --color-selection: var(--bg-selection);
-  --color-highlight: var(--bg-highlight);
-  --color-button-secondary: var(--bg-button-secondary);
-  --color-button-secondary-hover: var(--bg-button-secondary-hover);
-  --color-branded: var(--bg-branded);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-default: var(--surface-default);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-surface-glass: var(--surface-glass);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-item-hover: var(--surface-item-hover);
+  --color-surface-notice: var(--surface-notice);
+  --color-surface-list-marker: var(--surface-list-marker);
+  --color-surface-selection: var(--surface-selection);
+  --color-surface-highlight: var(--surface-highlight);
+  --color-surface-button-secondary-default: var(--surface-button-secondary-default);
+  --color-surface-button-secondary-hover: var(--surface-button-secondary-hover);
+  --color-surface-branded: var(--surface-branded);
 
-  --color-fg: var(--fg-default);
-  --color-fg-title: var(--fg-title);
-  --color-fg-body: var(--fg-body);
-  --color-fg-branded: var(--fg-branded);
-  --color-fg-selection: var(--fg-selection);
-  --color-fg-highlight: var(--fg-highlight);
+  --color-glyph-default: var(--glyph-default);
+  --color-glyph-title: var(--glyph-title);
+  --color-glyph-body: var(--glyph-body);
+  --color-glyph-branded: var(--glyph-branded);
+  --color-glyph-selection: var(--glyph-selection);
+  --color-glyph-highlight: var(--glyph-highlight);
 
-  --color-danger: var(--fg-danger);
-  --color-warning: var(--fg-warning);
-  --color-success: var(--fg-success);
-  --color-info: var(--fg-info);
+  --color-glyph-danger: var(--glyph-danger);
+  --color-glyph-warning: var(--glyph-warning);
+  --color-glyph-success: var(--glyph-success);
+  --color-glyph-info: var(--glyph-info);
 
-  --color-divider: var(--border-divider);
-  --color-image-outline: var(--border-image-outline);
-  --color-focus-ring: var(--border-focus-ring);
+  --color-border-divider: var(--border-divider);
+  --color-outline-image: var(--outline-image);
+  --color-outline-focus: var(--outline-focus);
 
-  --color-field: var(--field-bg);
-  --color-field-on-surface: var(--field-bg-on-surface);
-  --color-field-active: var(--field-bg-active);
-  --color-field-active-veil: var(--field-bg-active-veil);
-  --color-field-popover: var(--field-bg-popover);
-  --color-field-selected: var(--field-bg-selected);
-  --color-field-hover: var(--field-bg-hover);
-  --color-field-pressed: var(--field-bg-pressed);
-  --color-field-hover-brand: var(--field-bg-hover-brand);
-  --color-field-border: var(--field-border);
-  --color-field-border-active: var(--field-border-active);
-  --color-field-fg: var(--field-fg);
-  --color-field-fg-muted: var(--field-fg-muted);
-  --color-field-fg-placeholder: var(--field-fg-placeholder);
-  --color-field-fg-active: var(--field-fg-active);
-  --color-field-fg-active-muted: var(--field-fg-active-muted);
+  --color-surface-field-default: var(--surface-field-default);
+  --color-surface-field-on-surface: var(--surface-field-on-surface);
+  --color-surface-field-active: var(--surface-field-active);
+  --color-surface-field-active-veil: var(--surface-field-active-veil);
+  --color-surface-field-popover: var(--surface-field-popover);
+  --color-surface-field-selected: var(--surface-field-selected);
+  --color-surface-field-hover: var(--surface-field-hover);
+  --color-surface-field-pressed: var(--surface-field-pressed);
+  --color-surface-field-hover-brand: var(--surface-field-hover-brand);
+  --color-border-field-default: var(--border-field-default);
+  --color-border-field-active: var(--border-field-active);
+  --color-glyph-field-default: var(--glyph-field-default);
+  --color-glyph-field-muted: var(--glyph-field-muted);
+  --color-glyph-field-placeholder: var(--glyph-field-placeholder);
+  --color-glyph-field-active: var(--glyph-field-active);
+  --color-glyph-field-active-muted: var(--glyph-field-active-muted);
 }
 
 /* ---------------------------------------------------------------------------
@@ -471,7 +471,7 @@
 @utility inline-code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--bg-surface);
+  background: var(--surface-default);
   padding-inline: 4px;
   padding-block: 2px;
   border-radius: var(--radius-sm);
@@ -481,13 +481,13 @@
    hover can grow the brand-coloured bar over the muted one. */
 @utility article-link {
   text-decoration-line: none;
-  color: var(--fg-default);
+  color: var(--glyph-default);
   padding-bottom: 2px;
   background-image:
-    linear-gradient(var(--bg-branded), var(--bg-branded)),
+    linear-gradient(var(--surface-branded), var(--surface-branded)),
     linear-gradient(
-      color-mix(in srgb, var(--fg-body) 50%, transparent),
-      color-mix(in srgb, var(--fg-body) 50%, transparent)
+      color-mix(in srgb, var(--glyph-body) 50%, transparent),
+      color-mix(in srgb, var(--glyph-body) 50%, transparent)
     );
   background-repeat: no-repeat;
   background-position: 0 100%;
@@ -500,7 +500,7 @@
     color 150ms ease,
     background-size 150ms ease;
   &:hover {
-    color: var(--fg-title);
+    color: var(--glyph-title);
     background-size:
       100% 1px,
       100% 1px;
@@ -519,8 +519,8 @@
 
 /* The brand accent at 15% behind the accent at full strength. */
 @utility article-highlight {
-  background-color: var(--bg-highlight);
-  color: var(--fg-highlight);
+  background-color: var(--surface-highlight);
+  color: var(--glyph-highlight);
   padding-inline: 1px;
   padding-block: 1px;
   -webkit-box-decoration-break: clone;
@@ -542,7 +542,7 @@
 @utility article-sidenote-text {
   text-decoration-line: underline;
   text-decoration-style: dotted;
-  text-decoration-color: color-mix(in srgb, var(--fg-body) 50%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--glyph-body) 50%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
@@ -558,7 +558,7 @@
   display: inline;
   &::after {
     content: attr(data-sidenote-number);
-    color: var(--bg-branded);
+    color: var(--surface-branded);
   }
 }
 
@@ -568,7 +568,7 @@
   line-height: 2;
   width: fit-content;
   word-break: break-word;
-  color: var(--bg-branded);
+  color: var(--surface-branded);
 }
 
 @utility article-metric-value {
@@ -578,7 +578,7 @@
   width: fit-content;
   max-width: 100%;
   word-break: break-word;
-  color: var(--bg-branded);
+  color: var(--surface-branded);
 }
 
 /* The 52px quote mark: the brand colour at 15% under a 1px full-strength
@@ -602,13 +602,13 @@
     -webkit-mask-position: center;
   }
   &::before {
-    background: var(--bg-branded);
+    background: var(--surface-branded);
     opacity: 0.15;
     mask-image: var(--quote-glyph-fill);
     -webkit-mask-image: var(--quote-glyph-fill);
   }
   &::after {
-    background: var(--bg-branded);
+    background: var(--surface-branded);
     mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
     mask-composite: intersect;
     -webkit-mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
@@ -642,8 +642,8 @@
   /* Optical centring for digits, which have no descender. */
   padding-block-end: 0.107em;
   border-radius: var(--radius-lg);
-  background-color: var(--bg-list-marker);
-  color: var(--bg-branded);
+  background-color: var(--surface-list-marker);
+  color: var(--surface-branded);
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
@@ -670,7 +670,7 @@
     width: var(--size-list-bullet);
     height: var(--size-list-bullet);
     border-radius: 50%;
-    background: var(--bg-branded);
+    background: var(--surface-branded);
   }
 }
 
@@ -696,7 +696,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background-color: var(--bg-list-marker);
+  background-color: var(--surface-list-marker);
   &::after {
     content: '';
     position: absolute;
@@ -705,7 +705,7 @@
     width: var(--size-list-bullet-glyph);
     height: var(--size-list-bullet-glyph);
     transform: translate(-50%, -50%);
-    background: var(--bg-branded);
+    background: var(--surface-branded);
     mask-size: contain;
     mask-repeat: no-repeat;
     mask-position: center;
@@ -733,7 +733,7 @@
   &:empty::before,
   &[data-empty]::before {
     content: attr(data-placeholder);
-    color: color-mix(in srgb, var(--fg-default) 40%, transparent);
+    color: color-mix(in srgb, var(--glyph-default) 40%, transparent);
     pointer-events: none;
   }
 }
@@ -758,8 +758,8 @@
 
   body {
     margin: 0;
-    color: var(--fg-default);
-    background: var(--bg-canvas);
+    color: var(--glyph-default);
+    background: var(--surface-canvas);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -790,8 +790,8 @@
 
   /* Selection reads like the prose highlight — same two tokens. */
   ::selection {
-    background-color: var(--bg-highlight);
-    color: var(--fg-highlight);
+    background-color: var(--surface-highlight);
+    color: var(--glyph-highlight);
   }
 
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus {
@@ -809,7 +809,7 @@
       summary,
       [tabindex]:not([tabindex='-1'])
     ):focus-visible {
-    box-shadow: 0 0 0 1.5px var(--border-focus-ring);
+    box-shadow: 0 0 0 1.5px var(--outline-focus);
     border-radius: var(--radius-xs);
   }
 
@@ -862,7 +862,7 @@
 
   article :is(strong, b) {
     font-weight: var(--font-weight-bold);
-    color: var(--fg-default);
+    color: var(--glyph-default);
   }
 
   /* Slash menu anchor — the editor sets this on its own node. */
@@ -884,12 +884,12 @@
 
   /* A media object with nothing to paint yet. */
   [data-media-pending] {
-    background-color: var(--bg-surface);
+    background-color: var(--surface-default);
     background-image: linear-gradient(
       90deg,
       transparent 0%,
       transparent 35%,
-      color-mix(in srgb, var(--bg-canvas) 70%, transparent) 50%,
+      color-mix(in srgb, var(--surface-canvas) 70%, transparent) 50%,
       transparent 65%,
       transparent 100%
     );
@@ -900,11 +900,11 @@
   /* A see-through picture on a checkerboard of the app's own two surfaces,
      so the pattern reads in either theme without competing with the artwork. */
   [data-checkered] {
-    background-color: var(--bg-canvas);
+    background-color: var(--surface-canvas);
     background-image: conic-gradient(
-      var(--bg-surface) 25%,
+      var(--surface-default) 25%,
       transparent 0 50%,
-      var(--bg-surface) 0 75%,
+      var(--surface-default) 0 75%,
       transparent 0
     );
     background-size: 16px 16px;

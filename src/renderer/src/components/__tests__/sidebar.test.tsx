@@ -100,9 +100,9 @@ describe('Sidebar', () => {
     const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
     for (const name of ['New note', 'Search']) {
       const row = screen.getByRole('button', { name })
-      expect(classes(row)).toContain('text-fg')
-      expect(classes(row.querySelector('svg')!)).toContain('text-fg')
-      expect(classes(row.querySelector('svg')!)).not.toContain('text-fg-body')
+      expect(classes(row)).toContain('text-glyph-default')
+      expect(classes(row.querySelector('svg')!)).toContain('text-glyph-default')
+      expect(classes(row.querySelector('svg')!)).not.toContain('text-glyph-body')
     }
   })
 
@@ -167,7 +167,7 @@ describe('Sidebar', () => {
     renderSidebar()
     const edge = document.querySelector('[data-rail-edge]') as HTMLElement
     expect(edge.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['absolute', 'inset-y-0', 'right-0', 'w-px', 'bg-divider'])
+      expect.arrayContaining(['absolute', 'inset-y-0', 'right-0', 'w-px', 'bg-border-divider'])
     )
     // Over the fills, which stand behind the rail's contents.
     expect(edge.className).not.toMatch(/-z-/)
@@ -178,7 +178,7 @@ describe('Sidebar', () => {
     const foot = screen.getByRole('button', { name: 'Account' }).parentElement!
     const classes = foot.className.split(/\s+/)
     expect(classes).toEqual(
-      expect.arrayContaining(['before:top-0', 'before:h-px', 'before:bg-divider'])
+      expect.arrayContaining(['before:top-0', 'before:h-px', 'before:bg-border-divider'])
     )
     // It stops a pixel short of the rail's edge, so the two glass lines never
     // lie over each other where they meet.
@@ -189,12 +189,12 @@ describe('Sidebar', () => {
   it('inks its text in its own grey, base 600 light and base 300 dark, and leaves the rest of the app alone', () => {
     renderSidebar()
     const aside = screen.getByRole('complementary', { name: 'Notes' })
-    expect(aside.className.split(/\s+/)).toContain('[--fg-default:var(--fg-sidebar)]')
+    expect(aside.className.split(/\s+/)).toContain('[--glyph-default:var(--glyph-sidebar)]')
     const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
-    expect(block(':root')).toMatch(/--fg-sidebar: var\(--color-base-600\);/)
-    expect(block('\\.dark')).toMatch(/--fg-sidebar: var\(--color-base-300\);/)
-    expect(block(':root')).toMatch(/--fg-default: var\(--color-neutral-700\);/)
-    expect(block('\\.dark')).toMatch(/--fg-default: var\(--color-neutral-200\);/)
+    expect(block(':root')).toMatch(/--glyph-sidebar: var\(--color-base-600\);/)
+    expect(block('\\.dark')).toMatch(/--glyph-sidebar: var\(--color-base-300\);/)
+    expect(block(':root')).toMatch(/--glyph-default: var\(--color-neutral-700\);/)
+    expect(block('\\.dark')).toMatch(/--glyph-default: var\(--color-neutral-200\);/)
   })
 
   it('creates a note and opens the search from its head', () => {
@@ -289,7 +289,13 @@ describe('Sidebar', () => {
     it('rules the head off once the notes scroll under it, and not before', () => {
       renderSidebar()
       expect(edge().className.split(/\s+/)).toEqual(
-        expect.arrayContaining(['top-0', 'left-0', 'right-px', 'border-divider', 'opacity-0'])
+        expect.arrayContaining([
+          'top-0',
+          'left-0',
+          'right-px',
+          'border-border-divider',
+          'opacity-0'
+        ])
       )
       expect(edge().className).not.toMatch(/inset-x-0/)
       scrollList(30)
@@ -359,13 +365,13 @@ describe('Sidebar', () => {
 
     it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
       const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
-      expect(block('\\.dark')).toMatch(/--bg-sidebar: var\(--color-base-800\);/)
-      expect(block(':root')).toMatch(/--bg-sidebar: #e8e8e8;/)
-      expect(css).toMatch(/--color-sidebar: var\(--bg-sidebar\);/)
+      expect(block('\\.dark')).toMatch(/--surface-sidebar: var\(--color-base-800\);/)
+      expect(block(':root')).toMatch(/--surface-sidebar: #e8e8e8;/)
+      expect(css).toMatch(/--color-surface-sidebar: var\(--surface-sidebar\);/)
       for (const theme of [block(':root'), block('\\.dark')]) {
-        expect(theme).toMatch(/--bg-surface: var\(--bg-sidebar\);/)
-        expect(theme).toMatch(/--bg-surface-glass: color-mix\(in srgb, var\(--bg-sidebar\) 75%/)
-        expect(theme).toMatch(/--bg-surface-raised: color-mix\([^;]*, var\(--bg-sidebar\)\);/)
+        expect(theme).toMatch(/--surface-default: var\(--surface-sidebar\);/)
+        expect(theme).toMatch(/--surface-glass: color-mix\(in srgb, var\(--surface-sidebar\) 75%/)
+        expect(theme).toMatch(/--surface-raised: color-mix\([^;]*, var\(--surface-sidebar\)\);/)
       }
     })
   })

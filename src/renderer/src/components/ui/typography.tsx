@@ -36,13 +36,13 @@ type Wrap = 'pretty' | 'balance'
 // their own (a caption centred under something), where what matters is that the
 // lines come out even, so those balance.
 const TYPE_STYLES: Record<TypographyType, { style: string; color: string; wrap: Wrap }> = {
-  title: { style: 'text-style-title', color: 'text-fg-title', wrap: 'balance' },
-  subheading: { style: 'text-style-subheading', color: 'text-fg', wrap: 'balance' },
-  bodyLarge: { style: 'text-style-body-lg', color: 'text-fg-body', wrap: 'pretty' },
-  bodySmall: { style: 'text-style-body-sm', color: 'text-fg-body', wrap: 'pretty' },
-  quote: { style: 'text-style-quote', color: 'text-fg', wrap: 'pretty' },
-  caption: { style: 'text-style-caption', color: 'text-fg', wrap: 'balance' },
-  sidenote: { style: 'text-style-sidenote', color: 'text-fg', wrap: 'pretty' }
+  title: { style: 'text-style-title', color: 'text-glyph-title', wrap: 'balance' },
+  subheading: { style: 'text-style-subheading', color: 'text-glyph-default', wrap: 'balance' },
+  bodyLarge: { style: 'text-style-body-lg', color: 'text-glyph-body', wrap: 'pretty' },
+  bodySmall: { style: 'text-style-body-sm', color: 'text-glyph-body', wrap: 'pretty' },
+  quote: { style: 'text-style-quote', color: 'text-glyph-default', wrap: 'pretty' },
+  caption: { style: 'text-style-caption', color: 'text-glyph-default', wrap: 'balance' },
+  sidenote: { style: 'text-style-sidenote', color: 'text-glyph-default', wrap: 'pretty' }
 }
 
 const WRAP_CLASS: Record<Wrap, string> = {

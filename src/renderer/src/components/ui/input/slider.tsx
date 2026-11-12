@@ -250,8 +250,8 @@ function SliderTrack({
           aria-hidden
           data-slider-tick
           className={cx(
-            'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-1 rounded-full bg-field-border pointer-events-none transition-colors duration-150',
-            whenFieldActive('bg-field-border-active')
+            'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-1 rounded-full bg-border-field-default pointer-events-none transition-colors duration-150',
+            whenFieldActive('bg-border-field-active')
           )}
           style={{ left: `${tick * 100}%` }}
         />
@@ -285,8 +285,8 @@ function SliderSeparator({ className, ...rest }: SliderSeparatorProps) {
     <span
       aria-hidden
       className={cx(
-        'self-stretch shrink-0 w-[0.5px] bg-field-border transition-colors duration-150',
-        whenFieldActive('bg-field-border-active'),
+        'self-stretch shrink-0 w-[0.5px] bg-border-field-default transition-colors duration-150',
+        whenFieldActive('bg-border-field-active'),
         className
       )}
       {...rest}

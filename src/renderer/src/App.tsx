@@ -31,7 +31,7 @@ import LightIcon from '@/assets/icons/light.svg'
 
 // Cornered and inked as the sidebar's rows are.
 const iconButton =
-  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-lg squircle text-fg hover:bg-field-hover transition-colors'
+  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-lg squircle text-glyph-default hover:bg-surface-field-hover transition-colors'
 
 // One bar is fixed across the top of the window, over the rail and the note
 // pane alike, and holds only the sidebar toggle. It stays put whether the rail
@@ -41,7 +41,7 @@ const iconButton =
 // the pane below it.
 // Its toggle is inked in the sidebar's grey, as the sidebar's own glyphs are.
 const topBar =
-  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--fg-default:var(--fg-sidebar)]'
+  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--glyph-default:var(--glyph-sidebar)]'
 // The traffic lights start 16px in (main/index.ts) and are three 14px buttons
 // 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
 // Where there are no lights (full screen, other platforms) it takes the first
@@ -53,12 +53,12 @@ const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 // The note pane runs to the window's edges with no margin of its own; its
 // spacing is inside it. Its first 48px are under the bar. The line between
 // it and the rail is the rail's own edge.
-const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
+const notePane = 'flex-1 flex min-w-0 pt-12 bg-surface-canvas'
 
 // Once the note has scrolled under the bar, a hairline rules the bar off from
 // it. It stands on the note column's top, which is the bar's foot.
 const noteEdge =
-  'absolute top-0 inset-x-0 border-t border-divider pointer-events-none transition-opacity duration-150'
+  'absolute top-0 inset-x-0 border-t border-border-divider pointer-events-none transition-opacity duration-150'
 const noteEdgeHidden = `${noteEdge} opacity-0`
 const noteEdgeShown = `${noteEdge} opacity-100`
 
@@ -234,8 +234,8 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-canvas">
-        <div className="text-fg-body text-style-body-sm">Loading…</div>
+      <div className="h-screen flex items-center justify-center bg-surface-canvas">
+        <div className="text-glyph-body text-style-body-sm">Loading…</div>
       </div>
     )
   }
@@ -254,7 +254,9 @@ function App() {
       ref={shellRef}
       style={sidebarResize.shellStyle}
       className={
-        frosted ? 'relative h-screen flex text-fg' : 'relative h-screen flex bg-surface text-fg'
+        frosted
+          ? 'relative h-screen flex text-glyph-default'
+          : 'relative h-screen flex bg-surface-default text-glyph-default'
       }
     >
       <header
@@ -331,11 +333,11 @@ function App() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <h2 className="text-style-subheading text-fg-body">Newline</h2>
-                <p className="mt-2 text-style-body-sm text-fg-body/50">
+                <h2 className="text-style-subheading text-glyph-body">Newline</h2>
+                <p className="mt-2 text-style-body-sm text-glyph-body/50">
                   Select a note or create a new one
                 </p>
-                <p className="mt-1 text-style-caption text-fg-body/50">
+                <p className="mt-1 text-style-caption text-glyph-body/50">
                   {modifier}N to create, {modifier}K to search
                 </p>
                 {/* The standalone CTA, in the pill the site's own wears: the
@@ -343,7 +345,7 @@ function App() {
                 <button
                   type="button"
                   onClick={createNote}
-                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors"
+                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover transition-colors"
                 >
                   New note
                 </button>

@@ -14,8 +14,8 @@ const noDrag = { WebkitAppRegion: 'no-drag' } as CSSProperties
 
 // What lights is a 2px line over the hairline and the pane's first pixel.
 const line = 'absolute inset-y-0 left-0 w-0.5 rounded-full transition-colors duration-150'
-const lineIdle = `${line} bg-transparent group-hover:bg-fg-highlight group-focus-visible:bg-fg-highlight`
-const lineHeld = `${line} bg-fg-highlight`
+const lineIdle = `${line} bg-transparent group-hover:bg-glyph-highlight group-focus-visible:bg-glyph-highlight`
+const lineHeld = `${line} bg-glyph-highlight`
 
 export function SidebarResizeHandle({
   resizing,

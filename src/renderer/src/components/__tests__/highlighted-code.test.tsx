@@ -35,10 +35,10 @@ describe('HighlightedCode', () => {
     const classOf = (role: string) =>
       container.querySelector(`[data-syntax-role="${role}"]`)?.className ?? ''
     // Code has one accent, the prose's, for both accented roles.
-    expect(classOf('primary')).toContain('text-fg-highlight')
-    expect(classOf('secondary')).toContain('text-fg-highlight')
-    expect(classOf('neutral')).toContain('text-fg')
-    expect(classOf('comment')).toContain('text-fg-body')
+    expect(classOf('primary')).toContain('text-glyph-highlight')
+    expect(classOf('secondary')).toContain('text-glyph-highlight')
+    expect(classOf('neutral')).toContain('text-glyph-default')
+    expect(classOf('comment')).toContain('text-glyph-body')
     expect(new Set(['primary', 'neutral', 'comment'].map(classOf)).size).toBe(3)
   })
 

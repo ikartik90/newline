@@ -218,7 +218,7 @@ describe('LinkCard', () => {
 
   it("washes a pinned band in that theme's sidebar fill, as every surface is", () => {
     const sidebar = (selector: string) =>
-      css.match(new RegExp(`\n${selector} \\{[^}]*--bg-sidebar: ([^;]+);`))![1]
+      css.match(new RegExp(`\n${selector} \\{[^}]*--surface-sidebar: ([^;]+);`))![1]
     const band = (tone: 'light' | 'dark') => {
       cleanup()
       render(
@@ -232,8 +232,8 @@ describe('LinkCard', () => {
       )
       return scrim()!.className
     }
-    expect(band('light')).toContain(`[--bg-surface:${sidebar(':root')}]`)
-    expect(band('dark')).toContain(`[--bg-surface:${sidebar('\\.dark')}]`)
+    expect(band('light')).toContain(`[--surface-default:${sidebar(':root')}]`)
+    expect(band('dark')).toContain(`[--surface-default:${sidebar('\\.dark')}]`)
   })
 
   it("lets the words follow the reader's theme when no tone is set", () => {

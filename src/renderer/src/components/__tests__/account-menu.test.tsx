@@ -29,10 +29,10 @@ describe('AccountMenu', () => {
   it('inks its chevron as its name is inked', () => {
     render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={vi.fn()} />)
     const trigger = screen.getByRole('button', { name: 'Account' })
-    expect(trigger.className.split(/\s+/)).toContain('text-fg')
+    expect(trigger.className.split(/\s+/)).toContain('text-glyph-default')
     const chevron = (trigger.querySelector('svg')!.getAttribute('class') ?? '').split(/\s+/)
-    expect(chevron).toContain('text-fg')
-    expect(chevron.some((c) => c.startsWith('text-fg-body'))).toBe(false)
+    expect(chevron).toContain('text-glyph-default')
+    expect(chevron.some((c) => c.startsWith('text-glyph-body'))).toBe(false)
   })
 
   it('sets its name in the sidebar’s type', () => {

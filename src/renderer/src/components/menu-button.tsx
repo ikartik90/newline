@@ -67,21 +67,21 @@ const rowStyle = 'flex items-center gap-0.5'
 // reads as a single box changing what it says rather than two chips trading
 // places. Then the handover described above.
 const shortcutStyle =
-  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-surface text-fg-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
+  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-default text-glyph-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
 
 // The `menuPopover` recipe, expanded: a 200px column on the surface.
 export const menuPopupStyle =
-  'flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
+  'flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 export const menuItemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-fg-body outline-none data-[highlighted]:bg-field-hover data-[disabled]:opacity-50'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-glyph-body outline-none data-[highlighted]:bg-surface-field-hover data-[disabled]:opacity-50'
 export const menuItemIconStyle = 'shrink-0 size-5'
 
 // The `hotkey` recipe inside a menu: the wash a hovered row wears, held against
 // the far end of the row.
 const itemShortcutStyle =
-  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
 
 export function MenuButton({
   items,

@@ -30,12 +30,12 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 // pinned to the foot and the hairline drawn OVER everything it holds.
 const rootStyle = cx(
   'relative flex flex-col justify-end aspect-video w-full min-w-0 rounded-xl overflow-hidden',
-  'bg-surface [--field-bg:var(--field-bg-on-surface)] no-underline',
-  'after:content-[""] after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-divider after:pointer-events-none',
+  'bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] no-underline',
+  'after:content-[""] after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-border-divider after:pointer-events-none',
   // Over a picture the caption takes the theme's STRONGEST ink — done by
   // reassigning the tokens the words resolve through, so `Typography` need
   // not know it is standing on a picture.
-  'data-[covered]:[--fg-body:var(--fg-title)] data-[covered]:[--fg-default:var(--fg-title)]'
+  'data-[covered]:[--glyph-body:var(--glyph-title)] data-[covered]:[--glyph-default:var(--glyph-title)]'
 )
 
 const interactiveStyle = 'cursor-pointer active:scale-[0.98] transition-transform duration-150'
@@ -59,8 +59,8 @@ const scrimStyle = 'relative flex flex-col justify-end min-h-[25%]'
 // The washes are that theme's sidebar fill, as every surface's is.
 const toneStyle: Record<LinkCardTone, string> = {
   light:
-    '[--bg-surface:#e8e8e8] [--fg-title:var(--color-neutral-900)] [--fg-body:var(--color-neutral-900)] [--fg-default:var(--color-neutral-900)]',
-  dark: '[--bg-surface:var(--color-base-800)] [--fg-title:var(--color-neutral-100)] [--fg-body:var(--color-neutral-100)] [--fg-default:var(--color-neutral-100)]'
+    '[--surface-default:#e8e8e8] [--glyph-title:var(--color-neutral-900)] [--glyph-body:var(--color-neutral-900)] [--glyph-default:var(--color-neutral-900)]',
+  dark: '[--surface-default:var(--color-base-800)] [--glyph-title:var(--color-neutral-100)] [--glyph-body:var(--color-neutral-100)] [--glyph-default:var(--color-neutral-100)]'
 }
 
 // The frosting: a backdrop blur that fades out towards the top of the band,
@@ -70,7 +70,8 @@ const frostStyle =
 
 // The tint over the frosting — the card's own plate colour, so the words keep
 // the contrast they have always had against it.
-const washStyle = 'absolute inset-0 bg-linear-to-t from-surface to-transparent pointer-events-none'
+const washStyle =
+  'absolute inset-0 bg-linear-to-t from-surface-default to-transparent pointer-events-none'
 
 const captionStyle = 'relative flex flex-col gap-1 p-4'
 

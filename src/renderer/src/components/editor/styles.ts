@@ -12,14 +12,14 @@ export const editableBaseStyle =
   'outline-none focus-visible:outline-none min-h-0 whitespace-pre-wrap break-words focus:min-h-[1.5em] editor-placeholder'
 
 export const editorCodeBlockStyle =
-  'text-style-code bg-surface rounded-md p-8 overflow-x-auto text-fg whitespace-pre outline-none focus-visible:outline-none'
+  'text-style-code bg-surface-default rounded-md p-8 overflow-x-auto text-glyph-default whitespace-pre outline-none focus-visible:outline-none'
 
 export const editorCodeBlockWrapperStyle = 'relative group/code'
 
 export const editorCodeLanguageSelectStyle =
-  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border border-solid border-divider [--field-bg:var(--field-bg-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
+  'absolute top-2 right-2 z-[1] text-style-caption text-glyph-body bg-surface-default border border-solid border-border-divider [--surface-field-default:var(--surface-field-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
 
-export const editorHrStyle = 'border-none h-px bg-divider my-0'
+export const editorHrStyle = 'border-none h-px bg-border-divider my-0'
 
 export const editorHrShellStyle = 'relative w-full py-8'
 
@@ -36,7 +36,7 @@ export const mediaBlockStyles = {
   root: 'relative grid self-stretch w-full',
   /** The positioned box the ground fills and a clip's transport pins to. */
   frame: 'relative flex w-full min-w-0 rounded-xl',
-  image: 'w-full block border border-solid border-divider relative z-[1]'
+  image: 'w-full block border border-solid border-border-divider relative z-[1]'
 }
 
 export const editorImgStyle = `${mediaBlockStyles.image} ${editorShowcaseMediaStyle}`
@@ -47,7 +47,7 @@ export const editorImageOverlayStyle =
   'absolute inset-0 flex items-center justify-center pointer-events-auto'
 
 export const editorImageOverlayTintStyle =
-  'absolute inset-0 bg-canvas border border-solid border-divider rounded-xl pointer-events-none opacity-85'
+  'absolute inset-0 bg-surface-canvas border border-solid border-border-divider rounded-xl pointer-events-none opacity-85'
 
 export const editorImageOverlayActionsStyle =
   'relative z-[1] flex items-center justify-center gap-2'
@@ -57,10 +57,10 @@ export const menuIconStyle = 'shrink-0 w-5 h-5'
 
 const captionEditable = `${editableBaseStyle} min-h-[1.5em]`
 
-export const editorCaptionStyle = `${captionEditable} text-style-caption text-fg text-center [text-wrap:balance] w-full`
+export const editorCaptionStyle = `${captionEditable} text-style-caption text-glyph-default text-center [text-wrap:balance] w-full`
 
 /** Blockquote citation — left-aligned beneath the quote text. */
-export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-fg-body/50 break-words`
+export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-glyph-body/50 break-words`
 
 /** The eyebrow line — the gradient reveals once populated. */
 export const editorEyebrowStyle = 'article-eyebrow'
@@ -68,9 +68,9 @@ export const editorEyebrowStyle = 'article-eyebrow'
 /** Metric value — the gradient display line, with a caret's width reserved while empty. */
 export const editorMetricValueStyle = `${editableBaseStyle} article-metric-value min-h-[1.5em] min-w-px`
 
-export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-fg text-left break-words`
+export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-glyph-default text-left break-words`
 
-export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-fg break-words`
+export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-glyph-default break-words`
 
 export const articleMetricStyle = 'flex flex-col items-start gap-1 break-words'
 
@@ -80,17 +80,17 @@ export const articleBlockquoteShellStyle = 'flex flex-row items-start gap-1'
 
 export const articleBlockquoteBodyStyle = 'flex-auto min-w-0 flex flex-col gap-1'
 
-export const articleBlockquoteStyle = 'text-style-quote text-fg break-words pt-3'
+export const articleBlockquoteStyle = 'text-style-quote text-glyph-default break-words pt-3'
 
 /** A caret-less block's shell: focusable, with a ring that reads as "selected". */
 export const editorFurnitureWrapperStyle =
-  'relative outline-none rounded-lg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-field-border-active focus-visible:outline-offset-4'
+  'relative outline-none rounded-lg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-border-field-active focus-visible:outline-offset-4'
 
 export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cursor-default'
 
 export const editorListItemShellStyle = 'flex flex-row items-start gap-2'
 
-export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-fg-body break-words`
+export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-glyph-body break-words`
 
 /**
  * Every marker is a real button in the editor so it can open its popover —

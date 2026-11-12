@@ -69,12 +69,12 @@ interface Variants {
 // The same brand chip for a selected row and a pressed toggle, wearing the
 // matching active edge on a pseudo so it composes with the focus ring.
 const ON_STATE =
-  'aria-selected:bg-field-active aria-selected:text-field-fg-active aria-pressed:bg-field-active aria-pressed:text-field-fg-active ' +
-  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-field-border-active aria-selected:after:pointer-events-none ' +
-  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-field-border-active aria-pressed:after:pointer-events-none'
+  'aria-selected:bg-surface-field-active aria-selected:text-glyph-field-active aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active ' +
+  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-border-field-active aria-selected:after:pointer-events-none ' +
+  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-border-field-active aria-pressed:after:pointer-events-none'
 
 const ON_BRAND_STATE =
-  'aria-selected:bg-field-selected aria-selected:text-field-fg aria-pressed:bg-field-selected aria-pressed:text-field-fg aria-selected:after:border-0 aria-pressed:after:border-0'
+  'aria-selected:bg-surface-field-selected aria-selected:text-glyph-field-default aria-pressed:bg-surface-field-selected aria-pressed:text-glyph-field-default aria-selected:after:border-0 aria-pressed:after:border-0'
 
 /**
  * The slot classes, resolved once in the root from its variants. Exported so
@@ -89,18 +89,18 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
   // checks every rendered class against the scanner.
   const tint = brand
     ? {
-        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-field-hover-brand',
+        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover-brand',
         listboxHover:
-          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-field-hover-brand',
-        toolbarHover: 'hover:not-aria-pressed:bg-field-hover-brand',
-        highlighted: 'data-[highlighted]:not-aria-selected:bg-field-hover-brand'
+          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover-brand',
+        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover-brand',
+        highlighted: 'data-[highlighted]:not-aria-selected:bg-surface-field-hover-brand'
       }
     : {
-        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-field-hover',
+        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover',
         listboxHover:
-          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-field-hover',
-        toolbarHover: 'hover:not-aria-pressed:bg-field-hover',
-        highlighted: 'data-[highlighted]:not-aria-selected:bg-field-hover'
+          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover',
+        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover',
+        highlighted: 'data-[highlighted]:not-aria-selected:bg-surface-field-hover'
       }
   return {
     // A popover that owns the surface, or an inline row in the consumer's
@@ -113,14 +113,15 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
         : cx(
             'flex flex-col rounded-sm overflow-hidden',
             brand ? 'w-full' : 'w-(--size-option-list-width)',
-            tone === 'default' && 'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)]'
+            tone === 'default' &&
+              'bg-surface-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)]'
           ),
     search: cx(
       'shrink-0 w-full px-2 py-0 border-0 border-b-[0.5px] border-solid bg-transparent appearance-none',
-      'caret-field-fg-active [&::-webkit-search-cancel-button]:hidden',
+      'caret-glyph-field-active [&::-webkit-search-cancel-button]:hidden',
       brand
-        ? 'text-field-fg-active border-b-field-border-active placeholder:text-field-fg-active-muted'
-        : 'text-field-fg border-b-field-border placeholder:text-field-fg-placeholder',
+        ? 'text-glyph-field-active border-b-border-field-active placeholder:text-glyph-field-active-muted'
+        : 'text-glyph-field-default border-b-border-field-default placeholder:text-glyph-field-placeholder',
       size === 'sm' ? 'h-7 text-style-body-sm' : 'h-10 text-style-body-lg'
     ),
     // The two layouts are written as alternatives rather than as a base with
@@ -148,14 +149,14 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       'text-left text-style-body-sm cursor-pointer select-none whitespace-nowrap overflow-hidden text-ellipsis',
       'transition-[background-color,color,box-shadow] duration-150',
       '[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block',
-      brand ? 'text-field-fg-active' : 'text-field-fg',
+      brand ? 'text-glyph-field-active' : 'text-glyph-field-default',
       // `data-active` is the roving/keyboard highlight; the `not-` guards keep
       // the neutral tint off the selected row, which is the default roving
       // target and so carries both attributes.
       tint.active,
       brand ? ON_BRAND_STATE : ON_STATE,
-      'disabled:text-field-fg-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
-      '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--border-focus-ring)]',
+      'disabled:text-glyph-field-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
+      '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--outline-focus)]',
       size === 'sm' ? 'px-1 py-0' : 'p-1'
     ),
     // The bare :hover tint, gated on the live input modality for a LISTBOX
@@ -168,11 +169,11 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     highlighted: tint.highlighted,
     empty: cx(
       'flex items-center px-1 text-style-body-sm select-none',
-      brand ? 'text-field-fg-active-muted' : 'text-field-fg-muted',
+      brand ? 'text-glyph-field-active-muted' : 'text-glyph-field-muted',
       size === 'sm' ? 'h-(--size-option-row-sm)' : 'h-(--size-option-row)'
     ),
     divider: cx(
-      'shrink-0 bg-divider',
+      'shrink-0 bg-border-divider',
       direction === 'inline' ? 'w-px h-auto self-stretch' : 'w-full h-px'
     )
   }

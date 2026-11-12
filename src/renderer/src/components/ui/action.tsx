@@ -44,10 +44,11 @@ const baseStyle =
 const textStyle =
   'inline-flex items-center justify-center gap-2 min-w-20 h-8 px-2 rounded-md text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
-  primary: 'bg-branded text-fg-branded',
-  secondary: 'bg-button-secondary text-fg-body hover:bg-button-secondary-hover',
-  tertiary: 'bg-transparent text-fg-body hover:bg-field-hover',
-  glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
+  primary: 'bg-surface-branded text-glyph-branded',
+  secondary:
+    'bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover',
+  tertiary: 'bg-transparent text-glyph-body hover:bg-surface-field-hover',
+  glass: 'bg-surface-glass backdrop-frost text-glyph-body hover:bg-surface-default'
 }
 
 // The compact toolbar chip: a 20px glyph on a 4px inset, cornered as the
@@ -58,15 +59,15 @@ const textEmphasis: Record<ActionEmphasis, string> = {
 // as a fill rather than the base's scale, since scaling drags a lone glyph off
 // the pixel grid.
 const iconStyle =
-  'relative inline-flex items-center justify-center gap-1 p-1 rounded-lg squircle text-inherit text-style-body-sm active:transform-none active:bg-field-pressed aria-pressed:bg-field-active aria-pressed:text-field-fg-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-focus-ring)]'
+  'relative inline-flex items-center justify-center gap-1 p-1 rounded-lg squircle text-inherit text-style-body-sm active:transform-none active:bg-surface-field-pressed aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
 // An icon button is tertiary or glass — never a filled or branded chip.
 type IconEmphasis = Extract<ActionEmphasis, 'tertiary' | 'glass'>
 const iconEmphasis: Record<IconEmphasis, string> = {
-  tertiary: 'bg-transparent not-aria-pressed:hover:bg-field-hover',
+  tertiary: 'bg-transparent not-aria-pressed:hover:bg-surface-field-hover',
   // The one chip that floats ON a picture: the surface at 75% and the app's
   // one blur keep the glyph legible over whatever moves underneath; opaque on
   // hover, the chip comes forward as you reach for it.
-  glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
+  glass: 'bg-surface-glass backdrop-frost text-glyph-body hover:bg-surface-default'
 }
 
 /**
@@ -80,7 +81,7 @@ export function resolveEmphasis(variant: ActionVariant, emphasis?: ActionEmphasi
 
 // The inline underlined affordance, in the brand ink.
 const linkStyle =
-  'inline p-0 bg-transparent text-fg-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
+  'inline p-0 bg-transparent text-glyph-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
 
 /** The Tailwind classes for an action's look — shared by Button and Link. */
 export function actionStyles({ variant, emphasis }: ActionStyleOptions): string {

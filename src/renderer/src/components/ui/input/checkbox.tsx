@@ -72,9 +72,9 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(function Ch
       <span
         aria-hidden
         className={cx(
-          'absolute top-0.5 left-0.5 size-4 rounded-sm bg-field text-field-fg-active',
-          'shadow-[inset_0_0_0_0.5px_var(--field-border)] transition-[background-color,box-shadow] duration-150',
-          '[[aria-checked=true]>&]:bg-field-active [[aria-checked=true]>&]:shadow-[inset_0_0_0_0.5px_var(--field-border-active)]'
+          'absolute top-0.5 left-0.5 size-4 rounded-sm bg-surface-field-default text-glyph-field-active',
+          'shadow-[inset_0_0_0_0.5px_var(--border-field-default)] transition-[background-color,box-shadow] duration-150',
+          '[[aria-checked=true]>&]:bg-surface-field-active [[aria-checked=true]>&]:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]'
         )}
       >
         {/* A 20px glyph on a 16px box, hanging 2px off every side, revealed by

@@ -15,7 +15,7 @@
 // something else. A note, not a target: it never intercepts a press aimed at
 // the control it hangs from.
 const dotStyle =
-  'absolute start-1/2 -translate-x-1/2 w-[var(--unsaved-dot-size,2.5px)] h-[var(--unsaved-dot-size,2.5px)] rounded-[50%] bg-focus-ring pointer-events-none'
+  'absolute start-1/2 -translate-x-1/2 w-[var(--unsaved-dot-size,2.5px)] h-[var(--unsaved-dot-size,2.5px)] rounded-[50%] bg-outline-focus pointer-events-none'
 
 /**
  * @param className where it hangs — the consumer's own block offset, and

@@ -53,14 +53,17 @@ export default function AuthScreen() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-canvas text-fg">
+    <div className="h-screen flex items-center justify-center bg-surface-canvas text-glyph-default">
       <div className="w-full max-w-(--container-sm) px-8 flex flex-col items-center text-center">
-        <h1 className="text-style-title text-fg-title">Newline</h1>
-        <p className="text-style-body-sm text-fg-body/50">A minimal place for your thoughts.</p>
+        <h1 className="text-style-title text-glyph-title">Newline</h1>
+        <p className="text-style-body-sm text-glyph-body/50">A minimal place for your thoughts.</p>
 
         <div className="mt-8 min-h-10 flex items-center justify-center">
           {googlePending ? (
-            <div role="status" className="flex items-center gap-3 text-style-body-sm text-fg-body">
+            <div
+              role="status"
+              className="flex items-center gap-3 text-style-body-sm text-glyph-body"
+            >
               <span>Finish signing in in your browser…</span>
               <Button variant="link" onClick={handleCancelGoogleSignIn}>
                 Cancel
@@ -75,7 +78,7 @@ export default function AuthScreen() {
         </div>
 
         {error && (
-          <p role="alert" className="mt-4 text-style-caption text-danger">
+          <p role="alert" className="mt-4 text-style-caption text-glyph-danger">
             {error}
           </p>
         )}

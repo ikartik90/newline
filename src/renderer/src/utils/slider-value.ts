@@ -68,7 +68,10 @@ export function valueAtRatio(ratio: number, scale: SliderScale): number {
  * and the filled portion both read from this. A degenerate range collapses to
  * 0 rather than dividing by zero.
  */
-export function ratioOfValue(value: number, { min, max }: Pick<SliderScale, 'min' | 'max'>): number {
+export function ratioOfValue(
+  value: number,
+  { min, max }: Pick<SliderScale, 'min' | 'max'>
+): number {
   if (!(max > min)) return 0
   return (clamp(value, min, max) - min) / (max - min)
 }

@@ -60,16 +60,16 @@ export const RECENT_LIMIT = 8
 // Its 12px inset lands the field on the line the row icons sit on (group 4px +
 // row 8px).
 const headerStyle =
-  'flex items-center gap-2 h-10 px-3 border-b border-divider shrink-0 text-fg-body'
+  'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-glyph-body'
 const inputStyle =
-  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-body-sm text-fg-body placeholder:text-fg-body/25'
+  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-body-sm text-glyph-body placeholder:text-glyph-body/25'
 const iconStyle = 'shrink-0 size-5'
 
 // The way out: named as the key that does it where there is a key, drawn as
 // the button that does it where there is not. The icon button pads its glyph
 // by 4px, so it is pulled out by that much to land on the row's own inset.
 const hintStyle = 'flex items-center gap-1 shrink-0'
-const hintLabelStyle = 'text-style-caption text-fg-body/50 whitespace-nowrap'
+const hintLabelStyle = 'text-style-caption text-glyph-body/50 whitespace-nowrap'
 const closeButtonStyle = '-mr-1'
 
 // `commandList` + `commandGroup`: the scrolling column of groups, each inset
@@ -77,19 +77,19 @@ const closeButtonStyle = '-mr-1'
 // used, so it draws no ring of its own; the highlighted row says where it is.
 const listStyle = 'flex flex-col gap-1 py-2 max-h-96 overflow-y-auto outline-none'
 const groupStyle = 'flex flex-col px-1'
-const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-fg-body/50'
-const emptyStyle = 'px-3 py-6 text-style-body-sm text-fg-body/50 text-center'
+const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-glyph-body/50'
+const emptyStyle = 'px-3 py-6 text-style-body-sm text-glyph-body/50 text-center'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 const itemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-fg-body data-[selected=true]:bg-field-hover'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-glyph-body data-[selected=true]:bg-surface-field-hover'
 const itemTitleStyle = 'truncate'
-const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-fg-body/50 whitespace-nowrap'
+const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-glyph-body/50 whitespace-nowrap'
 
 // The `hotkey` recipe on a menu: the wash a hovered row wears, so the hint
 // sits at the depth of the thing it hints.
 const hotkeyStyle =
-  'flex items-center shrink-0 h-5 px-1 rounded-sm border border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
 const itemHotkeyStyle = `ml-auto ${hotkeyStyle}`
 
 export function CommandMenu({ open, onClose, actions, onOpenNote }: CommandMenuProps) {

@@ -77,9 +77,9 @@ const EXIT_MS = 200
 /** The strip's ink, stated once: the buttons in it paint in `currentColor`. */
 // A strip's or a section's foot, from past the panel's edge to its end.
 const RULE =
-  'after:content-[""] after:absolute after:bottom-0 after:left-px after:right-0 after:h-px after:bg-divider after:pointer-events-none'
+  'after:content-[""] after:absolute after:bottom-0 after:left-px after:right-0 after:h-px after:bg-border-divider after:pointer-events-none'
 
-const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-fg-body'
+const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-glyph-body'
 
 /** A control that fills the panel stops where the FIELD column stops. */
 const BLOCK_WIDTH = 'w-[calc(100%-8px-var(--size-property-row-action))]'
@@ -221,9 +221,9 @@ function PropertiesPanelRoot({
           // Docked, not floating: no radius, and the hairline on the one edge
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
-          'bg-surface shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+          'bg-surface-default shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
           // Fields on the panel's surface take the on-surface fill.
-          '[--field-bg:var(--field-bg-on-surface)]',
+          '[--surface-field-default:var(--surface-field-on-surface)]',
           // The panel IS the scroll container; the sticky header stays put.
           'overflow-auto overscroll-contain',
           exiting ? 'animate-panel-out' : 'animate-panel-in'
@@ -262,7 +262,7 @@ function PropertiesPanelHeader({
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
         // an opaque child). Its rule starts past that edge, as a section's does.
-        'sticky top-0 z-1 bg-surface [--field-bg:var(--field-bg-on-surface)]',
+        'sticky top-0 z-1 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)]',
         'shadow-[inset_1px_0_0_var(--border-divider)]',
         RULE
       )}
@@ -399,7 +399,7 @@ function PropertiesPanelSectionHeader({ icon, children }: PropertiesPanelSection
  * third child and nothing here has to move.
  */
 const CONTROL_PANEL = cx(
-  'flex flex-col items-stretch gap-2 p-3 text-fg-body',
+  'flex flex-col items-stretch gap-2 p-3 text-glyph-body',
   '[&_[data-property-block]]:w-[calc(100%-8px-var(--size-property-row-action))]',
   '[&_[data-property-control]]:grid [&_[data-property-control]]:items-center [&_[data-property-control]]:gap-x-2 [&_[data-property-control]]:w-max',
   '[&_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)_var(--size-property-row-action)]',
@@ -418,8 +418,8 @@ const CONTROL_PANEL = cx(
   '[&_[data-property-tie-rows]]:flex [&_[data-property-tie-rows]]:flex-col [&_[data-property-tie-rows]]:gap-2 [&_[data-property-tie-rows]]:flex-1 [&_[data-property-tie-rows]]:min-w-0',
   '[&_[data-property-tie]_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)]',
   '[&_[data-property-tie-action]]:relative [&_[data-property-tie-action]]:flex [&_[data-property-tie-action]]:items-center [&_[data-property-tie-action]]:shrink-0',
-  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-field-border [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
-  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-field-border [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
+  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-border-field-default [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
+  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-border-field-default [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
 )
 
 export interface PropertiesPanelGroupProps {
@@ -568,7 +568,7 @@ function PropertiesPanelText({
       className={cx(
         BLOCK_WIDTH,
         'min-w-0 m-0 p-0 bg-transparent border-none resize-none field-sizing-content',
-        'text-style-sidenote text-fg-body caret-fg-body placeholder:text-fg-body/40',
+        'text-style-sidenote text-glyph-body caret-glyph-body placeholder:text-glyph-body/40',
         '[html[data-keyboard-focus]_&]:focus-visible:shadow-none',
         className
       )}

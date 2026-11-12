@@ -12,10 +12,10 @@ interface HighlightedCodeProps {
 
 /** Code has one accent, the prose's: both accented roles take it. */
 const SYNTAX_ROLE_CLASS: Record<SyntaxTokenRole, string> = {
-  primary: 'text-fg-highlight',
-  secondary: 'text-fg-highlight',
-  neutral: 'text-fg',
-  comment: 'text-fg-body'
+  primary: 'text-glyph-highlight',
+  secondary: 'text-glyph-highlight',
+  neutral: 'text-glyph-default',
+  comment: 'text-glyph-body'
 }
 
 export function HighlightedCode({ code, language, className }: HighlightedCodeProps) {

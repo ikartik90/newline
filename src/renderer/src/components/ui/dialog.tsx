@@ -51,7 +51,7 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title
 
 // The page behind, veiled and blurred. Fades on the same 80ms as the panel.
 const backdropStyle =
-  'fixed inset-0 z-50 bg-canvas/50 backdrop-frost transition-opacity duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[ending-style]:opacity-0'
+  'fixed inset-0 z-50 bg-surface-canvas/50 backdrop-frost transition-opacity duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[ending-style]:opacity-0'
 
 // The layer the panel is placed in: a flex box the size of the viewport, so
 // the margins below do the placing, and transparent to the pointer so a press
@@ -63,7 +63,7 @@ const viewportStyle = 'fixed inset-0 z-50 flex overflow-y-auto pointer-events-no
 // icon buttons are `color: inherit`. Enters scaling up from 95%, leaves the
 // same way.
 const panelStyle =
-  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface [--field-bg:var(--field-bg-on-surface)] text-fg-body rounded-md border border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
+  'pointer-events-auto flex flex-col items-stretch justify-start p-0 bg-surface-default [--surface-field-default:var(--surface-field-on-surface)] text-glyph-body rounded-md border border-border-divider overflow-hidden outline-none transition-[opacity,transform] duration-[80ms] ease-out data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
 
 // 16px (`xl`) of viewport on either side is the least a panel keeps.
 const sizeStyle: Record<DialogSize, string> = {
@@ -146,7 +146,7 @@ export interface DialogSlotProps extends HTMLAttributes<HTMLElement> {
 // panel's own corner — so the trailing close chip and the leading title sit on
 // the margin the shell curves at. The one row every dialog draws identically.
 const headerStyle =
-  'flex items-center justify-between w-full h-10 px-2 border-b border-divider shrink-0'
+  'flex items-center justify-between w-full h-10 px-2 border-b border-border-divider shrink-0'
 
 export function DialogHeader({ className, children, ...rest }: DialogSlotProps) {
   return (
@@ -156,7 +156,7 @@ export function DialogHeader({ className, children, ...rest }: DialogSlotProps) 
   )
 }
 
-const titleStyle = 'm-0 p-0 text-style-body-sm text-fg-body [font-weight:inherit] text-balance'
+const titleStyle = 'm-0 p-0 text-style-body-sm text-glyph-body [font-weight:inherit] text-balance'
 
 /** The heading; Base UI names the dialog by it (`aria-labelledby`). */
 export function DialogTitle({ className, children, ...rest }: DialogSlotProps) {
@@ -180,7 +180,7 @@ export function DialogDescription({ className, children, ...rest }: DialogSlotPr
 // the header — these two rows frame the dialog and any difference reads as a
 // slip. `mt-auto` holds it to the foot of a panel with a fixed height.
 const footerStyle =
-  'flex items-center justify-between w-full h-(--size-dialog-footer) px-2 border-t border-divider shrink-0 mt-auto'
+  'flex items-center justify-between w-full h-(--size-dialog-footer) px-2 border-t border-border-divider shrink-0 mt-auto'
 
 export function DialogFooter({ className, children, ...rest }: DialogSlotProps) {
   return (

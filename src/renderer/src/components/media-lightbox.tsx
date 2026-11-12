@@ -40,7 +40,7 @@ const frameStyle = 'relative flex min-w-0 overflow-hidden'
 // BOTH auto, so the two maxima scale the image on its own aspect ratio; the
 // component narrows `maxWidth` to the natural width once known.
 const imageStyle =
-  'block w-auto h-auto max-w-[85vw] max-h-[calc(85vh-40px)] object-contain border border-solid border-divider relative z-[1]'
+  'block w-auto h-auto max-w-[85vw] max-h-[calc(85vh-40px)] object-contain border border-solid border-border-divider relative z-[1]'
 
 // Never wider than the showcase block the picture was enlarged FROM.
 const captionStyle = 'max-w-[min(85vw,var(--size-article-showcase))] text-center'

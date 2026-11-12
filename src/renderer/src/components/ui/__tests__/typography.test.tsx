@@ -8,22 +8,22 @@ describe('typographyStyles', () => {
   it('gives a title its own text style, ink and balanced wrapping', () => {
     const cls = classes(typographyStyles({ type: 'title' }))
     expect(cls).toContain('text-style-title')
-    expect(cls).toContain('text-fg-title')
+    expect(cls).toContain('text-glyph-title')
     expect(cls).toContain('[text-wrap:balance]')
     // One colour and one wrap — the base's are replaced, not stacked beside.
-    expect(cls).not.toContain('text-fg')
+    expect(cls).not.toContain('text-glyph-default')
     expect(cls).not.toContain('[text-wrap:pretty]')
   })
 
   it('sets body prose in the body ink with pretty wrapping', () => {
     const large = classes(typographyStyles({ type: 'bodyLarge' }))
     expect(large).toContain('text-style-body-lg')
-    expect(large).toContain('text-fg-body')
+    expect(large).toContain('text-glyph-body')
     expect(large).toContain('[text-wrap:pretty]')
 
     const small = classes(typographyStyles({ type: 'bodySmall' }))
     expect(small).toContain('text-style-body-sm')
-    expect(small).toContain('text-fg-body')
+    expect(small).toContain('text-glyph-body')
   })
 
   it('balances a caption and a subheading, keeps a quote and a sidenote pretty', () => {
@@ -31,7 +31,7 @@ describe('typographyStyles', () => {
     expect(classes(typographyStyles({ type: 'subheading' }))).toContain('[text-wrap:balance]')
     expect(classes(typographyStyles({ type: 'quote' }))).toContain('[text-wrap:pretty]')
     expect(classes(typographyStyles({ type: 'sidenote' }))).toContain('[text-wrap:pretty]')
-    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-fg')
+    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-glyph-default')
   })
 
   it('lets a caller ask for balanced lines on a type that wraps pretty', () => {

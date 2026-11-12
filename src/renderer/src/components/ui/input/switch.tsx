@@ -77,11 +77,11 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
       onCheckedChange={(next) => onCheckedChange?.(next)}
       aria-describedby={hasHint ? hintId : undefined}
       className={cx(
-        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-field',
+        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-surface-field-default',
         // An inset shadow, NOT a border: a real border is subtracted from the
         // interior, so the thumb would sit half a pixel off centre.
-        'shadow-[inset_0_0_0_0.5px_var(--field-border)] transition-[background-color,box-shadow] duration-150',
-        'aria-checked:bg-field-active aria-checked:shadow-[inset_0_0_0_0.5px_var(--field-border-active)]',
+        'shadow-[inset_0_0_0_0.5px_var(--border-field-default)] transition-[background-color,box-shadow] duration-150',
+        'aria-checked:bg-surface-field-active aria-checked:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
         geometry.track,
         toggleControlClass(field),
@@ -94,8 +94,8 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
       <BaseSwitch.Thumb
         aria-hidden
         className={cx(
-          'absolute rounded-full bg-field-fg transition-[transform,background-color] duration-150',
-          'data-[checked]:bg-field-fg-active',
+          'absolute rounded-full bg-glyph-field-default transition-[transform,background-color] duration-150',
+          'data-[checked]:bg-glyph-field-active',
           geometry.thumb
         )}
       />

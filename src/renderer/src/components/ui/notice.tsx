@@ -25,14 +25,15 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 
 // 4px between the icon and the prose, on an 8px inset; `field-fg` is the field
 // family's resting accent, the one source the icon and emphasized runs inherit.
-const rootStyle = 'flex items-start gap-1 w-full px-2 py-2 rounded-sm bg-notice text-field-fg'
+const rootStyle =
+  'flex items-start gap-1 w-full px-2 py-2 rounded-sm bg-surface-notice text-glyph-field-default'
 
 const iconStyle = 'block shrink-0 size-5 [&_svg]:block [&_svg]:size-full'
 
 // Body prose sits a step below the accent; the emphasized runs step back up to
 // full colour and weight.
 const labelStyle =
-  'flex-1 min-w-0 text-style-sidenote text-field-fg/75 break-words [&_strong]:text-field-fg [&_strong]:font-bold [&_b]:text-field-fg [&_b]:font-bold'
+  'flex-1 min-w-0 text-style-sidenote text-glyph-field-default/75 break-words [&_strong]:text-glyph-field-default [&_strong]:font-bold [&_b]:text-glyph-field-default [&_b]:font-bold'
 
 export interface NoticeProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode

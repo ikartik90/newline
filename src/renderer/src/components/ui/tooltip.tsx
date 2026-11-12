@@ -31,16 +31,16 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 // so it never intercepts the pointer. Base UI marks the entry and exit frames
 // with `data-starting-style` / `data-ending-style`, which drive the fade.
 const boxStyle =
-  'flex items-center gap-1 h-5 px-1 overflow-hidden rounded-sm border border-divider bg-surface text-fg-body text-style-caption whitespace-nowrap pointer-events-none transition-[opacity,filter] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:blur-[1px] data-[ending-style]:opacity-0 data-[ending-style]:blur-[1px] [&_svg]:shrink-0 [&_svg]:size-(--size-tooltip-icon)'
+  'flex items-center gap-1 h-5 px-1 overflow-hidden rounded-sm border border-border-divider bg-surface-default text-glyph-body text-style-caption whitespace-nowrap pointer-events-none transition-[opacity,filter] duration-150 ease-out data-[starting-style]:opacity-0 data-[starting-style]:blur-[1px] data-[ending-style]:opacity-0 data-[ending-style]:blur-[1px] [&_svg]:shrink-0 [&_svg]:size-(--size-tooltip-icon)'
 
 // Opt-in, for the tooltip that makes an OFFER rather than naming a control.
 // Brand type on the opaque brand surface the popovers already use: the box
 // covers whatever it is drawn over, so the fill cannot be a translucent wash.
 // The bright hue again at 25% for the hairline, as a focused field draws its
 // frame — a neutral hairline would still read as the default tooltip.
-const brandStyle = 'bg-field-popover text-field-fg-active border-field-border-active'
+const brandStyle = 'bg-surface-field-popover text-glyph-field-active border-border-field-active'
 
-const dividerStyle = 'shrink-0 w-0 h-4 border-l border-divider'
+const dividerStyle = 'shrink-0 w-0 h-4 border-l border-border-divider'
 
 export interface TooltipTextProps {
   children: ReactNode

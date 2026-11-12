@@ -118,7 +118,7 @@ describe('Button', () => {
         )
         const button = screen.getByRole('button', { name: 'Close' })
         expect(button.dataset.emphasis).toBe('tertiary')
-        expect(button.className).not.toContain('bg-branded')
+        expect(button.className).not.toContain('bg-surface-branded')
         unmount()
       }
     })

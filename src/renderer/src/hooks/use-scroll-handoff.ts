@@ -38,9 +38,7 @@ const LINE_HEIGHT = 16
 const SEALED = new Set(['contain', 'none'])
 
 function isScrollContainer(style: CSSStyleDeclaration): boolean {
-  return (
-    style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay'
-  )
+  return style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay'
 }
 
 function isSealed(el: HTMLElement, style: CSSStyleDeclaration): boolean {

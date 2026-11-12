@@ -35,7 +35,7 @@ export function loadSidebarGlass(
  * nothing: under the sidebar. A Mac without it gets the sidebar vibrancy over
  * the whole window instead. Elsewhere Electron's default is white, which
  * flashes on launch and shows through while resizing in dark mode; these are
- * the two `--bg-canvas` values.
+ * the two `--surface-canvas` values.
  */
 export function glassWindowOptions(
   platform: NodeJS.Platform,

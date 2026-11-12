@@ -14,8 +14,8 @@ const DOT = 'w-1.5 h-1.5 rounded-full'
 export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
   if (saveState === 'saving') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-fg-body animate-pulse`} />
+      <div className={`${ROW} text-glyph-body`}>
+        <div className={`${DOT} bg-glyph-body animate-pulse`} />
         Saving…
       </div>
     )
@@ -23,8 +23,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'syncing') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-info animate-pulse`} />
+      <div className={`${ROW} text-glyph-body`}>
+        <div className={`${DOT} bg-glyph-info animate-pulse`} />
         Syncing…
       </div>
     )
@@ -32,8 +32,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'saved') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-success`} />
+      <div className={`${ROW} text-glyph-body`}>
+        <div className={`${DOT} bg-glyph-success`} />
         Saved
       </div>
     )
@@ -41,8 +41,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'offline') {
     return (
-      <div className={`${ROW} text-warning`}>
-        <div className={`${DOT} bg-warning`} />
+      <div className={`${ROW} text-glyph-warning`}>
+        <div className={`${DOT} bg-glyph-warning`} />
         Offline
       </div>
     )
@@ -50,8 +50,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'error') {
     return (
-      <div className={`${ROW} text-danger`}>
-        <div className={`${DOT} bg-danger`} />
+      <div className={`${ROW} text-glyph-danger`}>
+        <div className={`${DOT} bg-glyph-danger`} />
         Sync failed
       </div>
     )

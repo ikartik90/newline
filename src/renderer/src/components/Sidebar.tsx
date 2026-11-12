@@ -34,10 +34,10 @@ const VIRTUALISE_FROM = 100
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all.
-// Its `text-fg` is the sidebar's own grey: `inline` makes the utility read
-// `--fg-default` itself, so reassigning that here inks everything inside.
+// Its `text-glyph-default` is the sidebar's own grey: `inline` makes the utility read
+// `--glyph-default` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out [--fg-default:var(--fg-sidebar)]'
+  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-200 ease-in-out [--glyph-default:var(--glyph-sidebar)]'
 const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
@@ -48,18 +48,18 @@ const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
 // The rail's edge stands on the rail, on the same glass as the footer's rule,
 // so the two read alike. Collapsed, the rail's clip hides it.
-const railEdge = 'absolute inset-y-0 right-0 w-px bg-divider pointer-events-none'
+const railEdge = 'absolute inset-y-0 right-0 w-px bg-border-divider pointer-events-none'
 
 // New note and Search head the rail as rows, their glyphs on the line the
 // notes' titles start on. The rail and every row are padded alike, 6.5px, so a
 // 20px glyph is centred at 23px — under macOS's red window button.
 const headStyle = 'flex flex-col gap-0.5 px-[6.5px] pb-2 shrink-0'
 const headRowStyle =
-  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-lg squircle text-left text-style-sidebar text-fg hover:bg-field-hover transition-colors'
-const headGlyphStyle = 'shrink-0 size-5 text-fg'
-const headShortcutStyle = 'ml-auto text-style-caption text-fg-body/40'
+  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-lg squircle text-left text-style-sidebar text-glyph-default hover:bg-surface-field-hover transition-colors'
+const headGlyphStyle = 'shrink-0 size-5 text-glyph-default'
+const headShortcutStyle = 'ml-auto text-style-caption text-glyph-body/40'
 
-const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-fg-body/50 shrink-0'
+const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-glyph-body/50 shrink-0'
 
 // The rows are inset 6.5px from either edge. The list's scrollbar (6px,
 // main.css) lives in that right margin rather than eating into the rows: the
@@ -72,7 +72,7 @@ const listScroll = '[scrollbar-gutter:stable]'
 // Once the notes have scrolled under the head, a hairline rules it off from
 // them, across the rail to its edge, short of the edge's own line.
 const listEdge =
-  'absolute top-0 left-0 right-px border-t border-divider pointer-events-none transition-opacity duration-150'
+  'absolute top-0 left-0 right-px border-t border-border-divider pointer-events-none transition-opacity duration-150'
 const listEdgeHidden = `${listEdge} opacity-0`
 const listEdgeShown = `${listEdge} opacity-100`
 
@@ -80,7 +80,7 @@ const listEdgeShown = `${listEdge} opacity-100`
 // once it scrolls: across the rail to its edge's line, 8px above them.
 const footStyle =
   'relative flex items-center gap-1 px-[6.5px] pt-[9px] shrink-0 ' +
-  'before:content-[""] before:absolute before:top-0 before:left-0 before:right-px before:h-px before:bg-divider before:pointer-events-none'
+  'before:content-[""] before:absolute before:top-0 before:left-0 before:right-px before:h-px before:bg-border-divider before:pointer-events-none'
 
 export default function Sidebar({
   notes,
@@ -203,7 +203,7 @@ export default function Sidebar({
         {!collapsed && (
           <div ref={listRef} className={listInset}>
             {notes.length === 0 ? (
-              <p className="px-3 py-6 text-style-sidebar text-fg-body/50 text-center">
+              <p className="px-3 py-6 text-style-sidebar text-glyph-body/50 text-center">
                 No notes yet
               </p>
             ) : notes.length < VIRTUALISE_FROM ? (
@@ -267,13 +267,13 @@ function NoteRow({ index, style, ...rowProps }: RowComponentProps<NoteRowProps>)
 // beside its name (a 32px row has no room to stack them), in the canvas ink so it reads on the danger fill in both
 // themes.
 const deleteActionStyle =
-  'flex items-center justify-center gap-1 w-full h-full bg-danger text-canvas text-style-fineprint font-medium'
+  'flex items-center justify-center gap-1 w-full h-full bg-glyph-danger text-surface-canvas text-style-fineprint font-medium'
 
 // One line per note — its title alone — as tall as the head's rows.
 const noteRow =
   'flex items-center w-full h-8 px-[6.5px] rounded-lg squircle text-left transition-colors'
-const noteRowIdle = `${noteRow} hover:bg-field-hover`
-const noteRowActive = `${noteRow} bg-field-selected`
+const noteRowIdle = `${noteRow} hover:bg-surface-field-hover`
+const noteRowActive = `${noteRow} bg-surface-field-selected`
 
 function NoteItem({
   note,
@@ -311,7 +311,7 @@ function NoteItem({
         aria-current={isActive ? 'true' : undefined}
         className={isActive ? noteRowActive : noteRowIdle}
       >
-        <span className="min-w-0 flex-1 text-style-sidebar truncate text-fg">
+        <span className="min-w-0 flex-1 text-style-sidebar truncate text-glyph-default">
           {noteDisplayTitle(note)}
         </span>
       </button>

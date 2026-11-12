@@ -30,7 +30,7 @@ import { OptionList, type OptionItem } from './option-list'
  */
 export const SEGMENTED_RAIL =
   'flex items-center flex-1 min-w-0 h-(--size-toolbar-button) gap-0 px-0 rounded-sm overflow-hidden ' +
-  'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)] ' +
+  'bg-surface-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)] ' +
   '[&_:is([role=toolbar],[role=listbox])]:gap-0 [&_:is(button,[role=button])]:rounded-none'
 
 /** The row fills the rail; stretched as well as grown, so the segments inherit a real box. */
@@ -46,7 +46,7 @@ export const SEGMENTED_LIST = 'grow basis-0 min-w-0 self-stretch'
 export const SEGMENTED_OPTION =
   'grow basis-0 min-w-0 justify-center self-stretch relative ' +
   'before:content-[""] before:absolute before:inset-y-0 before:left-0 before:w-[0.5px] before:bg-transparent ' +
-  '[[aria-selected=false]+&[aria-selected=false]]:before:bg-field-border [[aria-pressed=false]+&[aria-pressed=false]]:before:bg-field-border'
+  '[[aria-selected=false]+&[aria-selected=false]]:before:bg-border-field-default [[aria-pressed=false]+&[aria-pressed=false]]:before:bg-border-field-default'
 
 export interface SegmentedControlProps {
   /** The segments, left to right. Two or three — beyond that use a Combobox. */
