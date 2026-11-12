@@ -193,8 +193,8 @@ describe('Sidebar', () => {
     const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
     expect(block(':root')).toMatch(/--glyph-sidebar: var\(--color-base-600\);/)
     expect(block('\\.dark')).toMatch(/--glyph-sidebar: var\(--color-base-300\);/)
-    expect(block(':root')).toMatch(/--glyph-default: var\(--color-neutral-700\);/)
-    expect(block('\\.dark')).toMatch(/--glyph-default: var\(--color-neutral-200\);/)
+    expect(block(':root')).toMatch(/--glyph-default: var\(--color-base-800\);/)
+    expect(block('\\.dark')).toMatch(/--glyph-default: var\(--color-base-100\);/)
   })
 
   it('creates a note and opens the search from its head', () => {

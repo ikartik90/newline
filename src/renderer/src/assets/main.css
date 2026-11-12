@@ -199,7 +199,7 @@
   /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
   --surface-branded: var(--color-sky-500);
 
-  --glyph-default: var(--color-neutral-700);
+  --glyph-default: var(--color-base-800);
   /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --glyph-default. */
   --glyph-sidebar: var(--color-base-600);
   --glyph-title: var(--color-neutral-900);
@@ -301,7 +301,7 @@
   --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
   --surface-branded: var(--color-sky-400);
 
-  --glyph-default: var(--color-neutral-200);
+  --glyph-default: var(--color-base-100);
   --glyph-sidebar: var(--color-base-300);
   --glyph-title: var(--color-neutral-100);
   --glyph-body: var(--color-neutral-400);
