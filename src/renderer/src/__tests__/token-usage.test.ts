@@ -98,6 +98,10 @@ describe('token usage', () => {
     expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
+  it('paints a sheet in --surface-sheet, the one name it has', () => {
+    expect(candidates().filter((c) => /surface-(default|sidebar)(\/|\)|$)/.test(c))).toEqual([])
+  })
+
   it('draws every divider a full pixel wide', () => {
     const halfPixel = Object.entries(SOURCES).flatMap(([file, source]) =>
       [...source.matchAll(/'[^'\n]*'|"[^"\n]*"|`[^`]*`/g)]

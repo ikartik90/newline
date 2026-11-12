@@ -12,7 +12,7 @@ export const editableBaseStyle =
   'outline-none focus-visible:outline-none min-h-0 whitespace-pre-wrap break-words focus:min-h-[1.5em] editor-placeholder'
 
 export const editorCodeBlockStyle =
-  'text-style-code bg-surface-default rounded-md p-8 overflow-x-auto text-glyph-default whitespace-pre outline-none focus-visible:outline-none'
+  'text-style-code bg-surface-sheet rounded-md p-8 overflow-x-auto text-glyph-default whitespace-pre outline-none focus-visible:outline-none'
 
 export const editorCodeBlockWrapperStyle = 'relative group/code'
 

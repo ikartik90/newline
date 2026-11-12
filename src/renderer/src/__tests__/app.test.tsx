@@ -468,8 +468,8 @@ describe('App chrome', () => {
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     const shell = sidebar.parentElement!
-    expect(classesOf(shell)).not.toContain('bg-surface-default')
-    expect(sidebar.className).not.toMatch(/bg-surface-default/)
+    expect(classesOf(shell)).not.toContain('bg-surface-sheet')
+    expect(sidebar.className).not.toMatch(/bg-surface-sheet/)
   })
 
   it('tells main how wide the sidebar is, for AppKit’s glass under it', async () => {
@@ -486,7 +486,7 @@ describe('App chrome', () => {
     ;(api as { platform: string }).platform = 'win32'
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    expect(classesOf(sidebar.parentElement!)).toContain('bg-surface-default')
+    expect(classesOf(sidebar.parentElement!)).toContain('bg-surface-sheet')
   })
 
   it('tells main the theme, so the window’s own materials follow it', async () => {

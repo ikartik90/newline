@@ -207,9 +207,8 @@
      (`surface-level-*` below). The themes change only the scale, so the
      names over it are written once, here. */
   --surface-canvas: var(--surface-0);
-  --surface-sidebar: var(--surface-1);
-  --surface-default: var(--surface-1);
-  --surface-glass: color-mix(in srgb, var(--surface-sidebar) 75%, transparent);
+  --surface-sheet: var(--surface-1);
+  --surface-glass: color-mix(in srgb, var(--surface-sheet) 75%, transparent);
   --surface-raised: var(--surface-2);
   --surface-item-hover: var(--surface-1);
   --surface-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
@@ -349,8 +348,7 @@
 
 @theme inline {
   --color-surface-canvas: var(--surface-canvas);
-  --color-surface-default: var(--surface-default);
-  --color-surface-sidebar: var(--surface-sidebar);
+  --color-surface-sheet: var(--surface-sheet);
   --color-surface-glass: var(--surface-glass);
   --color-surface-raised: var(--surface-raised);
   --color-surface-item-hover: var(--surface-item-hover);
@@ -501,7 +499,7 @@
 @utility inline-code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--surface-default);
+  background: var(--surface-sheet);
   padding-inline: 4px;
   padding-block: 2px;
   border-radius: var(--radius-sm);
@@ -914,7 +912,7 @@
 
   /* A media object with nothing to paint yet. */
   [data-media-pending] {
-    background-color: var(--surface-default);
+    background-color: var(--surface-sheet);
     background-image: linear-gradient(
       90deg,
       transparent 0%,
@@ -932,9 +930,9 @@
   [data-checkered] {
     background-color: var(--surface-canvas);
     background-image: conic-gradient(
-      var(--surface-default) 25%,
+      var(--surface-sheet) 25%,
       transparent 0 50%,
-      var(--surface-default) 0 75%,
+      var(--surface-sheet) 0 75%,
       transparent 0
     );
     background-size: 16px 16px;

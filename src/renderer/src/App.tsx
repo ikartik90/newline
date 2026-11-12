@@ -256,7 +256,7 @@ function App() {
       className={
         frosted
           ? 'relative h-screen flex text-glyph-default'
-          : 'relative h-screen flex bg-surface-default text-glyph-default'
+          : 'relative h-screen flex bg-surface-sheet text-glyph-default'
       }
     >
       <header

@@ -179,7 +179,7 @@ preview.textContent = `
     background-attachment: fixed;
   }
   html[data-frost-preview] #root > div {
-    background: color-mix(in srgb, var(--surface-default) 55%, transparent);
+    background: color-mix(in srgb, var(--surface-sheet) 55%, transparent);
     backdrop-filter: blur(48px) saturate(1.6);
     -webkit-backdrop-filter: blur(48px) saturate(1.6);
   }

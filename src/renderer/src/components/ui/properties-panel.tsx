@@ -221,7 +221,7 @@ function PropertiesPanelRoot({
           // Docked, not floating: no radius, and the hairline on the one edge
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
-          'bg-surface-default shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+          'bg-surface-sheet shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
           // A sheet: its fields stand a step up, on surface 2.
           'surface-level-1',
           // The panel IS the scroll container; the sticky header stays put.
@@ -262,7 +262,7 @@ function PropertiesPanelHeader({
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
         // an opaque child). Its rule starts past that edge, as a section's does.
-        'sticky top-0 z-1 bg-surface-default surface-level-1',
+        'sticky top-0 z-1 bg-surface-sheet surface-level-1',
         'shadow-[inset_1px_0_0_var(--border-divider)]',
         RULE
       )}
