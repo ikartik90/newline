@@ -196,8 +196,8 @@
   --surface-highlight: var(--color-sky-100);
   --surface-button-secondary-default: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
   --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  /* The brand colour, flat: Sky 400 in both themes. */
-  --surface-branded: var(--color-sky-400);
+  /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
+  --surface-branded: var(--color-sky-500);
 
   --glyph-default: var(--color-neutral-700);
   /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --glyph-default. */
