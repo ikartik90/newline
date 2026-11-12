@@ -208,7 +208,6 @@
      names over it are written once, here. */
   --surface-canvas: var(--surface-0);
   --surface-sheet: var(--surface-1);
-  --surface-glass: color-mix(in srgb, var(--surface-sheet) 75%, transparent);
   --surface-raised: var(--surface-2);
   --surface-item-hover: var(--surface-1);
   --surface-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
@@ -349,7 +348,6 @@
 @theme inline {
   --color-surface-canvas: var(--surface-canvas);
   --color-surface-sheet: var(--surface-sheet);
-  --color-surface-glass: var(--surface-glass);
   --color-surface-raised: var(--surface-raised);
   --color-surface-item-hover: var(--surface-item-hover);
   --color-surface-notice: var(--surface-notice);

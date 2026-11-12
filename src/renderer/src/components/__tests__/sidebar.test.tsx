@@ -370,7 +370,6 @@ describe('Sidebar', () => {
     it('is a sheet: surface 1, the ground popovers, dialogs and toolbars share', () => {
       expect(css).toMatch(/--surface-sheet: var\(--surface-1\);/)
       expect(css).toMatch(/--color-surface-sheet: var\(--surface-sheet\);/)
-      expect(css).toMatch(/--surface-glass: color-mix\(in srgb, var\(--surface-sheet\) 75%/)
     })
 
     it('raises what stands on it a step, to surface 2', () => {

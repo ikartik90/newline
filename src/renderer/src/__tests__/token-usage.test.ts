@@ -102,6 +102,11 @@ describe('token usage', () => {
     expect(candidates().filter((c) => /surface-(default|sidebar)(\/|\)|$)/.test(c))).toEqual([])
   })
 
+  it('floats the chip on a picture in the sheet at 75%, with no token of its own', () => {
+    expect(candidates().filter((c) => /surface-glass/.test(c))).toEqual([])
+    expect(SOURCES['../components/ui/action.tsx']).toMatch(/bg-surface-sheet\/75 backdrop-frost/)
+  })
+
   it('draws every divider a full pixel wide', () => {
     const halfPixel = Object.entries(SOURCES).flatMap(([file, source]) =>
       [...source.matchAll(/'[^'\n]*'|"[^"\n]*"|`[^`]*`/g)]

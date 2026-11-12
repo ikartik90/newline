@@ -48,7 +48,7 @@ const textEmphasis: Record<ActionEmphasis, string> = {
   secondary:
     'bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover',
   tertiary: 'bg-transparent text-glyph-body hover:bg-surface-field-hover',
-  glass: 'bg-surface-glass backdrop-frost text-glyph-body hover:bg-surface-sheet'
+  glass: 'bg-surface-sheet/75 backdrop-frost text-glyph-body hover:bg-surface-sheet'
 }
 
 // The compact toolbar chip: a 20px glyph on a 4px inset, cornered as the
@@ -67,7 +67,7 @@ const iconEmphasis: Record<IconEmphasis, string> = {
   // The one chip that floats ON a picture: the surface at 75% and the app's
   // one blur keep the glyph legible over whatever moves underneath; opaque on
   // hover, the chip comes forward as you reach for it.
-  glass: 'bg-surface-glass backdrop-frost text-glyph-body hover:bg-surface-sheet'
+  glass: 'bg-surface-sheet/75 backdrop-frost text-glyph-body hover:bg-surface-sheet'
 }
 
 /**
