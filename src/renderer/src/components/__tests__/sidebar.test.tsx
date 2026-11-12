@@ -366,7 +366,7 @@ describe('Sidebar', () => {
     it('is the ground the surfaces popovers, dialogs and toolbars stand on', () => {
       const block = (selector: string) => css.match(new RegExp(`\n${selector} \\{([^}]*)\\}`))![1]
       expect(block('\\.dark')).toMatch(/--surface-sidebar: var\(--color-base-800\);/)
-      expect(block(':root')).toMatch(/--surface-sidebar: #e8e8e8;/)
+      expect(block(':root')).toMatch(/--surface-sidebar: var\(--color-base-100\);/)
       expect(css).toMatch(/--color-surface-sidebar: var\(--surface-sidebar\);/)
       for (const theme of [block(':root'), block('\\.dark')]) {
         expect(theme).toMatch(/--surface-default: var\(--surface-sidebar\);/)
