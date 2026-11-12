@@ -215,7 +215,7 @@
   --surface-selection: var(--color-sky-400);
   --surface-highlight: var(--color-sky-100);
   --surface-button-secondary-default: var(--surface-1);
-  --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  --surface-button-secondary-hover: var(--surface-2);
   /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
   --surface-branded: var(--color-sky-500);
 
@@ -309,7 +309,6 @@
   --surface-list-marker: var(--color-neutral-800);
   --surface-selection: var(--color-sky-400);
   --surface-highlight: var(--color-sky-800);
-  --surface-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
   --surface-branded: var(--color-sky-400);
 
   --glyph-default: var(--color-base-100);
@@ -392,22 +391,20 @@
 }
 
 /* A surface at level n stands what is on it — a secondary button, a field,
-   a hovered item — on surface n + 1. A sheet is level 1; it reassigns the variables the
-   utilities read, so its children pick the step up wherever they are. */
+   a hovered item — on surface n + 1, and a button's hover on n + 2. A sheet is
+   level 1, a raised chip level 2; each reassigns the variables the utilities
+   read, so its children pick the step up wherever they are. */
 @utility surface-level-1 {
   --surface-button-secondary-default: var(--surface-2);
+  --surface-button-secondary-hover: var(--surface-3);
   --surface-field-default: var(--surface-2);
   --surface-item-hover: var(--surface-2);
 }
 @utility surface-level-2 {
   --surface-button-secondary-default: var(--surface-3);
+  --surface-button-secondary-hover: var(--surface-4);
   --surface-field-default: var(--surface-3);
   --surface-item-hover: var(--surface-3);
-}
-@utility surface-level-3 {
-  --surface-button-secondary-default: var(--surface-4);
-  --surface-field-default: var(--surface-4);
-  --surface-item-hover: var(--surface-4);
 }
 
 /* ---------------------------------------------------------------------------
