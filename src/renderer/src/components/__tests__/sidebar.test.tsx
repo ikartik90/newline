@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import Sidebar from '../Sidebar'
 import css from '@/assets/main.css?raw'
@@ -429,6 +429,11 @@ describe('Sidebar', () => {
         ])
       )
       expect(contents()!.className).toMatch(/shadow-\[/)
+      // Its edge is the sheet's own 1px divider, not the rail's, which has no width.
+      const edges = rail().querySelectorAll('[data-rail-edge]')
+      expect(edges).toHaveLength(1)
+      expect(edges[0].parentElement).toBe(contents())
+      expect(classes(edges[0])).toEqual(expect.arrayContaining(['w-px', 'bg-border-divider']))
       // And in reach.
       expect(contents()!.hasAttribute('inert')).toBe(false)
       expect(screen.getByRole('button', { name: 'New note' })).toBeTruthy()
@@ -448,26 +453,62 @@ describe('Sidebar', () => {
       expect(classes(rail())).not.toContain('z-[5]')
     })
 
-    it('turns to glass when pinned, the pane reflowing as the rail widens', () => {
+    it('holds still when pinned while the pane reflows, then turns to glass', () => {
       const { props, rerender } = renderCollapsed()
       rerender(<Sidebar {...props} collapsed peeking />)
+      const peeked = contents()!.className
       rerender(<Sidebar {...props} collapsed={false} />)
       expect(classes(rail())).toEqual(
         expect.arrayContaining(['w-(--size-sidebar)', 'transition-[width,filter]', 'duration-150'])
       )
-      expect(rail().hasAttribute('data-on-glass')).toBe(true)
-      // The fill fades off the glass as the rail widens under it…
-      expect(contents()!.className).not.toMatch(/bg-surface|shadow-\[/)
-      expect(classes(contents()!)).toContain(
-        'transition-[opacity,translate,background-color,box-shadow]'
-      )
-      expect(classes(rail())).toContain('z-[5]')
-      // …and once it has, the rail stands in the row again.
-      fireEvent.transitionEnd(contents()!, { propertyName: 'opacity' })
-      expect(classes(rail())).toContain('z-[5]')
+      // The sheet is left exactly as it was, above the pane, while only the
+      // pane moves: nothing in it slides or fades in again.
+      expect(contents()!.className).toBe(peeked)
+      expect(classes(rail())).toEqual(expect.arrayContaining(['z-[5]', 'overflow-visible']))
+      expect(rail().hasAttribute('data-on-glass')).toBe(false)
+      expect(contents()!.querySelector('[data-rail-edge]')).not.toBeNull()
+
+      // Once the pane has made room, the fill fades off into the glass.
       fireEvent.transitionEnd(rail(), { propertyName: 'width' })
-      expect(classes(rail())).toEqual(expect.arrayContaining(['overflow-hidden']))
+      expect(contents()!.className).not.toMatch(/bg-surface|shadow-\[/)
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining([
+          'transition-[opacity,translate,background-color,box-shadow]',
+          'opacity-100',
+          'translate-x-0'
+        ])
+      )
+      expect(rail().hasAttribute('data-on-glass')).toBe(true)
+      expect(classes(rail())).toContain('overflow-hidden')
       expect(classes(rail())).not.toContain('z-[5]')
+      const edges = rail().querySelectorAll('[data-rail-edge]')
+      expect(edges).toHaveLength(1)
+      expect(edges[0].parentElement).toBe(rail())
+    })
+  })
+
+  describe('when a transition never reports its end', () => {
+    // A transition cut short ends without a transitionend; the rail must not
+    // be left floating, or its contents mounted, for want of one.
+    const rail = () => screen.getByRole('complementary', { name: 'Notes' })
+    const contents = () => document.querySelector('[data-rail-contents]') as HTMLElement | null
+
+    it('settles a pin into the glass all the same, just after its 150ms', () => {
+      vi.useFakeTimers()
+      try {
+        const { props, rerender } = renderSidebar()
+        rerender(<Sidebar {...props} collapsed />)
+        act(() => vi.advanceTimersByTime(200))
+        expect(contents()).toBeNull()
+        rerender(<Sidebar {...props} collapsed peeking />)
+        rerender(<Sidebar {...props} collapsed={false} />)
+        expect(rail().hasAttribute('data-on-glass')).toBe(false)
+        act(() => vi.advanceTimersByTime(200))
+        expect(rail().hasAttribute('data-on-glass')).toBe(true)
+        expect(contents()!.className).not.toMatch(/bg-surface/)
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 

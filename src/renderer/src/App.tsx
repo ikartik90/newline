@@ -86,7 +86,7 @@ function App() {
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null)
-  useSidebarGlass(sidebarElement)
+  useSidebarGlass(sidebarElement, sidebarCollapsed ? 0 : sidebarResize.width)
   const sidebarPeek = useSidebarPeek({
     collapsed: sidebarCollapsed,
     width: sidebarResize.width

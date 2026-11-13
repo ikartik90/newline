@@ -29,6 +29,8 @@ interface SidebarProps {
 
 /** A row is as tall as New note and Search (h-8), plus the 2px gap below it. */
 const NOTE_ROW_HEIGHT = 34
+/** Past the rail's 150ms transitions, when what they lead to is settled anyway. */
+const SETTLE_AFTER_MS = 200
 /** Below this many notes the list renders plainly; above it, virtualised. */
 const VIRTUALISE_FROM = 100
 
@@ -53,21 +55,22 @@ const sidebarFloatingOpen = `${sidebarShell} overflow-visible z-[5] w-(--size-si
 // width, it slides 8px toward the edge and fades in the same 150ms, and comes
 // back the same way. It stays mounted until the fade ends, out of reach.
 // Peeked at, it stands over the note pane rather than the glass, so it is a
-// sheet there: solid, edged and shadowed. Pinned, that fill fades off as the
-// rail widens under it, and the glass shows.
+// sheet there: solid, edged and shadowed. Pinned, it holds still while the
+// pane makes room, then its fill fades off into the glass laid under it.
 const railContents =
   'absolute inset-y-0 left-0 flex flex-col w-(--size-sidebar) pt-12 pb-2 transition-[opacity,translate,background-color,box-shadow] duration-150 ease-in-out'
 const railContentsShown = `${railContents} opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
 const railContentsHiding = `${railContents} opacity-0 -translate-x-2`
-const railContentsPeeking = `${railContents} bg-surface-sheet shadow-[1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
-const railContentsPeekEnding = `${railContents} bg-surface-sheet shadow-[1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-0 -translate-x-2`
+const railContentsPeeking = `${railContents} bg-surface-sheet shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
+const railContentsPeekEnding = `${railContents} bg-surface-sheet shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-0 -translate-x-2`
 
 // The rail paints nothing: AppKit's own sidebar, the one Finder's is, lies
 // under it as its ground (main/sidebar-glass.ts).
 const railTop = 'relative shrink-0 flex flex-col'
 const railBody = 'relative flex-1 min-h-0 flex flex-col'
 // The rail's edge stands on the rail, on the same glass as the footer's rule,
-// so the two read alike. Collapsed, the rail's clip hides it.
+// so the two read alike. Collapsed, the rail's clip hides it; floating, the
+// sheet carries it at its own right edge instead.
 const railEdge = 'absolute inset-y-0 right-0 w-px bg-border-divider pointer-events-none'
 
 // New note and Search head the rail as rows, their glyphs on the line the
@@ -128,13 +131,31 @@ export default function Sidebar({
   // has ended, or until a pin from it has widened the rail.
   const [floating, setFloating] = useState(peeking)
   if (peeking && !floating) setFloating(true)
-  const contentsStyle = peeking
-    ? railContentsPeeking
-    : !collapsed
-      ? railContentsShown
-      : floating
-        ? railContentsPeekEnding
-        : railContentsHiding
+  // Each settles on its transition's end, or just after its 150ms should a
+  // transition be cut short and never report one.
+  const settling = floating && !collapsed && !peeking
+  useEffect(() => {
+    if (!settling) return
+    const timer = setTimeout(() => setFloating(false), SETTLE_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [settling])
+  const unmounting = hidden && contentsMounted
+  useEffect(() => {
+    if (!unmounting) return
+    const timer = setTimeout(() => {
+      setContentsMounted(false)
+      setFloating(false)
+    }, SETTLE_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [unmounting])
+  const contentsStyle =
+    peeking || (floating && !collapsed)
+      ? railContentsPeeking
+      : !collapsed
+        ? railContentsShown
+        : floating
+          ? railContentsPeekEnding
+          : railContentsHiding
   const railStyle = floating
     ? collapsed
       ? sidebarFloatingCollapsed
@@ -212,7 +233,7 @@ export default function Sidebar({
     <aside
       ref={ref}
       aria-label="Notes"
-      data-on-glass={collapsed ? undefined : ''}
+      data-on-glass={collapsed || floating ? undefined : ''}
       className={railStyle}
       onTransitionEnd={(event) => {
         if (event.target !== event.currentTarget || event.propertyName !== 'width') return
@@ -299,9 +320,10 @@ export default function Sidebar({
             </div>
             <div className={footStyle}>{footer}</div>
           </div>
+          {floating && <div aria-hidden data-rail-edge="" className={railEdge} />}
         </div>
       )}
-      <div aria-hidden data-rail-edge="" className={railEdge} />
+      {!floating && <div aria-hidden data-rail-edge="" className={railEdge} />}
     </aside>
   )
 }

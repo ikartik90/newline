@@ -86,6 +86,29 @@ describe('useSidebarGlass', () => {
     expect(setSidebarWidth).toHaveBeenCalledWith(256)
   })
 
+  it('lays the glass at least as wide as the sidebar opens to, at once', () => {
+    let width = 0
+    // Each new minimum re-subscribes; the live observer is the latest.
+    const live = () => observers.filter((o) => !o.disconnected).at(-1)!
+    const element = document.createElement('aside')
+    element.getBoundingClientRect = () => ({ width }) as DOMRect
+    const { rerender } = renderHook(({ min }) => useSidebarGlass(element, min), {
+      initialProps: { min: 0 }
+    })
+    // Opening: the glass is whole before the rail has widened over it.
+    rerender({ min: 256 })
+    width = 120
+    live().callback()
+    // Dragged wider than that, it follows the rail.
+    width = 300
+    live().callback()
+    // Collapsing: it narrows behind the pane's edge, never ahead of it.
+    rerender({ min: 0 })
+    width = 80
+    live().callback()
+    expect(setSidebarWidth.mock.calls.map(([w]) => w)).toEqual([0, 256, 256, 300, 300, 80])
+  })
+
   it('stays quiet off macOS, where nothing lies under the sidebar', () => {
     window.api.platform = 'win32'
     renderHook(() => useSidebarGlass(sidebar(256)))
