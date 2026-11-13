@@ -100,6 +100,12 @@ describe('token usage', () => {
     expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
+  it('never writes an ink primitive in a component, only the system tokens over it', () => {
+    const utility =
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-ink-\d(\/|$)/
+    expect(candidates().filter((c) => utility.test(c))).toEqual([])
+  })
+
   it('paints a sheet in --surface-sheet, the one name it has', () => {
     expect(
       candidates().filter((c) => /surface-(default|sidebar|item-hover)(\/|\)|$)/.test(c))

@@ -195,10 +195,14 @@ describe('Sidebar', () => {
       [...css.matchAll(new RegExp(`\n${selector} \\{([^}]*)\\}`, 'g'))]
         .map(([, body]) => body)
         .join('')
-    expect(block(':root')).toMatch(/--glyph-sidebar: var\(--color-base-600\);/)
-    expect(block('\\.dark')).toMatch(/--glyph-sidebar: var\(--color-base-300\);/)
-    expect(block(':root')).toMatch(/--glyph-default: var\(--color-base-800\);/)
-    expect(block('\\.dark')).toMatch(/--glyph-default: var\(--color-base-100\);/)
+    // Ink 3 and ink 1, which the themes shade.
+    expect(block(':root')).toMatch(/--glyph-sidebar: var\(--ink-3\);/)
+    expect(block(':root')).toMatch(/--glyph-default: var\(--ink-1\);/)
+    expect(block(':root')).toMatch(/--ink-3: var\(--color-base-600\);/)
+    expect(block('\\.dark')).toMatch(/--ink-3: var\(--color-base-300\);/)
+    expect(block(':root')).toMatch(/--ink-1: var\(--color-base-800\);/)
+    expect(block('\\.dark')).toMatch(/--ink-1: var\(--color-base-100\);/)
+    expect(block('\\.dark')).not.toMatch(/--glyph-(sidebar|default):/)
   })
 
   it('creates a note and opens the search from its head', () => {

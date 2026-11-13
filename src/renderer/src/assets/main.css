@@ -175,7 +175,8 @@
    Primitives — the surface scale, a step apart, that the system tokens below
    are built on. A shade in light mirrors its dark twin (900 is 50, 800 is
    100). The inverse is each step in the other theme's shade, for what stands
-   out against the scale: a primary button. No utility writes them:
+   out against the scale: a primary button. The ink scale is the surface
+   scale with its themes swapped, 0 the strongest. No utility writes them:
    components write the system tokens.
 --------------------------------------------------------------------------- */
 :root {
@@ -188,6 +189,11 @@
   --surface-inverse-2: var(--color-base-700);
   --surface-inverse-3: var(--color-base-600);
   --surface-inverse-4: var(--color-base-500);
+  --ink-0: var(--color-base-900);
+  --ink-1: var(--color-base-800);
+  --ink-2: var(--color-base-700);
+  --ink-3: var(--color-base-600);
+  --ink-4: var(--color-base-500);
 }
 
 .dark {
@@ -200,6 +206,11 @@
   --surface-inverse-2: var(--color-base-200);
   --surface-inverse-3: var(--color-base-300);
   --surface-inverse-4: var(--color-base-400);
+  --ink-0: var(--color-base-50);
+  --ink-1: var(--color-base-100);
+  --ink-2: var(--color-base-200);
+  --ink-3: var(--color-base-300);
+  --ink-4: var(--color-base-400);
 }
 
 /* ---------------------------------------------------------------------------
@@ -230,9 +241,9 @@
   /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
   --surface-branded: var(--color-sky-500);
 
-  --glyph-default: var(--color-base-800);
+  --glyph-default: var(--ink-1);
   /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --glyph-default. */
-  --glyph-sidebar: var(--color-base-600);
+  --glyph-sidebar: var(--ink-3);
   --glyph-title: var(--color-neutral-900);
   --glyph-body: var(--color-neutral-500);
   --glyph-button-primary-default: var(--color-neutral-400);
@@ -322,8 +333,6 @@
   --surface-highlight: var(--color-sky-800);
   --surface-branded: var(--color-sky-400);
 
-  --glyph-default: var(--color-base-100);
-  --glyph-sidebar: var(--color-base-300);
   --glyph-title: var(--color-neutral-100);
   --glyph-body: var(--color-neutral-400);
   --glyph-highlight: var(--color-sky-400);
