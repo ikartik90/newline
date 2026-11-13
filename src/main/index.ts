@@ -72,6 +72,9 @@ function createWindow(): void {
     // level with the sidebar toggle that sits past them.
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 17 } } : {}),
+    // The click that brings the window forward also reaches the page, so the
+    // toggle under a sidebar peeked at from another app pins it at once.
+    acceptFirstMouse: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

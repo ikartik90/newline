@@ -25,9 +25,13 @@ export function useSidebarPeek({ collapsed, width }: SidebarPeekOptions) {
     setWasCollapsed(collapsed)
     setPeeking(false)
   }
+  // A peek is only ever at a collapsed sidebar: the click that brings an
+  // inactive window forward also has the pointer enter the toggle again,
+  // reaching its handler from before the pin.
+  const shown = peeking && collapsed
 
   useEffect(() => {
-    if (!peeking) return
+    if (!shown) return
     const move = (event: PointerEvent) => {
       if (event.pointerType === 'touch' || event.clientX <= width) return
       if ((event.target as Element | null)?.closest?.(FLOATING_FROM_IT)) return
@@ -50,7 +54,7 @@ export function useSidebarPeek({ collapsed, width }: SidebarPeekOptions) {
       document.removeEventListener('pointermove', move)
       root.removeEventListener('mouseleave', leavePage)
     }
-  }, [peeking, width])
+  }, [shown, width])
 
   // A finger has no resting place to peek from; a tap on the toggle pins.
   const onToggleEnter = useCallback(
@@ -60,5 +64,5 @@ export function useSidebarPeek({ collapsed, width }: SidebarPeekOptions) {
     [collapsed]
   )
 
-  return { peeking, onToggleEnter }
+  return { peeking: shown, onToggleEnter }
 }

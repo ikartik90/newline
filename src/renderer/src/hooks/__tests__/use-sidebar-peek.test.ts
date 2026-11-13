@@ -99,4 +99,15 @@ describe('useSidebarPeek', () => {
     rerender({ collapsed: true })
     expect(result.current.peeking).toBe(false)
   })
+
+  // The click that brings an inactive window forward also has the pointer
+  // enter the toggle again, reaching the handler from before the pin.
+  it('never peeks at a pinned sidebar, even from a reach that began before the pin', () => {
+    const { result, rerender } = setup()
+    const reachBeforePin = result.current.onToggleEnter
+    act(() => reachBeforePin(enter()))
+    rerender({ collapsed: false })
+    act(() => reachBeforePin(enter()))
+    expect(result.current.peeking).toBe(false)
+  })
 })
