@@ -33,15 +33,22 @@ export function useSidebarPeek({ collapsed, width }: SidebarPeekOptions) {
       if ((event.target as Element | null)?.closest?.(FLOATING_FROM_IT)) return
       setPeeking(false)
     }
-    const leaveWindow = (event: MouseEvent) => {
-      if (!event.relatedTarget) setPeeking(false)
+    // The page also reads the pointer reaching the top bar, the window's drag
+    // handle, as leaving it, though it is still in the window: crossing it
+    // from the toggle down to the notes, say. Only a pointer truly out of the
+    // window, or past the sidebar, lets it go.
+    const leavePage = (event: MouseEvent) => {
+      if (event.relatedTarget) return
+      const { clientX: x, clientY: y } = event
+      const inWindow = x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight
+      if (!inWindow || x > width) setPeeking(false)
     }
     const root = document.documentElement
     document.addEventListener('pointermove', move)
-    root.addEventListener('mouseleave', leaveWindow)
+    root.addEventListener('mouseleave', leavePage)
     return () => {
       document.removeEventListener('pointermove', move)
-      root.removeEventListener('mouseleave', leaveWindow)
+      root.removeEventListener('mouseleave', leavePage)
     }
   }, [peeking, width])
 

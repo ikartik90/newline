@@ -60,12 +60,34 @@ describe('useSidebarPeek', () => {
     menu.remove()
   })
 
+  const leavePage = (clientX: number, clientY: number) =>
+    act(() => {
+      document.documentElement.dispatchEvent(
+        new MouseEvent('mouseleave', { relatedTarget: null, clientX, clientY })
+      )
+    })
+
   it('lets it go when the pointer leaves the window', () => {
     const { result } = setup()
     act(() => result.current.onToggleEnter(enter()))
-    act(() => {
-      document.documentElement.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: null }))
-    })
+    leavePage(-1, 300)
+    expect(result.current.peeking).toBe(false)
+  })
+
+  // The top bar is the window's drag handle, which the page never sees the
+  // pointer on: it reads as leaving the page, though the pointer is still in
+  // the window — crossing it from the toggle down to the notes, say.
+  it('keeps it up while the pointer crosses the top bar over it', () => {
+    const { result } = setup()
+    act(() => result.current.onToggleEnter(enter()))
+    leavePage(100, 40)
+    expect(result.current.peeking).toBe(true)
+  })
+
+  it('lets it go when the pointer crosses the top bar past it', () => {
+    const { result } = setup()
+    act(() => result.current.onToggleEnter(enter()))
+    leavePage(WIDTH + 1, 40)
     expect(result.current.peeking).toBe(false)
   })
 
