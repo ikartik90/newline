@@ -215,8 +215,9 @@ describe('Sidebar', () => {
     const classes = sidebar.className.split(/\s+/)
     expect(classes.some((c) => /^-?m[trblxy]?-/.test(c))).toBe(false)
     // Its first 48px are the top bar's, which stands over it.
-    expect(classes).toContain('pt-12')
-    expect(classes).toContain('pb-2')
+    const held = sidebar.querySelector('[data-rail-contents]')!.className.split(/\s+/)
+    expect(held).toContain('pt-12')
+    expect(held).toContain('pb-2')
   })
 
   it('keeps the actions out of reach until a row is swiped', () => {
@@ -364,7 +365,7 @@ describe('Sidebar', () => {
       expect(classes(fading)).toEqual(
         expect.arrayContaining([
           'w-(--size-sidebar)',
-          'transition-[opacity,translate]',
+          'transition-[opacity,translate,background-color,box-shadow]',
           'duration-150',
           'opacity-0',
           '-translate-x-2'
@@ -397,6 +398,76 @@ describe('Sidebar', () => {
       )
       expect(shown.hasAttribute('inert')).toBe(false)
       expect(screen.getByRole('button', { name: 'New note' })).toBeTruthy()
+    })
+  })
+
+  describe('peeked at while collapsed', () => {
+    const rail = () => screen.getByRole('complementary', { name: 'Notes' })
+    const contents = () => document.querySelector('[data-rail-contents]') as HTMLElement | null
+    const classes = (el: Element) => el.className.split(/\s+/)
+
+    function renderCollapsed() {
+      const view = renderSidebar()
+      view.rerender(<Sidebar {...view.props} collapsed />)
+      fireEvent.transitionEnd(contents()!, { propertyName: 'opacity' })
+      return view
+    }
+
+    it('floats over the note pane as a solid sheet, the pane keeping its width', () => {
+      const { props, rerender } = renderCollapsed()
+      rerender(<Sidebar {...props} collapsed peeking />)
+      // The rail itself takes no room: the pane does not move.
+      expect(classes(rail())).toEqual(expect.arrayContaining(['w-0', 'z-[5]', 'overflow-visible']))
+      // Over the pane, not over the glass: solid, edged and shadowed as a sheet.
+      expect(rail().hasAttribute('data-on-glass')).toBe(false)
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining([
+          'bg-surface-sheet',
+          'opacity-100',
+          'starting:opacity-0',
+          'starting:-translate-x-2'
+        ])
+      )
+      expect(contents()!.className).toMatch(/shadow-\[/)
+      // And in reach.
+      expect(contents()!.hasAttribute('inert')).toBe(false)
+      expect(screen.getByRole('button', { name: 'New note' })).toBeTruthy()
+    })
+
+    it('slides and fades away when let go, still over the pane until it is gone', () => {
+      const { props, rerender } = renderCollapsed()
+      rerender(<Sidebar {...props} collapsed peeking />)
+      rerender(<Sidebar {...props} collapsed />)
+      expect(classes(rail())).toEqual(expect.arrayContaining(['z-[5]', 'overflow-visible']))
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining(['bg-surface-sheet', 'opacity-0', '-translate-x-2'])
+      )
+      expect(contents()!.hasAttribute('inert')).toBe(true)
+      fireEvent.transitionEnd(contents()!, { propertyName: 'opacity' })
+      expect(contents()).toBeNull()
+      expect(classes(rail())).not.toContain('z-[5]')
+    })
+
+    it('turns to glass when pinned, the pane reflowing as the rail widens', () => {
+      const { props, rerender } = renderCollapsed()
+      rerender(<Sidebar {...props} collapsed peeking />)
+      rerender(<Sidebar {...props} collapsed={false} />)
+      expect(classes(rail())).toEqual(
+        expect.arrayContaining(['w-(--size-sidebar)', 'transition-[width,filter]', 'duration-150'])
+      )
+      expect(rail().hasAttribute('data-on-glass')).toBe(true)
+      // The fill fades off the glass as the rail widens under it…
+      expect(contents()!.className).not.toMatch(/bg-surface|shadow-\[/)
+      expect(classes(contents()!)).toContain(
+        'transition-[opacity,translate,background-color,box-shadow]'
+      )
+      expect(classes(rail())).toContain('z-[5]')
+      // …and once it has, the rail stands in the row again.
+      fireEvent.transitionEnd(contents()!, { propertyName: 'opacity' })
+      expect(classes(rail())).toContain('z-[5]')
+      fireEvent.transitionEnd(rail(), { propertyName: 'width' })
+      expect(classes(rail())).toEqual(expect.arrayContaining(['overflow-hidden']))
+      expect(classes(rail())).not.toContain('z-[5]')
     })
   })
 

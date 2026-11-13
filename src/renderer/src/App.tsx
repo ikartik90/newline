@@ -18,6 +18,7 @@ import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
 import { useSidebarGlass } from '@/hooks/use-sidebar-glass'
+import { useSidebarPeek } from '@/hooks/use-sidebar-peek'
 import { useScrolled } from '@/hooks/use-scrolled'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
@@ -41,7 +42,8 @@ const iconButton =
 // the pane below it.
 // Its toggle is inked in the sidebar's grey, as the sidebar's own glyphs are.
 // While the sidebar is open the toggle stands on it, so it takes the sidebar's
-// level, as the settings gear does; collapsed, it stands on the canvas.
+// level, as the settings gear does; collapsed, it stands on the canvas, and
+// peeked at it stands on the sidebar's solid sheet, off the glass.
 const topBar =
   'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--glyph-default:var(--glyph-sidebar)]'
 const topBarOverSidebar = `${topBar} surface-level-1`
@@ -85,6 +87,10 @@ function App() {
   const sidebarResize = useSidebarResize(shellRef)
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null)
   useSidebarGlass(sidebarElement)
+  const sidebarPeek = useSidebarPeek({
+    collapsed: sidebarCollapsed,
+    width: sidebarResize.width
+  })
   const noteScroll = useScrolled()
   // Only macOS hides its title bar into the content, and only out of full
   // screen; elsewhere the window's controls are in a frame of their own.
@@ -263,14 +269,15 @@ function App() {
       }
     >
       <header
-        data-on-glass=""
-        className={sidebarCollapsed ? topBar : topBarOverSidebar}
+        data-on-glass={sidebarCollapsed ? undefined : ''}
+        className={sidebarCollapsed && !sidebarPeek.peeking ? topBar : topBarOverSidebar}
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <div className={windowControlsGutter ? toggleSlotPastWindowControls : toggleSlotAtEdge}>
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onPointerEnter={sidebarPeek.onToggleEnter}
             className={iconButton}
             style={noDrag}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -290,6 +297,7 @@ function App() {
         onNewNote={createNote}
         onSearch={() => setCommandMenuOpen(true)}
         collapsed={sidebarCollapsed}
+        peeking={sidebarPeek.peeking}
         resizing={sidebarResize.resizing}
         footer={
           <>

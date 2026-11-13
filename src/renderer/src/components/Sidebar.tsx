@@ -20,6 +20,8 @@ interface SidebarProps {
   /** What stands at the foot: the account and the app's settings. */
   footer: ReactNode
   collapsed: boolean
+  /** Collapsed, but brought up over the note pane while the pointer is on it. */
+  peeking?: boolean
   /** While its divider is being dragged the rail follows the pointer, not its clock. */
   resizing?: boolean
   ref?: Ref<HTMLElement>
@@ -34,22 +36,31 @@ const VIRTUALISE_FROM = 100
 // spacing is padding inside it, never margin around it; the first 48px are the
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all,
-// the note pane's edge gliding over in the same 150ms.
+// the note pane's edge gliding over in the same 150ms. What it holds is clipped
+// to it, except while it floats over the pane (peeked at, or widening from a
+// peek to pinned), when it stands above the pane and under the top bar.
 // Its `text-glyph-default` is the sidebar's own grey: `inline` makes the utility read
 // `--glyph-default` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative flex flex-col shrink-0 pt-12 pb-2 overflow-hidden duration-150 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
-const sidebarOpen = `${sidebarShell} w-(--size-sidebar) transition-[width,filter]`
-const sidebarResizing = `${sidebarShell} w-(--size-sidebar) transition-[filter]`
-const sidebarCollapsed = `${sidebarShell} w-0 transition-[width,filter]`
+  'relative shrink-0 duration-150 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
+const sidebarOpen = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[width,filter]`
+const sidebarResizing = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[filter]`
+const sidebarCollapsed = `${sidebarShell} overflow-hidden w-0 transition-[width,filter]`
+const sidebarFloatingCollapsed = `${sidebarShell} overflow-visible z-[5] w-0 transition-[width,filter]`
+const sidebarFloatingOpen = `${sidebarShell} overflow-visible z-[5] w-(--size-sidebar) transition-[width,filter]`
 
 // What the rail holds is not cut off by its narrowing edge: held at the open
 // width, it slides 8px toward the edge and fades in the same 150ms, and comes
 // back the same way. It stays mounted until the fade ends, out of reach.
+// Peeked at, it stands over the note pane rather than the glass, so it is a
+// sheet there: solid, edged and shadowed. Pinned, that fill fades off as the
+// rail widens under it, and the glass shows.
 const railContents =
-  'flex flex-1 min-h-0 flex-col w-(--size-sidebar) shrink-0 transition-[opacity,translate] duration-150 ease-in-out'
+  'absolute inset-y-0 left-0 flex flex-col w-(--size-sidebar) pt-12 pb-2 transition-[opacity,translate,background-color,box-shadow] duration-150 ease-in-out'
 const railContentsShown = `${railContents} opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
 const railContentsHiding = `${railContents} opacity-0 -translate-x-2`
+const railContentsPeeking = `${railContents} bg-surface-sheet shadow-[1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
+const railContentsPeekEnding = `${railContents} bg-surface-sheet shadow-[1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-0 -translate-x-2`
 
 // The rail paints nothing: AppKit's own sidebar, the one Finder's is, lies
 // under it as its ground (main/sidebar-glass.ts).
@@ -100,6 +111,7 @@ export default function Sidebar({
   onSearch,
   footer,
   collapsed,
+  peeking = false,
   resizing = false,
   ref
 }: SidebarProps) {
@@ -107,10 +119,31 @@ export default function Sidebar({
   const newNoteShortcut = useShortcutLabel('N')
   const searchShortcut = useShortcutLabel('K')
   const listRef = useRef<HTMLDivElement>(null)
-  // Whether the rail's contents are mounted: from opening until the fade that
-  // follows a collapse has ended.
-  const [contentsMounted, setContentsMounted] = useState(!collapsed)
-  if (!collapsed && !contentsMounted) setContentsMounted(true)
+  const hidden = collapsed && !peeking
+  // Whether the rail's contents are mounted: from showing until the fade that
+  // follows has ended.
+  const [contentsMounted, setContentsMounted] = useState(!hidden)
+  if (!hidden && !contentsMounted) setContentsMounted(true)
+  // Whether the rail stands over the note pane: from a peek until its fade
+  // has ended, or until a pin from it has widened the rail.
+  const [floating, setFloating] = useState(peeking)
+  if (peeking && !floating) setFloating(true)
+  const contentsStyle = peeking
+    ? railContentsPeeking
+    : !collapsed
+      ? railContentsShown
+      : floating
+        ? railContentsPeekEnding
+        : railContentsHiding
+  const railStyle = floating
+    ? collapsed
+      ? sidebarFloatingCollapsed
+      : sidebarFloatingOpen
+    : collapsed
+      ? sidebarCollapsed
+      : resizing
+        ? sidebarResizing
+        : sidebarOpen
   const [listHeight, setListHeight] = useState(400)
   // The one row slid aside to show its actions, if any.
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
@@ -179,18 +212,24 @@ export default function Sidebar({
     <aside
       ref={ref}
       aria-label="Notes"
-      data-on-glass=""
-      className={collapsed ? sidebarCollapsed : resizing ? sidebarResizing : sidebarOpen}
+      data-on-glass={collapsed ? undefined : ''}
+      className={railStyle}
+      onTransitionEnd={(event) => {
+        if (event.target !== event.currentTarget || event.propertyName !== 'width') return
+        if (!collapsed) setFloating(false)
+      }}
     >
       {contentsMounted && (
         <div
           data-rail-contents=""
-          inert={collapsed}
-          aria-hidden={collapsed || undefined}
-          className={collapsed ? railContentsHiding : railContentsShown}
+          inert={hidden}
+          aria-hidden={hidden || undefined}
+          className={contentsStyle}
           onTransitionEnd={(event) => {
             if (event.target !== event.currentTarget || event.propertyName !== 'opacity') return
-            if (collapsed) setContentsMounted(false)
+            if (!hidden) return
+            setContentsMounted(false)
+            setFloating(false)
           }}
         >
           <div className={railTop}>

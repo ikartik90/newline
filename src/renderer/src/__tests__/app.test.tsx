@@ -271,6 +271,29 @@ describe('App chrome', () => {
     expect(level(screen.getByRole('button', { name: 'Expand sidebar' }))).toBeNull()
   })
 
+  it('peeks at the collapsed sidebar from the toggle, and pins it open with a click', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const level = (button: Element) => button.closest('.surface-level-1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Collapse sidebar' }))
+    const toggle = screen.getByRole('button', { name: 'Expand sidebar' })
+    // Still under the pointer that collapsed it: no peek until a fresh reach.
+    expect(screen.queryByRole('button', { name: /^First note/ })).toBeNull()
+
+    await userEvent.unhover(toggle)
+    await userEvent.hover(toggle)
+    expect(screen.getByRole('button', { name: /^First note/ })).toBeTruthy()
+    // Over the solid sheet, not the glass.
+    expect(level(toggle)).not.toBeNull()
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(false)
+    expect(screen.queryByRole('separator', { name: 'Resize sidebar' })).toBeNull()
+
+    await userEvent.click(toggle)
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBe(toggle)
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(true)
+    expect(screen.getByRole('separator', { name: 'Resize sidebar' })).toBeTruthy()
+  })
+
   it('fixes the bar over the top of the window, so what scrolls passes under it', async () => {
     installApi([makeNote()])
     render(<App />)
