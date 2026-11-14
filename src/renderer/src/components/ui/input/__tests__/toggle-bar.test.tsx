@@ -31,6 +31,19 @@ describe('ToggleBar', () => {
     expect(pressed.map((button) => button.textContent)).toEqual(['Down', 'Right'])
   })
 
+  // A toggle not pressed rests in the control ink; a pressed one keeps the
+  // chip's brand ink, which the softening must not reach.
+  it('softens only the toggles not pressed to the control ink', () => {
+    render(<ToggleBar ariaLabel="Direction" options={DIRECTIONS} value={['up']} />)
+    for (const button of screen.getAllByRole('button')) {
+      const classes = button.className.split(/\s+/)
+      expect(classes).toContain(
+        'not-aria-selected:not-aria-pressed:not-disabled:text-glyph-control'
+      )
+      expect(classes.filter((c) => c.endsWith(':text-glyph-control'))).toHaveLength(1)
+    }
+  })
+
   it('adds a pressed option to the value rather than replacing it', () => {
     // The whole difference from its single-select sibling: these choices are
     // independent, so pressing a second one does not release the first.

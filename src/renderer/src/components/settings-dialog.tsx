@@ -26,7 +26,7 @@ const THEME_OPTIONS = [
 
 export function SettingsDialog({ open, onClose, theme, onThemeChange }: SettingsDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} size="xs" align="top-center">
+    <Dialog open={open} onClose={onClose} size="xs" align="top-center" material="glass">
       <Dialog.Header>
         <Dialog.Title>Settings</Dialog.Title>
         <Button variant="icon" aria-label="Close settings" onClick={onClose}>

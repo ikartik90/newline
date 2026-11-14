@@ -1,14 +1,20 @@
 import {
   Children,
+  cloneElement,
   isValidElement,
   useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
   type ReactElement,
-  type ReactNode
+  type ReactNode,
+  type Ref
 } from 'react'
-import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
-import { Tooltip } from './tooltip'
+import { Tooltip, TooltipHostContext, type TooltipHost } from './tooltip'
 
 // ---------------------------------------------------------------------------
 // The parts shared by the two actionable primitives — Button (a <button> that
@@ -39,16 +45,19 @@ export interface ActionStyleOptions {
 const baseStyle =
   'cursor-pointer appearance-none border-none no-underline w-fit transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none [&_svg]:block [&_svg]:size-5 [&_svg]:shrink-0'
 
-// The standalone CTA: a 32px/body-sm chip on an 8px inset that hugs its label,
-// with an 80px floor so a short one (Cancel / OK) is still substantial.
+// The standalone CTA: a 28px/body-sm chip, as tall as an icon button, on an 8px
+// inset that hugs its label, with an 80px floor so a short one (Cancel / OK) is
+// still substantial.
 const textStyle =
-  'inline-flex items-center justify-center gap-2 min-w-20 h-8 px-2 rounded-md text-style-body-sm'
+  'inline-flex items-center justify-center gap-2 min-w-20 h-7 px-2 rounded-lg text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
   primary:
     'bg-surface-button-primary-default text-glyph-button-primary-default hover:bg-surface-button-primary-hover',
+  // Secondary and tertiary rest in the control ink, one step softer than body
+  // ink; an icon beside the label follows it.
   secondary:
-    'bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover',
-  tertiary: 'bg-transparent text-glyph-body hover:bg-surface-field-hover',
+    'bg-surface-button-secondary-default text-glyph-control hover:bg-surface-button-secondary-hover',
+  tertiary: 'bg-transparent text-glyph-control hover:bg-surface-field-hover',
   glass:
     'bg-surface-button-secondary-default/60 backdrop-frost text-glyph-body hover:bg-surface-button-secondary-hover/60'
 }
@@ -61,11 +70,13 @@ const textEmphasis: Record<ActionEmphasis, string> = {
 // as a fill rather than the base's scale, since scaling drags a lone glyph off
 // the pixel grid.
 const iconStyle =
-  'relative inline-flex items-center justify-center gap-1 p-1 rounded-lg squircle text-inherit text-style-body-sm active:transform-none active:bg-surface-field-pressed aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
+  'relative inline-flex items-center justify-center gap-1 p-1 rounded-xl text-inherit text-style-body-sm active:transform-none active:bg-surface-field-pressed aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
 // An icon button is tertiary or glass — never a filled or branded chip.
 type IconEmphasis = Extract<ActionEmphasis, 'tertiary' | 'glass'>
 const iconEmphasis: Record<IconEmphasis, string> = {
-  tertiary: 'bg-transparent not-aria-pressed:hover:bg-surface-field-hover',
+  // Its glyph at rest takes the icon ink, one step softer on a sheet.
+  tertiary:
+    'bg-transparent not-aria-pressed:hover:bg-surface-field-hover not-aria-pressed:[&_svg]:text-glyph-icon',
   // The one chip that floats ON a picture: the surface at 75% and the app's
   // one blur keep the glyph legible over whatever moves underneath; opaque on
   // hover, the chip comes forward as you reach for it.
@@ -171,33 +182,116 @@ export function useActionTooltip(children: ReactNode) {
 }
 
 export interface ActionTooltipHostProps {
-  /** Whether the label is up — the host's own hover state, never Base UI's. */
+  /** Whether the label is up — the host's own hover state. */
   open: boolean
   onClose: () => void
   /** The rendered trigger — the `<button>` or `<a>` itself, ref and all. */
-  trigger: ReactElement
+  trigger: ReactElement<TriggerProps>
   /** The `Tooltip` element found among the children. */
   children: ReactNode
+  /**
+   * Held open beside others (a specimen): a manual popover, since showing a hint
+   * hides every other hint.
+   */
+  held?: boolean
+}
+
+interface TriggerProps {
+  ref?: Ref<HTMLElement>
+  onPointerEnter?: (event: ReactPointerEvent<HTMLElement>) => void
+  onPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void
+  onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void
+}
+
+function setRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === 'function') ref(value)
+  else if (ref) ref.current = value
 }
 
 /**
- * Wraps a trigger and its `Tooltip` in Base UI's tooltip root, which supplies
- * the portal, the positioning and the cursor tracking. The OPEN state stays the
- * host's: Base UI's own hover/focus opening is ignored (it would open on a tap's
- * synthesised mouse events and on keyboard focus, neither of which has a cursor
- * to trail); only its requests to close — Escape — are honoured.
+ * Pairs a trigger with its `Tooltip`: the trigger names the box with
+ * `interestfor`, and the box, a `popover="hint"`, hangs from a point kept at
+ * the cursor. The OPEN state stays the host's: the browser's own interest is
+ * refused (it would open on keyboard focus, which has no cursor to trail);
+ * only its dismissals — Escape, a press outside — are honoured, and a press on
+ * the trigger closes it too.
  */
-export function ActionTooltipHost({ open, onClose, trigger, children }: ActionTooltipHostProps) {
+export function ActionTooltipHost({
+  open,
+  onClose,
+  trigger,
+  children,
+  held = false
+}: ActionTooltipHostProps) {
+  const id = `tooltip-${useId().replace(/[^\w-]/g, '')}`
+  const anchorName = `--${id}`
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const cursorRef = useRef<HTMLDivElement | null>(null)
+  const shown = useRef(false)
+
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box || open === shown.current) return
+    // The trigger as the source: the box hangs from it until a pointer places the cursor point.
+    if (open) box.showPopover({ source: triggerRef.current ?? undefined })
+    else box.hidePopover()
+    shown.current = open
+  }, [open])
+
+  useEffect(() => {
+    const box = boxRef.current
+    if (!box) return
+    const onToggle = (event: Event) => {
+      if ((event as ToggleEvent).newState !== 'closed') return
+      shown.current = false
+      onClose()
+    }
+    const refuse = (event: Event) => event.preventDefault()
+    box.addEventListener('toggle', onToggle)
+    box.addEventListener('interest', refuse)
+    return () => {
+      box.removeEventListener('toggle', onToggle)
+      box.removeEventListener('interest', refuse)
+    }
+  }, [onClose])
+
+  // Written straight to the elements, so trailing the pointer never re-renders.
+  const place = (event: ReactPointerEvent) => {
+    const cursor = cursorRef.current
+    if (!cursor) return
+    cursor.style.left = `${event.clientX}px`
+    cursor.style.top = `${event.clientY}px`
+    boxRef.current?.style.setProperty('position-anchor', anchorName)
+  }
+
+  const { ref, onPointerEnter, onPointerMove, onPointerDown } = trigger.props
+  const host = useMemo<TooltipHost>(
+    () => ({ id, open, anchorName, held, boxRef, cursorRef }),
+    [id, open, anchorName, held]
+  )
   return (
-    <BaseTooltip.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) onClose()
-      }}
-      trackCursorAxis="both"
-    >
-      <BaseTooltip.Trigger render={trigger} />
+    <TooltipHostContext value={host}>
+      {cloneElement(trigger, {
+        interestfor: id,
+        ref: (node: HTMLElement | null) => {
+          triggerRef.current = node
+          setRef(ref, node)
+        },
+        onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => {
+          if (event.pointerType !== 'touch') place(event)
+          onPointerEnter?.(event)
+        },
+        onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+          if (event.pointerType !== 'touch') place(event)
+          onPointerMove?.(event)
+        },
+        onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+          onPointerDown?.(event)
+          onClose()
+        }
+      } as TriggerProps & { interestfor: string })}
       {children}
-    </BaseTooltip.Root>
+    </TooltipHostContext>
   )
 }

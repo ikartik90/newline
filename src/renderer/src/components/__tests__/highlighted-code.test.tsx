@@ -27,7 +27,7 @@ describe('HighlightedCode', () => {
     expect(spans.map((span) => span.getAttribute('data-syntax-role'))).toContain('secondary')
   })
 
-  it('inks both accented roles in the one accent, apart from plain code and comments', () => {
+  it('inks both accented roles in the one accent, and comments as plain code', () => {
     // A JS string, not a JSX attribute literal — the latter keeps `\n` as two
     // characters, and the comment would then swallow the whole line.
     const source = "// note\nconst value = 'ok';"
@@ -37,9 +37,9 @@ describe('HighlightedCode', () => {
     // Code has one accent, the prose's, for both accented roles.
     expect(classOf('primary')).toContain('text-glyph-highlight')
     expect(classOf('secondary')).toContain('text-glyph-highlight')
-    expect(classOf('neutral')).toContain('text-glyph-default')
+    expect(classOf('neutral')).toContain('text-glyph-body')
     expect(classOf('comment')).toContain('text-glyph-body')
-    expect(new Set(['primary', 'neutral', 'comment'].map(classOf)).size).toBe(3)
+    expect(classOf('comment')).toBe(classOf('neutral'))
   })
 
   it('accepts language aliases the way the highlighter does', () => {

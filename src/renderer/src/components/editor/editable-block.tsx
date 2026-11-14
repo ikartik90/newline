@@ -57,6 +57,7 @@ import {
   editorListItemContentStyle,
   editorListItemShellStyle,
   editorListMarkerButtonStyle,
+  editorListMarkerPeriodStyle,
   editorListMarkerPillStyle,
   editorMetricCaptionStyle,
   editorMetricLabelStyle,
@@ -1172,7 +1173,10 @@ export function EditableBlock({
     const markerLabel = listLabel ?? '1'
 
     return (
-      <div className={editorListItemShellStyle} data-list-item="">
+      <div
+        className={editorListItemShellStyle[block.type === 'list_item' ? 'numbered' : 'bulleted']}
+        data-list-item=""
+      >
         {block.type === 'list_item' ? (
           <button
             type="button"
@@ -1183,7 +1187,11 @@ export function EditableBlock({
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => onMarkerClick?.(e.currentTarget.getBoundingClientRect())}
           >
-            <span className={editorListMarkerPillStyle}>{markerLabel}</span>
+            {/* Read '1.' and 'a.'; the stored label stays bare. */}
+            <span className={editorListMarkerPillStyle}>
+              {markerLabel}
+              <span className={editorListMarkerPeriodStyle}>.</span>
+            </span>
           </button>
         ) : (
           <button

@@ -14,7 +14,7 @@ interface HighlightedCodeProps {
 const SYNTAX_ROLE_CLASS: Record<SyntaxTokenRole, string> = {
   primary: 'text-glyph-highlight',
   secondary: 'text-glyph-highlight',
-  neutral: 'text-glyph-default',
+  neutral: 'text-glyph-body',
   comment: 'text-glyph-body'
 }
 

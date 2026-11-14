@@ -13,9 +13,9 @@ import { useEffect, useId, type RefObject } from 'react'
 const layers: string[] = []
 
 /**
- * What a modal dialog looks like from here. A native `<dialog open>`, or the
- * app's own `Dialog` — Base UI's, a `div[role=dialog]` that marks itself with
- * `data-modal-dialog` for exactly this check. The properties panel is a
+ * What a modal dialog looks like from here: a native `<dialog open>` — the
+ * app's own `Dialog` is one — or anything marked `data-modal-dialog`, which
+ * that `Dialog` also carries for exactly this check. The properties panel is a
  * `role="dialog"` too and must NOT match: it is a layer in the stack above,
  * and a combobox opened from it is portalled outside it.
  */
@@ -82,9 +82,8 @@ export interface UseDismissOptions {
 
 /**
  * The dismiss behaviour shared by every floating menu: Escape (captured so it
- * beats the editor's keymaps — and beats Base UI's own bubble-phase Escape
- * listener, so a Base UI-positioned Popover still closes one layer at a
- * time), pointer-down outside the container, and — optionally — scroll/resize.
+ * beats the editor's keymaps, and closes one layer at a time), pointer-down
+ * outside the container, and — optionally — scroll/resize.
  * Extracted so the Popover shell and any menu that manages its own container
  * reuse one implementation.
  */

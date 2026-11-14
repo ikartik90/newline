@@ -12,7 +12,6 @@ import {
   type TextareaHTMLAttributes,
   type ReactNode
 } from 'react'
-import { Input } from '@base-ui/react/input'
 
 /** Join class names, dropping the falsy ones. The one helper every input shares. */
 export function cx(...parts: Array<string | false | null | undefined>): string {
@@ -48,7 +47,7 @@ const TEXT_STYLE: Record<FieldTextStyle, string> = {
 // ---------------------------------------------------------------------------
 // The ACTIVE state is CSS-driven off the control's engagement rather than a
 // prop: a text input's `:focus-visible` (which the spec makes always match on a
-// keyboard-editable element, click or tab — Base UI's range input included), a
+// keyboard-editable element, click or tab — the slider's range input included), a
 // focusable INSIDE a `data-control` box (the slider thumb, whose input is
 // hidden in it), or an open trigger's `aria-expanded`. Tracked from the field
 // ROOT with `:has`, so the label recolours even though it sits outside the
@@ -283,7 +282,7 @@ function FieldFrame({ children, className, onMouseDown, ...rest }: FieldFramePro
     <div
       data-size={size}
       className={cx(
-        'flex items-center gap-2 w-full px-2 rounded-sm border-[0.5px] border-solid overflow-hidden cursor-text',
+        'flex items-center gap-2 w-full px-2 rounded-lg border-[0.5px] border-solid overflow-hidden cursor-text',
         'bg-surface-field-default border-border-field-default text-glyph-field-default transition-[background-color,border-color,color] duration-150',
         // A multi-line control grows instead of holding the fixed height, and
         // the padding turns vertical because the frame no longer centres it.
@@ -342,15 +341,15 @@ export function controlClass(size: FieldSize, fill = true): string {
 
 export type FieldControlProps = InputHTMLAttributes<HTMLInputElement>
 
-/** The value slot for a text field — Base UI's Input carrying `data-control`. */
+/** The value slot for a text field — a native input carrying `data-control`. */
 const FieldControl = forwardRef<HTMLInputElement, FieldControlProps>(function FieldControl(
   { className, ...rest },
   forwardedRef
 ) {
   const { controlId, hintId, hasHint, registerControl, size } = useField('Field.Control')
   return (
-    <Input
-      ref={(node: HTMLInputElement | null) => {
+    <input
+      ref={(node) => {
         registerControl(node)
         if (typeof forwardedRef === 'function') forwardedRef(node)
         else if (forwardedRef) forwardedRef.current = node

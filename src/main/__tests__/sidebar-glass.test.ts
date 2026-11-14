@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
   glassWindowOptions,
+  isFrostedWindow,
   loadSidebarGlass,
   showSidebarGlass,
   type SidebarGlassAddon
@@ -10,7 +11,10 @@ import {
 
 const addon = (supported: boolean): SidebarGlassAddon => ({
   isSupported: () => supported,
-  show: vi.fn(() => true)
+  show: vi.fn(() => true),
+  panelGlass: vi.fn(() => true),
+  floatPanel: vi.fn(() => true),
+  windowGlass: vi.fn(() => true)
 })
 
 describe('loadSidebarGlass', () => {
@@ -35,20 +39,53 @@ describe('loadSidebarGlass', () => {
   })
 })
 
+// os.release() as each answers it.
+const WINDOWS_11_22H2 = '10.0.22621'
+const WINDOWS_11_21H2 = '10.0.22000'
+const WINDOWS_10 = '10.0.19045'
+const MAC = '25.0.0'
+
+describe('isFrostedWindow', () => {
+  it('is glass on every Mac: AppKit’s, or the sidebar vibrancy', () => {
+    expect(isFrostedWindow('darwin', MAC)).toBe(true)
+  })
+
+  it('is acrylic on Windows 11 from 22H2, the first to draw it behind a page', () => {
+    expect(isFrostedWindow('win32', WINDOWS_11_22H2)).toBe(true)
+    expect(isFrostedWindow('win32', WINDOWS_11_21H2)).toBe(false)
+    expect(isFrostedWindow('win32', WINDOWS_10)).toBe(false)
+  })
+
+  it('is solid where the OS has no blur to show through', () => {
+    expect(isFrostedWindow('linux', '6.8.0')).toBe(false)
+  })
+})
+
 describe('glassWindowOptions', () => {
   it('keeps the page clear over AppKit’s glass, with no vibrancy over it', () => {
-    expect(glassWindowOptions('darwin', addon(true), false)).toEqual({
+    expect(glassWindowOptions('darwin', addon(true), false, MAC)).toEqual({
       backgroundColor: '#00000000'
     })
   })
 
   it('falls back to the sidebar vibrancy on a Mac without the glass', () => {
-    expect(glassWindowOptions('darwin', null, false)).toEqual({ vibrancy: 'sidebar' })
+    expect(glassWindowOptions('darwin', null, false, MAC)).toEqual({ vibrancy: 'sidebar' })
+  })
+
+  it('falls back to acrylic on Windows 11, the page clear over it', () => {
+    expect(glassWindowOptions('win32', null, false, WINDOWS_11_22H2)).toEqual({
+      backgroundMaterial: 'acrylic',
+      backgroundColor: '#00000000'
+    })
   })
 
   it('paints the canvas elsewhere, in the theme’s own shade', () => {
-    expect(glassWindowOptions('win32', null, true)).toEqual({ backgroundColor: '#1f2123' })
-    expect(glassWindowOptions('linux', null, false)).toEqual({ backgroundColor: '#eef2f6' })
+    expect(glassWindowOptions('win32', null, true, WINDOWS_10)).toEqual({
+      backgroundColor: '#1f2123'
+    })
+    expect(glassWindowOptions('linux', null, false, '6.8.0')).toEqual({
+      backgroundColor: '#eef2f6'
+    })
   })
 })
 

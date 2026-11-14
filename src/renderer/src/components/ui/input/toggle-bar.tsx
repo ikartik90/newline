@@ -16,7 +16,7 @@ import { SEGMENTED_LIST, SEGMENTED_OPTION, SEGMENTED_RAIL } from './segmented-co
 // shapes; what differs between them is what a press MEANS.
 //
 // A TOOLBAR, not a listbox, and that is the whole difference: these choices
-// are independent, so each button is a Base UI Toggle carrying its own
+// are independent, so each is a native button carrying its own
 // `aria-pressed`, and a press toggles it alone.
 // ---------------------------------------------------------------------------
 

@@ -5,9 +5,9 @@ import { Slider } from '../slider'
 
 // jsdom lays nothing out, so the track has no width to map a pointer onto.
 // Give it the drawn geometry — a 140px ruler starting at x=8 — so a clientX
-// means the same thing here as it does in the browser. Base UI measures the
-// CONTROL (the whole strip), which is where a press lands; the `role="slider"`
-// is the thumb's hidden range input, which is where the keyboard lands.
+// means the same thing here as it does in the browser. The slider measures the
+// whole strip, which is where a press lands; the `role="slider"` is the
+// thumb's hidden range input, which is where the keyboard lands.
 const TRACK_LEFT = 8
 const TRACK_WIDTH = 140
 
@@ -34,8 +34,8 @@ const slider = () => screen.getByRole('slider')
 const atRatio = (ratio: number) => TRACK_LEFT + ratio * TRACK_WIDTH
 
 // jsdom implements no pointer capture at all. Model the real contract — capture
-// makes hasPointerCapture true until released — because Base UI captures the
-// pointer on the control for the length of a drag.
+// makes hasPointerCapture true until released — because the slider captures
+// the pointer on the strip for the length of a drag.
 beforeEach(() => {
   const captured = new WeakMap<Element, Set<number>>()
   Element.prototype.setPointerCapture = function (id: number) {

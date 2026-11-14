@@ -1,23 +1,20 @@
 import {
-  Children,
-  isValidElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
-  type ReactElement,
-  type ReactNode
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject
 } from 'react'
-import { Combobox as BaseCombobox } from '@base-ui/react/combobox'
+import { createPortal } from 'react-dom'
+import { useDismiss } from '@/hooks/use-dismiss'
 import { filterOptions, type OptionItem } from '@/utils/option-filter'
+import { useTopLayerPopover } from '../popover'
 import { controlClass, cx, Field, useField } from './field'
-import {
-  collectOptions,
-  OptionList,
-  optionListClasses,
-  type OptionListOptionProps
-} from './option-list'
+import { collectOptions, OptionList } from './option-list'
 import ChevronDownIcon from '@/assets/icons/chevron-down.svg'
 import ChevronUpIcon from '@/assets/icons/chevron-up.svg'
 
@@ -40,15 +37,17 @@ import ChevronUpIcon from '@/assets/icons/chevron-up.svg'
 // selected label even while the popup is closed, and the same children feed
 // the open list.
 //
-// Collapsed, it renders the shared `field` frame (Base UI's Combobox.Trigger
+// Collapsed, it renders the shared `field` frame (a `role="combobox"` button
 // showing the selected label + a chevron); the whole frame is the open target.
-// Activated, the chevron flips up and a Base UI popup anchored to the frame
-// holds the list in the brand tone with a filter search on top. Base UI owns
-// the anchoring, the focus handoff (into the search on open, back to the
-// trigger on close) and the outside-press / Escape dismissal.
+// Activated, the chevron flips up and a manual popover in the top layer,
+// anchored to the trigger (`[data-popover]` in main.css), holds an `OptionList`
+// in the brand tone with a `Field.Search` filter on top. The focus goes into
+// the search as it opens and back to the trigger as it closes; Escape is
+// `useDismiss`'s, so it closes one layer at a time, and a press outside or a
+// Tab past either end closes it too.
 //
 // `search={false}` drops the filter box for a list too short to filter; focus
-// then lands on the LIST and the arrows walk it.
+// then lands on the highlighted row and the arrows walk the list.
 // ---------------------------------------------------------------------------
 
 export interface ComboboxProps {
@@ -85,26 +84,6 @@ export interface ComboboxProps {
   children: ReactNode
 }
 
-/** Each authored option's rendered content, by value — an icon beside a label survives. */
-function collectContent(children: ReactNode): Map<string, ReactNode> {
-  const out = new Map<string, ReactNode>()
-  const visit = (nodes: ReactNode) => {
-    Children.forEach(nodes, (child) => {
-      if (!isValidElement(child)) return
-      if (child.type === OptionList.Option) {
-        const props = (child as ReactElement<OptionListOptionProps>).props
-        if (props.value != null && !out.has(props.value)) {
-          out.set(props.value, props.children ?? props.label ?? props.value)
-        }
-      } else {
-        visit((child.props as { children?: ReactNode }).children)
-      }
-    })
-  }
-  visit(children)
-  return out
-}
-
 /**
  * The Select control. Reads the field wiring (controlId to be the labelable
  * control, registerControl for the frame's focus-forward) — so it must live
@@ -124,7 +103,8 @@ function ComboboxRoot({
 }: ComboboxProps) {
   const { controlId, size, registerControl } = useField('Combobox')
   const [open, setOpen] = useState(false)
-  const listRef = useRef<HTMLDivElement>(null)
+  const popupId = `combobox-${useId().replace(/[^\w-]/g, '')}`
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   const isControlled = value !== undefined
   const [internal, setInternal] = useState<string | null>(defaultValue ?? null)
@@ -133,127 +113,173 @@ function ComboboxRoot({
   // The option DATA, read from the authored children — available even while
   // the popup (and its list) is closed and unmounted.
   const options = useMemo(() => collectOptions(children), [children])
-  const content = useMemo(() => collectContent(children), [children])
-  const items = useMemo(() => options.map((o) => o.value), [options])
-
-  // The consumer's filter answers for the whole LIST at once; Base UI asks per
-  // item. Bridge the two by running the list filter once per query and
-  // answering membership — inside Base UI's own pipeline, so its typing
-  // highlight and empty state keep working.
-  const survivors = useRef<{ query: string; values: Set<string> } | null>(null)
-  const matches = useCallback(
-    (item: string, query: string) => {
-      if (survivors.current?.query !== query) {
-        survivors.current = { query, values: new Set(filter(options, query).map((o) => o.value)) }
-      }
-      return survivors.current.values.has(item)
-    },
-    [filter, options]
-  )
-  useEffect(() => {
-    survivors.current = null
-  }, [matches])
-
-  const labelOf = (v: string | null) => options.find((o) => o.value === v)?.label ?? ''
-  const disabledOf = (v: string) => options.find((o) => o.value === v)?.disabled ?? false
 
   // A stale value with no matching option reads as empty, so the placeholder
   // shows rather than a blank frame.
-  const display = labelOf(selected)
+  const display = options.find((o) => o.value === selected)?.label ?? ''
+
+  /** Closes, handing the focus back to the trigger first if the popup held it. */
+  const close = useCallback((restore: boolean) => {
+    if (restore) triggerRef.current?.focus({ preventScroll: true })
+    setOpen(false)
+  }, [])
+
+  const pick = (next: string) => {
+    if (!isControlled) setInternal(next)
+    onValueChange?.(next)
+    close(true)
+  }
 
   // The list is scaled by the FIELD, like every other part of it: the list
   // draws two sizes to the field's three, so `lg` reads as the base.
   const listSize = size === 'sm' ? 'sm' : 'md'
-  const styles = optionListClasses({
-    tone: 'onBrand',
-    direction: 'block',
-    fit: 'scroll',
-    size: listSize
-  })
 
-  const popup = (
-    <BaseCombobox.Positioner sideOffset={2} align="start" className="z-50 outline-none">
-      <BaseCombobox.Popup
-        aria-label="Choose an option"
-        // The search-less list takes focus itself, so the arrows have a
-        // place to land; with a search the input holds focus and drives the
-        // highlight, which is Base UI's default.
-        initialFocus={search ? undefined : listRef}
-        className={cx(
-          'flex flex-col w-(--anchor-width) min-w-(--size-option-list-width) rounded-sm overflow-hidden outline-none',
-          'bg-surface-field-popover shadow-[inset_0_0_0_0.5px_var(--border-field-active),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]'
-        )}
+  const popup = open && (
+    <ComboboxPopup
+      id={popupId}
+      anchor={triggerRef}
+      ignoreSelector={`[data-combobox-frame="${popupId}"]`}
+      search={search}
+      onClose={close}
+    >
+      <OptionList
+        tone="onBrand"
+        fit="scroll"
+        size={listSize}
+        value={selected}
+        onValueChange={pick}
+        filter={filter}
+        emptyLabel={emptyLabel}
       >
-        {search && (
-          <BaseCombobox.Input
-            placeholder={searchPlaceholder}
-            data-size={listSize}
-            className={styles.search}
-          />
-        )}
-        <BaseCombobox.Empty className={styles.empty}>{emptyLabel}</BaseCombobox.Empty>
-        <BaseCombobox.List ref={listRef} data-size={listSize} className={styles.list}>
-          {(item: string) => (
-            <BaseCombobox.Item
-              key={item}
-              value={item}
-              disabled={disabledOf(item)}
-              data-size={listSize}
-              className={cx(styles.option, styles.highlighted)}
-            >
-              {content.get(item)}
-            </BaseCombobox.Item>
-          )}
-        </BaseCombobox.List>
-      </BaseCombobox.Popup>
-    </BaseCombobox.Positioner>
+        {search && <Field.Search placeholder={searchPlaceholder} />}
+        <OptionList.Status />
+        {/* The search-less list takes the focus itself, onto its highlight. */}
+        <OptionList.Listbox autoFocus={!search} emptyRow={false}>
+          {children}
+        </OptionList.Listbox>
+      </OptionList>
+    </ComboboxPopup>
   )
 
   return (
-    <BaseCombobox.Root
-      items={items}
-      filter={matches}
-      itemToStringLabel={labelOf}
-      value={selected}
-      onValueChange={(next) => {
-        if (next == null) return
-        if (!isControlled) setInternal(next)
-        onValueChange?.(next)
-      }}
-      open={open}
-      onOpenChange={setOpen}
-      // Typing highlights the first match, so Enter commits it without an
-      // arrow press first.
-      autoHighlight
-    >
+    <>
       <Field.Frame
+        data-combobox-frame={popupId}
         className="cursor-pointer"
         // The whole frame is the open target — the decorative chevron and the
         // frame's dead padding are non-interactive, so without this only a
-        // direct hit on the value text would open it. The trigger itself
-        // toggles through Base UI and must not be opened twice.
+        // direct hit on the value text would open it. The trigger toggles on
+        // its own click and must not be opened twice.
         onClick={(e) => {
           if ((e.target as Element).closest('[data-control]')) return
           setOpen(true)
         }}
       >
-        <BaseCombobox.Trigger
-          ref={registerControl}
+        <button
+          ref={(node) => {
+            triggerRef.current = node
+            registerControl(node)
+          }}
+          type="button"
+          role="combobox"
           id={controlId}
           data-control
           data-placeholder={display ? undefined : ''}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={open ? popupId : undefined}
           // In the tab order explicitly, because WebKit's default one skips a
           // bare <button> — see `Button`.
           tabIndex={0}
           className={cx(controlClass(size), 'text-left cursor-pointer')}
+          onClick={() => (open ? close(false) : setOpen(true))}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+            e.preventDefault()
+            setOpen(true)
+          }}
         >
           {display || placeholder}
-        </BaseCombobox.Trigger>
+        </button>
         {open ? <ChevronUpIcon aria-hidden /> : <ChevronDownIcon aria-hidden />}
       </Field.Frame>
 
-      {portal ? <BaseCombobox.Portal>{popup}</BaseCombobox.Portal> : popup}
-    </BaseCombobox.Root>
+      {popup && (portal ? createPortal(popup, document.body) : popup)}
+    </>
+  )
+}
+
+interface ComboboxPopupProps {
+  id: string
+  anchor: RefObject<HTMLElement | null>
+  ignoreSelector: string
+  search: boolean
+  onClose: (restore: boolean) => void
+  children: ReactNode
+}
+
+/** The open popup, mounted only while open: shown in the top layer as it mounts. */
+function ComboboxPopup({
+  id,
+  anchor,
+  ignoreSelector,
+  search,
+  onClose,
+  children
+}: ComboboxPopupProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  useTopLayerPopover(ref, () => anchor.current)
+
+  const dismiss = useCallback(() => onClose(true), [onClose])
+  useDismiss({ ref, onDismiss: dismiss, dismissOnOutsidePointer: false })
+
+  // A press outside closes it and leaves the focus to wherever the press lands.
+  // The frame is not outside: its own click toggles.
+  useEffect(() => {
+    function handlePointerDown(e: PointerEvent) {
+      const target = e.target as Element
+      if (ref.current?.contains(target) || target.closest?.(ignoreSelector)) return
+      onClose(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [ignoreSelector, onClose])
+
+  // Into the search once the popup is shown (an `autoFocus` would run before it
+  // is, on an element not yet displayed).
+  useEffect(() => {
+    if (search) ref.current?.querySelector('input')?.focus({ preventScroll: true })
+  }, [search])
+
+  // Tab moves between the search and the list; past either end it leaves by
+  // way of the trigger — forward, the browser's Tab carries on from there.
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return
+    const stops = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('input, [tabindex="0"]'))
+    const at = stops.indexOf(document.activeElement as HTMLElement)
+    if (e.shiftKey ? at > 0 : at < stops.length - 1 && at !== -1) return
+    if (e.shiftKey) e.preventDefault()
+    onClose(true)
+  }
+
+  return (
+    <div
+      ref={ref}
+      id={id}
+      role="dialog"
+      aria-label="Choose an option"
+      popover="manual"
+      data-popover=""
+      data-side="bottom"
+      data-align="start"
+      className={cx(
+        'flex flex-col mt-0.5 [--popover-edge:5px] w-[anchor-size(width)] min-w-(--size-option-list-width) rounded-sm overflow-hidden outline-none',
+        'bg-surface-field-popover shadow-[inset_0_0_0_0.5px_var(--border-field-active),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]'
+      )}
+      onKeyDown={handleKeyDown}
+    >
+      {children}
+    </div>
   )
 }
 

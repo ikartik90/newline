@@ -29,7 +29,7 @@ import { Tooltip } from './tooltip'
 //   </Button>
 //
 // The look is the shared `action` style: a `Button.Text` (or bare string) child
-// ⇒ the 32px `text` chip; an icon alone ⇒ the 28px `icon` chip that matches
+// ⇒ the 28px `text` chip; an icon alone ⇒ the 28px `icon` chip that matches
 // the shell's toolbar buttons. Pass `variant` only to override that inference —
 // notably `variant="link"` for the inline underlined affordance. The resolved
 // axes are stamped as `data-variant` / `data-emphasis` for a stylesheet or a test.

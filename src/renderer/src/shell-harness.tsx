@@ -83,6 +83,7 @@ const live = () => notes.filter((note) => !note.isDeleted)
 Object.defineProperty(window, 'api', {
   value: {
     platform: 'darwin',
+    frosted: true,
     notes: {
       list: async () => live().map((note) => ({ ...note })),
       search: async (query: string) => {

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SettingsDialog } from '../settings-dialog'
+import { onWindowGlass } from '@/test-support'
 
 // ---------------------------------------------------------------------------
 // The application's settings — not a note's. For now that is the theme, as
@@ -18,6 +19,16 @@ describe('SettingsDialog', () => {
   it('is a dialog named Settings', () => {
     renderDialog()
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeTruthy()
+  })
+
+  // Where AppKit glasses the window, it stands on that glass, as the palette does.
+  it('stands on the window glass', () => {
+    const { restore } = onWindowGlass()
+    renderDialog()
+    expect(screen.getByRole('dialog', { name: 'Settings' }).hasAttribute('data-on-glass')).toBe(
+      true
+    )
+    restore()
   })
 
   it('offers the theme as System, Light or Dark, marking the one chosen', () => {

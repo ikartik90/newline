@@ -260,7 +260,14 @@ export function ImageInsertDialog(props: ImageInsertDialogProps) {
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} size="md" align="center" justify="center">
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      size="md"
+      align="center"
+      justify="center"
+      material="glass"
+    >
       <Dialog.Header>
         <Dialog.Title>{title}</Dialog.Title>
         <Button

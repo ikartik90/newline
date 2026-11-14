@@ -39,12 +39,12 @@ const VIRTUALISE_FROM = 100
 // top bar's, which stands over it. Open, it is as wide as its divider was last
 // dragged (`--size-sidebar`, on the shell); collapsed it keeps no width at all,
 // the note pane's edge gliding over in the same 150ms. What it holds is clipped
-// to it, except while it floats over the pane (peeked at, or widening from a
-// peek to pinned), when it stands above the pane and under the top bar.
-// Its `text-glyph-default` is the sidebar's own grey: `inline` makes the utility read
-// `--glyph-default` itself, so reassigning that here inks everything inside.
+// to it, except while it floats over the pane (peeked at, toggled, or widening
+// from a peek to pinned), when it stands above the pane and under the top bar.
+// Its `text-glyph-body` is the sidebar's own grey: `inline` makes the utility read
+// `--glyph-body` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative shrink-0 duration-150 ease-in-out surface-level-1 [--glyph-default:var(--glyph-sidebar)]'
+  'relative shrink-0 duration-150 ease-in-out surface-level-1 [--glyph-body:var(--glyph-sidebar)] [--glyph-icon:currentColor]!'
 const sidebarOpen = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} overflow-hidden w-0 transition-[width,filter]`
@@ -78,8 +78,8 @@ const railEdge = 'absolute inset-y-0 right-0 w-px bg-border-divider pointer-even
 // 20px glyph is centred at 23px — under macOS's red window button.
 const headStyle = 'flex flex-col gap-0.5 px-[6.5px] pb-2 shrink-0'
 const headRowStyle =
-  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-lg squircle text-left text-style-sidebar text-glyph-default hover:bg-surface-field-hover transition-colors'
-const headGlyphStyle = 'shrink-0 size-5 text-glyph-default'
+  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-glyph-body hover:bg-surface-field-hover transition-colors'
+const headGlyphStyle = 'shrink-0 size-5 text-glyph-body'
 const headShortcutStyle = 'ml-auto text-style-caption text-glyph-body/40'
 
 const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-glyph-body/50 shrink-0'
@@ -131,6 +131,14 @@ export default function Sidebar({
   // has ended, or until a pin from it has widened the rail.
   const [floating, setFloating] = useState(peeking)
   if (peeking && !floating) setFloating(true)
+  // A toggle floats it too, so it goes and comes as a peek does: the rail's
+  // narrowing or widening edge would otherwise cut what it holds off, which
+  // reads as the whole sidebar sliding its width.
+  const [wasCollapsed, setWasCollapsed] = useState(collapsed)
+  if (wasCollapsed !== collapsed) {
+    setWasCollapsed(collapsed)
+    if (!floating) setFloating(true)
+  }
   // Each settles on its transition's end, or just after its 150ms should a
   // transition be cut short and never report one.
   const settling = floating && !collapsed && !peeking
@@ -353,8 +361,7 @@ const deleteActionStyle =
   'flex items-center justify-center gap-1 w-full h-full bg-glyph-danger text-surface-canvas text-style-fineprint font-medium'
 
 // One line per note — its title alone — as tall as the head's rows.
-const noteRow =
-  'flex items-center w-full h-8 px-[6.5px] rounded-lg squircle text-left transition-colors'
+const noteRow = 'flex items-center w-full h-8 px-[6.5px] rounded-xl text-left transition-colors'
 const noteRowIdle = `${noteRow} hover:bg-surface-field-hover`
 const noteRowActive = `${noteRow} bg-surface-field-selected`
 
@@ -372,7 +379,7 @@ function NoteItem({
     <SwipeActions
       open={note.id === swipeOpenId}
       onOpenChange={(open) => onSwipeOpenChange(note.id, open)}
-      className="rounded-lg squircle mb-0.5"
+      className="rounded-xl mb-0.5"
       actions={
         <button
           type="button"
@@ -394,7 +401,7 @@ function NoteItem({
         aria-current={isActive ? 'true' : undefined}
         className={isActive ? noteRowActive : noteRowIdle}
       >
-        <span className="min-w-0 flex-1 text-style-sidebar truncate text-glyph-default">
+        <span className="min-w-0 flex-1 text-style-sidebar truncate text-glyph-body">
           {noteDisplayTitle(note)}
         </span>
       </button>

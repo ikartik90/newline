@@ -1516,6 +1516,23 @@ describe('ArticleEditor numbering popover', () => {
     fireEvent.click(marker)
   }
 
+  // A number is text: it stands on the first line's baseline, not centred
+  // beside it. A bullet has no baseline, so it keeps to the top of its row.
+  it('sets a number on its text’s baseline, a bullet at the top of its row', () => {
+    renderEditor([listItem('one'), { type: 'bullet_list_item', children: [text('two')] }])
+    const [numbered, bulleted] = Array.from(document.querySelectorAll('[data-list-item]'))
+    expect(numbered.className.split(/\s+/)).toContain('items-baseline')
+    expect(numbered.className.split(/\s+/)).not.toContain('items-start')
+    expect(bulleted.className.split(/\s+/)).toContain('items-start')
+  })
+
+  // The period stands apart, in the slot every number in the column ends at.
+  it('hangs each marker’s period in a slot of its own', () => {
+    renderEditor([listItem('one'), listItem('two')])
+    const periods = document.querySelectorAll('[data-numbering-marker] .list-marker-period')
+    expect(Array.from(periods).map((el) => el.textContent)).toEqual(['.', '.'])
+  })
+
   it('opens the numbering popover when a marker is clicked', () => {
     renderEditor([listItem('one'), listItem('two')])
     expect(screen.queryByRole('toolbar', { name: 'List numbering options' })).toBeNull()
@@ -1527,14 +1544,14 @@ describe('ArticleEditor numbering popover', () => {
 
   it('reset numbering restarts the counter at the clicked item', () => {
     renderEditor([listItem('one'), listItem('two'), listItem('three')])
-    expect(markers()).toEqual(['1', '2', '3'])
+    expect(markers()).toEqual(['1.', '2.', '3.'])
 
     openPopoverForMarker(2)
     fireEvent.click(screen.getByLabelText('Reset numbering at this item'))
 
     const block = useEditorStore.getState().document.content[2]
     expect(block.type === 'list_item' && block.start).toBe(1)
-    expect(markers()).toEqual(['1', '2', '1'])
+    expect(markers()).toEqual(['1.', '2.', '1.'])
   })
 
   it('swaps the run to lettered markers and back', () => {
@@ -1543,14 +1560,14 @@ describe('ArticleEditor numbering popover', () => {
     openPopoverForMarker(0)
     fireEvent.click(screen.getByLabelText('Switch to lettered list'))
 
-    expect(markers()).toEqual(['a', 'b', 'c'])
+    expect(markers()).toEqual(['a.', 'b.', 'c.'])
     const head = useEditorStore.getState().document.content[0]
     expect(head.type === 'list_item' && head.marker).toBe('alpha')
 
     // The third button now offers switching back to numbers.
     openPopoverForMarker(1)
     fireEvent.click(screen.getByLabelText('Switch to numbered list'))
-    expect(markers()).toEqual(['1', '2', '3'])
+    expect(markers()).toEqual(['1.', '2.', '3.'])
   })
 
   it('continue numbering picks up from the previous list', () => {
@@ -1562,12 +1579,12 @@ describe('ArticleEditor numbering popover', () => {
       listItem('d'),
       listItem('e')
     ])
-    expect(markers()).toEqual(['1', '2', '3', '1', '2'])
+    expect(markers()).toEqual(['1.', '2.', '3.', '1.', '2.'])
 
     openPopoverForMarker(3) // head of the second list
     fireEvent.click(screen.getByLabelText('Continue numbering from previous list'))
 
-    expect(markers()).toEqual(['1', '2', '3', '4', '5'])
+    expect(markers()).toEqual(['1.', '2.', '3.', '4.', '5.'])
     const head = useEditorStore.getState().document.content[4]
     expect(head.type === 'list_item' && head.continued).toBe(true)
   })
@@ -1580,7 +1597,7 @@ describe('ArticleEditor numbering popover', () => {
 
     const head = useEditorStore.getState().document.content[0]
     expect(head.type === 'list_item' && head.continued).toBeUndefined()
-    expect(markers()).toEqual(['1', '2'])
+    expect(markers()).toEqual(['1.', '2.'])
   })
 })
 

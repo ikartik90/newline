@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { BulletToolbar, type BulletStyle } from '../bullet-toolbar'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
+
+// The Popover shell a toolbar floats in.
+const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-surface-sheet')!
 
 function handlers() {
   return {
@@ -13,6 +17,12 @@ function handlers() {
 }
 
 describe('BulletToolbar', () => {
+  it('floats on the shared 28px toolbar rail', () => {
+    render(<BulletToolbar style="dot" {...handlers()} />)
+    const shell = shellOf(screen.getByRole('toolbar'))
+    for (const c of POPOVER_TOOLBAR.split(' ')) expect(shell.classList).toContain(c)
+  })
+
   it('renders the continue / reset actions and the three bullet styles', () => {
     render(<BulletToolbar style="dot" {...handlers()} />)
     expect(screen.getByRole('toolbar', { name: 'List bullet options' })).toBeDefined()

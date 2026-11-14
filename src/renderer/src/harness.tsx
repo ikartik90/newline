@@ -87,6 +87,7 @@ const SAMPLE: Document = {
 Object.defineProperty(window, 'api', {
   value: {
     platform: 'darwin',
+    frosted: true,
     theme: {
       setSource: async () => {}
     },
@@ -117,7 +118,7 @@ function Harness() {
   const { effectiveTheme, setTheme } = useTheme()
   const [snapshot, setSnapshot] = useState<EditorSnapshot | null>(null)
   return (
-    <div className="h-screen flex flex-col bg-surface-canvas text-glyph-default">
+    <div className="h-screen flex flex-col bg-surface-canvas text-glyph-body">
       <div className="h-12 flex items-center px-4 text-style-caption text-glyph-body/50 shrink-0">
         Harness · last change:{' '}
         {snapshot ? `${snapshot.document.content.length} blocks` : 'none yet'}

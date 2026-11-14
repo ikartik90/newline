@@ -117,6 +117,25 @@ describe('CommandMenu', () => {
     expect(list).not.toHaveBeenCalled()
   })
 
+  // Where AppKit has no glass for the palette's own window, the menu stays in
+  // the page and stands in for it with a blur of its own.
+  it('is drawn on a frosted sheet, the glass palette’s stand-in', () => {
+    renderMenu()
+    expect(dialog().className.split(/\s+/)).toContain('frosted-sheet')
+  })
+
+  // It stands on the glass, so its icons keep their ink, not a sheet's step down.
+  it('keeps its icons in its own ink', () => {
+    renderMenu()
+    expect(dialog().querySelector('[class~="[--glyph-icon:currentColor]"]')).not.toBeNull()
+  })
+
+  it('stands where the glass palette does', () => {
+    renderMenu()
+    expect(dialog().dataset.align).toBe('palette')
+    expect(dialog().dataset.size).toBe('palette')
+  })
+
   it('opens on the recent notes and the actions, with the field ready to type into', async () => {
     renderMenu()
     expect(await within(dialog()).findByText('Apples')).toBeTruthy()

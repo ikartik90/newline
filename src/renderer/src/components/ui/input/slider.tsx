@@ -6,10 +6,10 @@ import {
   useState,
   type HTMLAttributes,
   type InputHTMLAttributes,
+  type KeyboardEvent,
   type PointerEvent,
   type ReactNode
 } from 'react'
-import { Slider as BaseSlider } from '@base-ui/react/slider'
 import {
   formatSliderValue,
   ratioOfValue,
@@ -34,10 +34,10 @@ import { controlClass, cx, Field, useField, whenFieldActive, type FieldSize } fr
 // It brings no surface of its own: it renders the shared `field` frame and
 // draws a ruler, a separator and the value inside it, so the fill, border,
 // radius and the whole focus accent are the same ones the text input wears.
-// Base UI's Slider owns the pointer and keyboard behaviour (Root / Control /
-// Track / Thumb); this file owns the snapping, the ruler and the readout — a
-// box rather than a label, because the number can be typed as readily as it
-// can be dragged, and both routes commit through one place.
+// The control is a native range input, hidden inside the drawn thumb: it holds
+// the focus, the label and the value for assistive tech. The keys and the drag
+// are this file's, so every route — key, press, drag, typing into the readout
+// — snaps and commits through one place.
 //
 // Pass children to re-compose those parts (drop the value, reorder, insert
 // your own); pass none and you get the drawn arrangement.
@@ -52,6 +52,8 @@ type SliderContextValue = {
   ticks: number[]
   disabled: boolean
   size: FieldSize
+  /** What an arrow key moves by; a Page key moves ten of them. */
+  keyStep: number
   commit: (next: number) => void
 }
 
@@ -129,33 +131,22 @@ function SliderRoot({
     ticks: tickRatios(scale, ticks),
     disabled,
     size,
+    keyStep,
     commit
   }
 
+  // The frame is the surface, shared with every other field control.
   return (
     <SliderContext.Provider value={ctx}>
-      {/* The root is Base UI's state holder and nothing visible: the frame
-          inside it is the surface, shared with every other field control. */}
-      <BaseSlider.Root
-        className="contents"
-        value={value}
-        onValueChange={(next) => commit(next)}
-        min={min}
-        max={max}
-        step={keyStep}
-        largeStep={keyStep * 10}
-        disabled={disabled}
-      >
-        <Field.Frame className={className}>
-          {children ?? (
-            <>
-              <SliderTrack />
-              <SliderSeparator />
-              <SliderOutput />
-            </>
-          )}
-        </Field.Frame>
-      </BaseSlider.Root>
+      <Field.Frame className={className}>
+        {children ?? (
+          <>
+            <SliderTrack />
+            <SliderSeparator />
+            <SliderOutput />
+          </>
+        )}
+      </Field.Frame>
     </SliderContext.Provider>
   )
 }
@@ -193,27 +184,61 @@ function useDragPointers() {
   }
 }
 
+/** Where each key the slider claims takes the value, given the scale and its key step. */
+function keyTarget(key: string, value: number, { min, max }: SliderScale, keyStep: number) {
+  switch (key) {
+    case 'ArrowRight':
+    case 'ArrowUp':
+      return value + keyStep
+    case 'ArrowLeft':
+    case 'ArrowDown':
+      return value - keyStep
+    case 'PageUp':
+      return value + keyStep * 10
+    case 'PageDown':
+      return value - keyStep * 10
+    case 'Home':
+      return min
+    case 'End':
+      return max
+    default:
+      return null
+  }
+}
+
 /**
- * The ruler and the thumb. Base UI's Control spans the frame's full height so
- * the whole strip is the drag target; its Thumb holds the focusable range
- * input — the field's labelable control, carrying the label/hint association
- * and the `data-control` hook the frame keys its focus state off.
+ * The ruler and the thumb. The strip spans the frame's full height so all of
+ * it is the drag target; the thumb holds the focusable range input — the
+ * field's labelable control, carrying the label/hint association and the
+ * `data-control` hook the frame keys its focus state off.
  */
 function SliderTrack({
   className,
   onPointerDown,
+  onPointerMove,
   onPointerUp,
   onPointerCancel,
   onLostPointerCapture,
   ...rest
 }: SliderTrackProps) {
   const { labelId, hasLabel, hintId, hasHint, registerControl } = useField('Slider.Track')
-  const { scale, value, ticks, disabled } = useSlider('Slider.Track')
+  const { scale, value, ratio, ticks, disabled, keyStep, commit } = useSlider('Slider.Track')
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const drag = useDragPointers()
 
+  // The value under the pointer, mapped across the whole strip.
+  const commitAt = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (rect.width <= 0) return
+    const along = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+    commit(scale.min + along * (scale.max - scale.min))
+  }
+
   return (
-    <BaseSlider.Control
+    <div
       data-slider-track
+      data-orientation="horizontal"
+      data-disabled={disabled ? '' : undefined}
       className={cx(
         'relative flex-1 min-w-0 self-stretch cursor-pointer touch-none',
         'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
@@ -224,12 +249,24 @@ function SliderTrack({
         if (e.defaultPrevented || disabled || e.button !== 0) return
         // The page's selection is taken outright for as long as the drag runs:
         // a drag goes wherever the hand takes it, and the field's own
-        // `user-select: none` cannot cover where it goes. Base UI captures the
-        // pointer on this control, so the release routes below all reach it.
+        // `user-select: none` cannot cover where it goes. The pointer is
+        // captured on this strip, so the release routes below all reach it.
         drag.take(e.pointerId)
+        e.currentTarget.setPointerCapture(e.pointerId)
+        // Kept from the default, which would focus nothing and select text.
+        e.preventDefault()
+        inputRef.current?.focus({ preventScroll: true })
+        commitAt(e)
+      }}
+      onPointerMove={(e: PointerEvent<HTMLDivElement>) => {
+        onPointerMove?.(e)
+        // Only a press in progress drags; a hover moves nothing.
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+        commitAt(e)
       }}
       onPointerUp={(e: PointerEvent<HTMLDivElement>) => {
         onPointerUp?.(e)
+        e.currentTarget.releasePointerCapture(e.pointerId)
         drag.release(e.pointerId)
       }}
       onPointerCancel={(e: PointerEvent<HTMLDivElement>) => {
@@ -256,23 +293,47 @@ function SliderTrack({
           style={{ left: `${tick * 100}%` }}
         />
       ))}
-      {/* Base UI pins the track `position: relative` inline, so it fills the strip by
-          its height rather than by an inset the inline style would override. */}
-      <BaseSlider.Track className="h-full">
-        <BaseSlider.Thumb
+      <div className="relative h-full">
+        <div
           data-slider-thumb
           data-control
           // The 4×20 pill, painted in `currentColor` so the frame's resting →
           // active colour shift carries it, exactly as it carries an icon.
-          className="w-1 h-5 rounded-full bg-current pointer-events-none"
-          inputRef={registerControl}
-          tabIndex={disabled ? -1 : 0}
-          aria-labelledby={hasLabel ? labelId : undefined}
-          aria-describedby={hasHint ? hintId : undefined}
-          getAriaValueText={() => formatSliderValue(value, scale.step)}
-        />
-      </BaseSlider.Track>
-    </BaseSlider.Control>
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-current pointer-events-none"
+          style={{ insetInlineStart: `${ratio * 100}%` }}
+        >
+          <input
+            ref={(node) => {
+              inputRef.current = node
+              registerControl(node)
+            }}
+            type="range"
+            className="sr-only"
+            min={scale.min}
+            max={scale.max}
+            step={keyStep}
+            value={value}
+            disabled={disabled}
+            tabIndex={disabled ? -1 : 0}
+            aria-orientation="horizontal"
+            aria-valuenow={value}
+            aria-valuetext={formatSliderValue(value, scale.step)}
+            aria-labelledby={hasLabel ? labelId : undefined}
+            aria-describedby={hasHint ? hintId : undefined}
+            // Assistive tech sets the value straight on the input.
+            onChange={(e) => commit(Number(e.currentTarget.value))}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              const next = keyTarget(e.key, value, scale, keyStep)
+              if (next === null) return
+              // Claimed, so the page cannot scroll under the field, and the
+              // browser's own step (a tenth of the range on Page keys) never runs.
+              e.preventDefault()
+              commit(next)
+            }}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -28,8 +28,10 @@ import {
 // The `mediaLightbox` recipe. The panel overrides are `!important` because
 // they contradict the shell's own utilities for the same properties, and the
 // stylesheet's order — not the className's — would otherwise decide.
+// `fit`, not `auto`: a modal dialog stands at inset 0, so an auto size would
+// stretch it over the viewport instead of shrink-wrapping the picture.
 const panelStyle =
-  'bg-transparent! border-0! rounded-none! overflow-visible! w-auto! max-w-none! h-auto! shadow-none focus-visible:outline-none'
+  'bg-transparent! border-0! rounded-none! overflow-visible! w-fit! max-w-none! h-fit! shadow-none focus-visible:outline-none'
 
 const figureStyle = 'flex flex-col items-center gap-2 m-0'
 

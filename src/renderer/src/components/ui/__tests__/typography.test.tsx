@@ -11,7 +11,7 @@ describe('typographyStyles', () => {
     expect(cls).toContain('text-glyph-title')
     expect(cls).toContain('[text-wrap:balance]')
     // One colour and one wrap — the base's are replaced, not stacked beside.
-    expect(cls).not.toContain('text-glyph-default')
+    expect(cls).not.toContain('text-glyph-body')
     expect(cls).not.toContain('[text-wrap:pretty]')
   })
 
@@ -31,7 +31,7 @@ describe('typographyStyles', () => {
     expect(classes(typographyStyles({ type: 'subheading' }))).toContain('[text-wrap:balance]')
     expect(classes(typographyStyles({ type: 'quote' }))).toContain('[text-wrap:pretty]')
     expect(classes(typographyStyles({ type: 'sidenote' }))).toContain('[text-wrap:pretty]')
-    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-glyph-default')
+    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-glyph-body')
   })
 
   it('lets a caller ask for balanced lines on a type that wraps pretty', () => {

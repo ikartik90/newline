@@ -1,11 +1,9 @@
-import { forwardRef, useEffect, type ButtonHTMLAttributes } from 'react'
-import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
+import { forwardRef, useEffect, type InputHTMLAttributes } from 'react'
 import { cx, toggleControlClass, useField } from './field'
-import CheckSmallIcon from '@/assets/icons/check-small.svg'
 
 export interface CheckboxProps extends Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  'onChange' | 'type' | 'role' | 'aria-checked' | 'children' | 'value'
+  InputHTMLAttributes<HTMLInputElement>,
+  'onChange' | 'type' | 'role' | 'checked' | 'defaultChecked' | 'children' | 'size'
 > {
   /** Controlled on/off state. */
   checked?: boolean
@@ -18,12 +16,12 @@ export interface CheckboxProps extends Omit<
 }
 
 /**
- * Checkbox — the control slot of a `<Field>`, and the Switch's sibling. Base
- * UI's Checkbox.Root drawn as a native button, reading the field context for
- * its id, label association and `aria-describedby` wiring, so `Field.Label`
- * and `Field.Hint` work with it exactly as they do for a text input. Unlike the
- * Switch it takes no `size` — one geometry, a 20px hit frame around a 16px box,
- * so `<Field size>` scales the label and hint around a fixed control.
+ * Checkbox — the control slot of a `<Field>`, and the Switch's sibling. A
+ * native checkbox, reading the field context for its id, label association and
+ * `aria-describedby` wiring, so `Field.Label` and `Field.Hint` work with it
+ * exactly as they do for a text input. Unlike the Switch it takes no `size` —
+ * one geometry, a 20px hit frame around a 16px box, so `<Field size>` scales
+ * the label and hint around a fixed control.
  *
  * @example
  * <Field>
@@ -31,8 +29,8 @@ export interface CheckboxProps extends Omit<
  *   <Field.Label>Remember me</Field.Label>
  * </Field>
  */
-export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(function Checkbox(
-  { checked, defaultChecked, onCheckedChange, className, disabled, ...rest },
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
+  { checked, defaultChecked, onCheckedChange, className, ...rest },
   ref
 ) {
   const field = useField('Checkbox')
@@ -46,47 +44,31 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(function Ch
   }, [setToggle])
 
   return (
-    <BaseCheckbox.Root
+    <input
       ref={ref}
+      type="checkbox"
       id={controlId}
-      nativeButton
-      render={<button type="button" />}
       checked={checked}
       defaultChecked={defaultChecked}
-      disabled={disabled}
-      onCheckedChange={(next) => onCheckedChange?.(next)}
+      onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
       aria-describedby={hasHint ? hintId : undefined}
       className={cx(
         'relative shrink-0 block size-5 p-0 m-0 border-none bg-transparent appearance-none cursor-pointer',
         'disabled:cursor-not-allowed disabled:opacity-50',
+        // The 16px box centred in the 20px frame, the 2px surround keeping it
+        // optically centred on the label's cap-height. Off = neutral, on = the
+        // field family's active accent.
+        'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-sm before:bg-surface-field-default',
+        'before:shadow-[inset_0_0_0_0.5px_var(--border-field-default)] before:transition-[background-color,box-shadow] before:duration-150',
+        'checked:before:bg-surface-field-active checked:before:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]',
+        // The 20px tick over the whole frame, hanging 2px off every side of the
+        // box, revealed by opacity so it fades rather than pops.
+        'after:absolute after:inset-0 after:bg-glyph-field-active after:mask-(--check-glyph) after:opacity-0 after:transition-opacity after:duration-150',
+        'checked:after:opacity-100',
         toggleControlClass(field),
         className
       )}
-      // Button attributes onto a part typed for its default <span>; the
-      // element IS a button (see `render`), so the handlers line up at runtime.
-      {...(rest as Omit<BaseCheckbox.Root.Props, 'ref'>)}
-    >
-      {/* The 16px box centred in the 20px frame, the 2px surround keeping it
-          optically centred on the label's cap-height. Off = neutral, on = the
-          field family's active accent, keyed off the root's aria-checked. */}
-      <span
-        aria-hidden
-        className={cx(
-          'absolute top-0.5 left-0.5 size-4 rounded-sm bg-surface-field-default text-glyph-field-active',
-          'shadow-[inset_0_0_0_0.5px_var(--border-field-default)] transition-[background-color,box-shadow] duration-150',
-          '[[aria-checked=true]>&]:bg-surface-field-active [[aria-checked=true]>&]:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]'
-        )}
-      >
-        {/* A 20px glyph on a 16px box, hanging 2px off every side, revealed by
-            opacity so it fades rather than pops. */}
-        <BaseCheckbox.Indicator
-          keepMounted
-          render={<span />}
-          className="absolute -top-0.5 -left-0.5 block size-5 pointer-events-none transition-opacity duration-150 data-[unchecked]:opacity-0 [&>svg]:size-5 [&>svg]:block"
-        >
-          <CheckSmallIcon />
-        </BaseCheckbox.Indicator>
-      </span>
-    </BaseCheckbox.Root>
+      {...rest}
+    />
   )
 })

@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { MediaNode } from '@shared/domain/nodes'
-import { MediaObject } from '../media-object'
+import { MediaObject, mediaObjectRailStyle } from '../media-object'
 
 const classes = { root: 'root', frame: 'frame', image: 'image' }
 
@@ -30,6 +30,13 @@ const toolbar = () => screen.getByRole('toolbar')
 // ---------------------------------------------------------------------------
 
 describe('MediaObject toolbar', () => {
+  // The rail is a toolbar shell, cornered as a text button is.
+  it('corners its rail at 12px', () => {
+    const classes = mediaObjectRailStyle.split(/\s+/)
+    expect(classes).toContain('rounded-lg')
+    expect(classes).not.toContain('rounded-md')
+  })
+
   it('offers properties, replace and remove on every object', () => {
     setup()
     const rail = within(toolbar())

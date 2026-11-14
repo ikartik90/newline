@@ -100,9 +100,8 @@ describe('Sidebar', () => {
     const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
     for (const name of ['New note', 'Search']) {
       const row = screen.getByRole('button', { name })
-      expect(classes(row)).toContain('text-glyph-default')
-      expect(classes(row.querySelector('svg')!)).toContain('text-glyph-default')
-      expect(classes(row.querySelector('svg')!)).not.toContain('text-glyph-body')
+      expect(classes(row)).toContain('text-glyph-body')
+      expect(classes(row.querySelector('svg')!)).toContain('text-glyph-body')
     }
   })
 
@@ -132,7 +131,7 @@ describe('Sidebar', () => {
     expect(row('Tagged').textContent).toBe('Tagged')
   })
 
-  it('rounds every row as a 12px squircle, the swipe frame included', () => {
+  it('rounds every row as a 16px squircle, the swipe frame included', () => {
     renderSidebar()
     const rows = [
       screen.getByRole('button', { name: 'New note' }),
@@ -142,9 +141,8 @@ describe('Sidebar', () => {
     ]
     for (const el of rows) {
       const classes = el.className.split(/\s+/)
-      expect(classes).toContain('rounded-lg')
-      expect(classes).toContain('squircle')
-      expect(classes).not.toContain('rounded-sm')
+      expect(classes).toContain('rounded-xl')
+      expect(classes).not.toContain('rounded-lg')
     }
   })
 
@@ -189,7 +187,7 @@ describe('Sidebar', () => {
   it('inks its text in its own grey, base 600 light and base 300 dark, and leaves the rest of the app alone', () => {
     renderSidebar()
     const aside = screen.getByRole('complementary', { name: 'Notes' })
-    expect(aside.className.split(/\s+/)).toContain('[--glyph-default:var(--glyph-sidebar)]')
+    expect(aside.className.split(/\s+/)).toContain('[--glyph-body:var(--glyph-sidebar)]')
     // Every block of the theme's, the primitives' and the system tokens'.
     const block = (selector: string) =>
       [...css.matchAll(new RegExp(`\n${selector} \\{([^}]*)\\}`, 'g'))]
@@ -197,7 +195,7 @@ describe('Sidebar', () => {
         .join('')
     // Ink 3 and ink 1, which the themes shade.
     expect(block(':root')).toMatch(/--glyph-sidebar: var\(--ink-3\);/)
-    expect(block(':root')).toMatch(/--glyph-default: var\(--ink-1\);/)
+    expect(block(':root')).toMatch(/--glyph-body: var\(--ink-1\);/)
     expect(block(':root')).toMatch(/--ink-3: var\(--color-base-600\);/)
     expect(block('\\.dark')).toMatch(/--ink-3: var\(--color-base-300\);/)
     expect(block(':root')).toMatch(/--ink-1: var\(--color-base-800\);/)
@@ -359,6 +357,54 @@ describe('Sidebar', () => {
       expect(classes(rail())).toEqual(
         expect.arrayContaining(['w-0', 'transition-[width,filter]', 'duration-150'])
       )
+    })
+
+    // A toggle goes as a peek does: the narrowing edge never cuts what the
+    // rail holds off, so the sidebar reads as sliding 8px and fading, not
+    // as sliding the whole of its width.
+    it('floats over the note pane as it narrows, so its edge cuts nothing off', () => {
+      const { props, rerender } = renderSidebar()
+      rerender(<Sidebar {...props} collapsed />)
+      expect(classes(rail())).toEqual(
+        expect.arrayContaining(['w-0', 'z-[5]', 'overflow-visible', 'transition-[width,filter]'])
+      )
+      expect(classes(rail())).not.toContain('overflow-hidden')
+      // A sheet over the pane, going as a peek let go does.
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining(['bg-surface-sheet', 'opacity-0', '-translate-x-2'])
+      )
+      fadeEnd(contents()!)
+      expect(contents()).toBeNull()
+      expect(classes(rail())).toEqual(expect.arrayContaining(['w-0', 'overflow-hidden']))
+      expect(classes(rail())).not.toContain('z-[5]')
+    })
+
+    it('floats over the note pane as it widens, coming in as a peek does, then turns to glass', () => {
+      const { props, rerender } = renderSidebar()
+      rerender(<Sidebar {...props} collapsed />)
+      fadeEnd(contents()!)
+      rerender(<Sidebar {...props} collapsed={false} />)
+      expect(classes(rail())).toEqual(
+        expect.arrayContaining([
+          'w-(--size-sidebar)',
+          'z-[5]',
+          'overflow-visible',
+          'transition-[width,filter]'
+        ])
+      )
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining([
+          'bg-surface-sheet',
+          'opacity-100',
+          'starting:opacity-0',
+          'starting:-translate-x-2'
+        ])
+      )
+      expect(rail().hasAttribute('data-on-glass')).toBe(false)
+      fireEvent.transitionEnd(rail(), { propertyName: 'width' })
+      expect(contents()!.className).not.toMatch(/bg-surface/)
+      expect(rail().hasAttribute('data-on-glass')).toBe(true)
+      expect(classes(rail())).toContain('overflow-hidden')
     })
 
     it('slides its contents 8px left and fades them out in those 150ms, rather than cutting them off', () => {

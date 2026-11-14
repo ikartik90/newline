@@ -12,7 +12,7 @@ export const editableBaseStyle =
   'outline-none focus-visible:outline-none min-h-0 whitespace-pre-wrap break-words focus:min-h-[1.5em] editor-placeholder'
 
 export const editorCodeBlockStyle =
-  'text-style-code bg-surface-sheet rounded-md p-8 overflow-x-auto text-glyph-default whitespace-pre outline-none focus-visible:outline-none'
+  'text-style-code bg-surface-sheet rounded-md p-8 overflow-x-auto text-glyph-body whitespace-pre outline-none focus-visible:outline-none'
 
 export const editorCodeBlockWrapperStyle = 'relative group/code'
 
@@ -57,7 +57,7 @@ export const menuIconStyle = 'shrink-0 w-5 h-5'
 
 const captionEditable = `${editableBaseStyle} min-h-[1.5em]`
 
-export const editorCaptionStyle = `${captionEditable} text-style-caption text-glyph-default text-center [text-wrap:balance] w-full`
+export const editorCaptionStyle = `${captionEditable} text-style-caption text-glyph-body text-center [text-wrap:balance] w-full`
 
 /** Blockquote citation — left-aligned beneath the quote text. */
 export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-glyph-body/50 break-words`
@@ -68,9 +68,9 @@ export const editorEyebrowStyle = 'article-eyebrow'
 /** Metric value — the gradient display line, with a caret's width reserved while empty. */
 export const editorMetricValueStyle = `${editableBaseStyle} article-metric-value min-h-[1.5em] min-w-px`
 
-export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-glyph-default text-left break-words`
+export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-glyph-body text-left break-words`
 
-export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-glyph-default break-words`
+export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-glyph-body break-words`
 
 export const articleMetricStyle = 'flex flex-col items-start gap-1 break-words'
 
@@ -80,11 +80,16 @@ export const articleBlockquoteShellStyle = 'flex flex-row items-start gap-1'
 
 export const articleBlockquoteBodyStyle = 'flex-auto min-w-0 flex flex-col gap-1'
 
-export const articleBlockquoteStyle = 'text-style-quote text-glyph-default break-words pt-3'
+export const articleBlockquoteStyle = 'text-style-quote text-glyph-body break-words pt-3'
 
 export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cursor-default'
 
-export const editorListItemShellStyle = 'flex flex-row items-start gap-2'
+// A number is text, so it stands on its item's first baseline; a bullet has
+// none, and keeps to the top of the row, centred on the first line's box.
+export const editorListItemShellStyle = {
+  numbered: 'flex flex-row items-baseline gap-2',
+  bulleted: 'flex flex-row items-start gap-2'
+} as const
 
 export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-glyph-body break-words`
 
@@ -98,6 +103,7 @@ const bulletButtonReset =
 
 export const editorListMarkerButtonStyle = `list-marker-box ${bulletButtonReset}`
 export const editorListMarkerPillStyle = 'list-marker'
+export const editorListMarkerPeriodStyle = 'list-marker-period'
 export const editorListBulletButtonStyle = `list-bullet ${bulletButtonReset}`
 export const editorListBulletIconButtonStyle = `list-bullet-icon ${bulletButtonReset}`
 export const editorBulletCircleClass = {

@@ -184,7 +184,7 @@ describe('MediaPropertiesPanel radius control', () => {
   it('stops at the roundest corner the system draws', () => {
     setup()
     const track = within(layoutPanel()).getByRole('slider', { name: 'Radius' })
-    // Base UI's range input states the ceiling as its `max`.
+    // The range input states the ceiling as its `max`.
     expect(track.getAttribute('max')).toBe('20')
   })
 

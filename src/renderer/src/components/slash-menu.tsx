@@ -115,7 +115,7 @@ export function slashMenuHasResults(
 // and the popover opens below its left edge.
 // ---------------------------------------------------------------------------
 
-// The `slashMenuPopover` recipe's 200px column. Surface, hairline, radius and
+// The `slashMenuPopover` recipe's 200px column. Surface, radius and
 // elevation come from the Popover shell; no inset of its own — the listbox's
 // 4px is the only gap to the rows.
 const menuStyle = 'w-[200px] flex flex-col'

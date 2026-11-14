@@ -195,6 +195,7 @@ export function ConfirmDialog({
       align="top-center"
       justify="center"
       size="sm"
+      material="glass"
       aria-label={title}
       aria-describedby={messageId}
       // Into the rows, where the arrows, Enter and the digits are read.

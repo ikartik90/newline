@@ -45,7 +45,7 @@ function openDialog(): HTMLInputElement {
   return field
 }
 
-/** The Base UI-backed modal `Dialog` — a div wearing the mark the shell sets. */
+/** A modal dialog that is no `<dialog>` — a div wearing the mark the shell sets. */
 function openModalDialog(): HTMLInputElement {
   const dialog = document.createElement('div')
   dialog.setAttribute('role', 'dialog')
@@ -176,9 +176,9 @@ describe('useDismiss', () => {
     expect(rail).not.toHaveBeenCalled()
   })
 
-  // The app's own Dialog is Base UI's — a `div[role=dialog]` rather than a
-  // native `<dialog>` — and it marks itself so the same exemption applies.
-  it('leaves an Escape made inside the Base UI-backed Dialog to that dialog', () => {
+  // The mark stands for a modal dialog that is not a native `<dialog>`, so the
+  // same exemption applies to it.
+  it('leaves an Escape made inside a dialog marked data-modal-dialog to that dialog', () => {
     const rail = vi.fn()
     render(<Harness onDismiss={rail} />)
     const field = openModalDialog()

@@ -30,7 +30,11 @@ import DraftIcon from '@/assets/icons/draft.svg'
 // goes back to the first of them.
 //
 // The dialog's children mount only while it is open, so the field and the
-// search start empty on every open with nothing to reset.
+// search start empty on every open with nothing to reset. On macOS 27 and
+// later the same panel stands in a window of its own, on AppKit's glass
+// (components/command-palette.tsx), remounted for every showing.
+//
+// Its words are the sidebar's: its grey, its size, its 40% hints.
 // ---------------------------------------------------------------------------
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>
@@ -59,17 +63,18 @@ export const RECENT_LIMIT = 8
 // The `commandHeader` recipe: the palette's top row, with a divider under it.
 // Its 12px inset lands the field on the line the row icons sit on (group 4px +
 // row 8px).
+const rootStyle = 'contents [--glyph-body:var(--glyph-sidebar)] [--glyph-icon:currentColor]'
 const headerStyle =
   'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-glyph-body'
 const inputStyle =
-  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-body-sm text-glyph-body placeholder:text-glyph-body/25'
+  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-sidebar text-glyph-body placeholder:text-glyph-body/50'
 const iconStyle = 'shrink-0 size-5'
 
 // The way out: named as the key that does it where there is a key, drawn as
 // the button that does it where there is not. The icon button pads its glyph
 // by 4px, so it is pulled out by that much to land on the row's own inset.
-const hintStyle = 'flex items-center gap-1 shrink-0'
-const hintLabelStyle = 'text-style-caption text-glyph-body/50 whitespace-nowrap'
+const hintStyle = 'flex items-center gap-1 shrink-0 text-style-caption text-glyph-body/40'
+const hintLabelStyle = 'whitespace-nowrap'
 const closeButtonStyle = '-mr-1'
 
 // `commandList` + `commandGroup`: the scrolling column of groups, each inset
@@ -78,29 +83,44 @@ const closeButtonStyle = '-mr-1'
 const listStyle = 'flex flex-col gap-1 py-2 max-h-96 overflow-y-auto outline-none'
 const groupStyle = 'flex flex-col px-1'
 const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-glyph-body/50'
-const emptyStyle = 'px-3 py-6 text-style-body-sm text-glyph-body/50 text-center'
+const emptyStyle = 'px-3 py-6 text-style-sidebar text-glyph-body/50 text-center'
 
-// The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
+// A sidebar row: 32px on an 8px inset, cornered as the sidebar's rows are,
+// washed when highlighted — on the glass, the title ink at 6%.
 const itemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-glyph-body data-[selected=true]:bg-surface-field-hover'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-lg cursor-default text-style-sidebar text-glyph-body data-[selected=true]:bg-surface-field-hover'
 const itemTitleStyle = 'truncate'
 const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-glyph-body/50 whitespace-nowrap'
 
-// The `hotkey` recipe on a menu: the wash a hovered row wears, so the hint
-// sits at the depth of the thing it hints.
-const hotkeyStyle =
-  'flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
-const itemHotkeyStyle = `ml-auto ${hotkeyStyle}`
+// A key is named as the sidebar names New note's: in the caption, at 40%.
+const hotkeyStyle = 'shrink-0 whitespace-nowrap'
+const itemHotkeyStyle = 'ml-auto shrink-0 text-style-caption text-glyph-body/40 whitespace-nowrap'
 
 export function CommandMenu({ open, onClose, actions, onOpenNote }: CommandMenuProps) {
   return (
-    <Dialog open={open} onClose={onClose} align="top-center" size="sm" aria-label="Command menu">
-      <CommandMenuBody actions={actions} onOpenNote={onOpenNote} onClose={onClose} />
+    <Dialog
+      open={open}
+      onClose={onClose}
+      align="palette"
+      size="palette"
+      material="frosted"
+      aria-label="Command menu"
+    >
+      <CommandMenuPanel actions={actions} onOpenNote={onOpenNote} onClose={onClose} />
     </Dialog>
   )
 }
 
-function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps, 'open'>) {
+/** The menu itself, in whatever holds it: the dialog, or the glass palette's window. */
+export function CommandMenuPanel({
+  actions,
+  onOpenNote,
+  onClose,
+  autoFocus = false
+}: Omit<CommandMenuProps, 'open'> & {
+  /** Take the focus on mount, where no dialog hands it over. */
+  autoFocus?: boolean
+}) {
   const [query, setQuery] = useState('')
   // Key chips name keys; a device without a keyboard is shown none, and gets a
   // close button in the Esc chip's place.
@@ -132,7 +152,7 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
       loop
       vimBindings={false}
       label="Command menu"
-      className="contents"
+      className={rootStyle}
       value={highlight.value}
       onValueChange={(value) => setHighlight((current) => ({ ...current, value }))}
     >
@@ -143,6 +163,7 @@ function CommandMenuBody({ actions, onOpenNote, onClose }: Omit<CommandMenuProps
           onValueChange={setQuery}
           placeholder="Search notes or type a command…"
           className={inputStyle}
+          autoFocus={autoFocus}
         />
         {hasCursor ? (
           <div className={hintStyle}>

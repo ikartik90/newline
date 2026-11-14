@@ -37,12 +37,12 @@ type Wrap = 'pretty' | 'balance'
 // lines come out even, so those balance.
 const TYPE_STYLES: Record<TypographyType, { style: string; color: string; wrap: Wrap }> = {
   title: { style: 'text-style-title', color: 'text-glyph-title', wrap: 'balance' },
-  subheading: { style: 'text-style-subheading', color: 'text-glyph-default', wrap: 'balance' },
+  subheading: { style: 'text-style-subheading', color: 'text-glyph-body', wrap: 'balance' },
   bodyLarge: { style: 'text-style-body-lg', color: 'text-glyph-body', wrap: 'pretty' },
   bodySmall: { style: 'text-style-body-sm', color: 'text-glyph-body', wrap: 'pretty' },
-  quote: { style: 'text-style-quote', color: 'text-glyph-default', wrap: 'pretty' },
-  caption: { style: 'text-style-caption', color: 'text-glyph-default', wrap: 'balance' },
-  sidenote: { style: 'text-style-sidenote', color: 'text-glyph-default', wrap: 'pretty' }
+  quote: { style: 'text-style-quote', color: 'text-glyph-body', wrap: 'pretty' },
+  caption: { style: 'text-style-caption', color: 'text-glyph-body', wrap: 'balance' },
+  sidenote: { style: 'text-style-sidenote', color: 'text-glyph-body', wrap: 'pretty' }
 }
 
 const WRAP_CLASS: Record<Wrap, string> = {

@@ -105,14 +105,52 @@ describe('the surface scale', () => {
     expect(value(tokens.light, '--surface-button-primary-hover')).toBe('var(--surface-inverse-2)')
   })
 
+  // A field's text, an option's, a toolbar's: the secondary button's ink, so
+  // every control reads alike. Its softer shades follow it.
+  it('inks fields, options and toolbars as a secondary button is, in ink 1', () => {
+    expect(value(tokens.light, '--glyph-field-default')).toBe('var(--ink-1)')
+    // Declared once: the ink scale flips with the theme.
+    expect(css.match(/--glyph-field-default:/g)).toHaveLength(1)
+    expect(value(tokens.light, '--glyph-field-placeholder')).toMatch(/^color-mix\(.*var\(--ink-1\)/)
+    expect(value(tokens.light, '--glyph-field-muted')).toMatch(/^color-mix\(.*var\(--ink-1\)/)
+    expect(value(tokens.dark, '--glyph-field-muted')).toMatch(/^color-mix\(.*var\(--ink-1\)/)
+  })
+
+  // The secondary's ink, ink 1, flipped: each theme takes the other's.
   it('inks a primary button in the other theme’s body ink', () => {
-    expect(value(tokens.light, '--glyph-button-primary-default')).toBe(
-      value(tokens.dark, '--glyph-body')
-    )
-    expect(value(tokens.dark, '--glyph-button-primary-default')).toBe(
-      value(tokens.light, '--glyph-body')
-    )
+    expect(value(tokens.light, '--ink-1')).toBe('var(--color-base-800)')
+    expect(value(tokens.dark, '--ink-1')).toBe('var(--color-base-100)')
+    expect(value(tokens.light, '--glyph-button-primary-default')).toBe('var(--color-base-100)')
+    expect(value(tokens.dark, '--glyph-button-primary-default')).toBe('var(--color-base-800)')
     expect(css).not.toMatch(/--(color-)?glyph-branded\b/)
+  })
+
+  // An icon at rest takes the ink of what it stands on; on a sheet it steps
+  // one shade softer than its text, darker in dark and lighter in light.
+  it('inks an icon at rest as its text, and one step softer, ink 2, on a sheet', () => {
+    expect(value(tokens.light, '--glyph-icon')).toBe('currentColor')
+    expect(css.match(/--glyph-icon:/g)).toHaveLength(3)
+    expect(value(tokens.inline, '--color-glyph-icon')).toBe('var(--glyph-icon)')
+  })
+
+  // A control's label at rest — a secondary button's, a segment not picked, a
+  // tooltip's — is one step softer than body ink, on whatever it stands.
+  it('inks a control at rest one step softer than body ink, ink 2, everywhere', () => {
+    expect(value(tokens.light, '--glyph-control')).toBe('var(--ink-2)')
+    expect(css.match(/--glyph-control:/g)).toHaveLength(1)
+    expect(value(tokens.inline, '--color-glyph-control')).toBe('var(--glyph-control)')
+  })
+
+  it('stands text on the ink scale: titles on ink 0, everything else on ink 1', () => {
+    expect(value(tokens.light, '--glyph-title')).toBe('var(--ink-0)')
+    expect(value(tokens.light, '--glyph-body')).toBe('var(--ink-1)')
+    // The scale flips with the theme, so neither is declared again in dark.
+    expect(value(tokens.dark, '--glyph-title')).toBeUndefined()
+    expect(value(tokens.dark, '--glyph-body')).toBeUndefined()
+  })
+
+  it('names its text inks for their role, as the surfaces are: --glyph-body, never a default', () => {
+    expect(css).not.toMatch(/--(color-)?glyph-default\b/)
   })
 
   it('grounds the canvas in surface 0 and every sheet in surface 1', () => {
@@ -168,7 +206,8 @@ describe('the surface scale', () => {
         { property: '--surface-button-secondary-hover', value: `var(--surface-${n + 2})` },
         { property: '--surface-field-default', value: `var(--surface-${n + 1})` },
         { property: '--surface-field-hover', value: `var(--surface-${n + 1})` },
-        { property: '--surface-field-pressed', value: `var(--surface-${n + 2})` }
+        { property: '--surface-field-pressed', value: `var(--surface-${n + 2})` },
+        { property: '--glyph-icon', value: 'var(--ink-2)' }
       ])
     }
   })
@@ -192,7 +231,10 @@ describe('the surface scale', () => {
     const level1 = utilityRules(css).find((r) => r.name === 'surface-level-1')!.declarations
     expect(declared).toEqual(
       level1
-        .filter(({ property }) => !property.startsWith('--surface-button-primary-'))
+        .filter(
+          ({ property }) =>
+            property.startsWith('--surface-') && !property.startsWith('--surface-button-primary-')
+        )
         .map(({ property, value }) => ({
           property,
           value: `color-mix(in oklab, var(--glyph-title) ${ink[value]}, transparent)`

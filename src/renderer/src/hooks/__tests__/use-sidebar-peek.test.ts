@@ -91,6 +91,15 @@ describe('useSidebarPeek', () => {
     expect(result.current.peeking).toBe(false)
   })
 
+  // The bar over a peek is the page's as wide as the sidebar, so the pointer
+  // goes off the page at the first pixel past it.
+  it('lets it go when the pointer reaches the top bar at its edge', () => {
+    const { result } = setup()
+    act(() => result.current.onToggleEnter(enter()))
+    leavePage(WIDTH, 20)
+    expect(result.current.peeking).toBe(false)
+  })
+
   it('ends the peek once the sidebar is pinned open, and needs a fresh reach after a collapse', () => {
     const { result, rerender } = setup()
     act(() => result.current.onToggleEnter(enter()))

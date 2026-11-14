@@ -75,7 +75,7 @@ describe('option list classes are ones Tailwind can see in the source', () => {
     expect(unscanned(all)).toEqual([])
   })
 
-  // The slots the Combobox borrows (`highlighted`) never land on an element
+  // Some slots (the empty row, a variant's search) never land on an element
   // here, so the resolved slot strings are checked as well.
   it.each(['default', 'onBrand', 'plain'] as const)('every resolved slot, tone %s', (tone) => {
     for (const direction of ['block', 'inline'] as const) {
@@ -119,5 +119,57 @@ describe('a root that does draw a box states each property once', () => {
   it.each(['default', 'onBrand'] as const)('one width, tone %s', (tone) => {
     const { root } = optionListClasses({ tone, direction: 'block', fit: 'scroll', size: 'md' })
     expect(root.split(/\s+/).filter((c) => /^w-/.test(c))).toHaveLength(1)
+  })
+})
+
+// An option's icon at rest takes the icon ink (one step softer on a sheet); a
+// selected or pressed one keeps the chip's own ink, as does every icon on the
+// brand tone.
+describe('an icon at rest', () => {
+  const rest = 'not-aria-selected:not-aria-pressed:[&_svg]:text-glyph-icon'
+  it('takes the icon ink only while its option is neither selected nor pressed', () => {
+    for (const tone of ['default', 'plain'] as const) {
+      const { option } = optionListClasses({ tone, direction: 'inline', fit: 'scroll', size: 'md' })
+      expect(option.split(/\s+/)).toContain(rest)
+    }
+    const { option } = optionListClasses({
+      tone: 'onBrand',
+      direction: 'inline',
+      fit: 'scroll',
+      size: 'md'
+    })
+    expect(option).not.toContain('text-glyph-icon')
+  })
+})
+
+// A toolbar's buttons are cornered as an icon button is, 16px; a column's rows
+// keep their own. Its dividers stand 16px tall, centred, not the row's height.
+describe('a toolbar row', () => {
+  const inline = optionListClasses({
+    tone: 'plain',
+    direction: 'inline',
+    fit: 'scroll',
+    size: 'md'
+  })
+  const block = optionListClasses({
+    tone: 'default',
+    direction: 'block',
+    fit: 'scroll',
+    size: 'md'
+  })
+
+  it('corners its options as an icon button is', () => {
+    const option = inline.option.split(/\s+/)
+    expect(option).toContain('rounded-xl')
+    expect(option).not.toContain('rounded-sm')
+    expect(block.option.split(/\s+/)).toContain('rounded-sm')
+    expect(block.option.split(/\s+/)).not.toContain('rounded-xl')
+  })
+
+  it('stands its dividers 16px tall', () => {
+    const divider = inline.divider.split(/\s+/)
+    expect(divider).toEqual(expect.arrayContaining(['w-px', 'h-4', 'self-center']))
+    expect(divider).not.toContain('self-stretch')
+    expect(divider).not.toContain('h-auto')
   })
 })

@@ -12,10 +12,10 @@ describe('Checkbox', () => {
       </Field>
     )
     const box = screen.getByRole('checkbox', { name: 'Remember me' })
-    expect(box.getAttribute('aria-checked')).toBe('false')
+    expect((box as HTMLInputElement).checked).toBe(false)
   })
 
-  it('toggles aria-checked and reports each change when uncontrolled', () => {
+  it('toggles and reports each change when uncontrolled', () => {
     const onCheckedChange = vi.fn()
     render(
       <Field>
@@ -26,12 +26,30 @@ describe('Checkbox', () => {
     const box = screen.getByRole('checkbox')
 
     fireEvent.click(box)
-    expect(box.getAttribute('aria-checked')).toBe('true')
+    expect((box as HTMLInputElement).checked).toBe(true)
     expect(onCheckedChange).toHaveBeenLastCalledWith(true)
 
     fireEvent.click(box)
-    expect(box.getAttribute('aria-checked')).toBe('false')
+    expect((box as HTMLInputElement).checked).toBe(false)
     expect(onCheckedChange).toHaveBeenLastCalledWith(false)
+  })
+
+  // Native, so the label, Space and a form all work as they do for any checkbox.
+  it('is a native checkbox that its Field.Label toggles', () => {
+    const onCheckedChange = vi.fn()
+    render(
+      <Field>
+        <Checkbox onCheckedChange={onCheckedChange} />
+        <Field.Label>Remember me</Field.Label>
+      </Field>
+    )
+    const box = screen.getByRole('checkbox') as HTMLInputElement
+    expect(box.tagName).toBe('INPUT')
+    expect(box.type).toBe('checkbox')
+    expect(box.hasAttribute('aria-checked')).toBe(false)
+    fireEvent.click(screen.getByText('Remember me'))
+    expect(box.checked).toBe(true)
+    expect(onCheckedChange).toHaveBeenLastCalledWith(true)
   })
 
   it('honors defaultChecked', () => {
@@ -41,7 +59,7 @@ describe('Checkbox', () => {
         <Field.Label>Remember me</Field.Label>
       </Field>
     )
-    expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe('true')
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true)
   })
 
   it('is controlled by `checked` — a click reports intent but never self-updates', () => {
@@ -56,7 +74,7 @@ describe('Checkbox', () => {
 
     fireEvent.click(box)
     expect(onCheckedChange).toHaveBeenCalledWith(true)
-    expect(box.getAttribute('aria-checked')).toBe('false') // parent still owns state
+    expect((box as HTMLInputElement).checked).toBe(false) // parent still owns state
 
     rerender(
       <Field>
@@ -64,7 +82,7 @@ describe('Checkbox', () => {
         <Field.Label>Remember me</Field.Label>
       </Field>
     )
-    expect(box.getAttribute('aria-checked')).toBe('true')
+    expect((box as HTMLInputElement).checked).toBe(true)
   })
 
   it('links a Field.Hint through aria-describedby, and omits it when there is none', () => {

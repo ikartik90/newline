@@ -28,6 +28,20 @@ describe('Field.Search', () => {
 })
 
 describe('Field', () => {
+  // The shell is cornered as a text button is.
+  it('corners its frame at 12px', () => {
+    render(
+      <Field size="sm">
+        <Field.Frame data-testid="frame">
+          <Field.Control />
+        </Field.Frame>
+      </Field>
+    )
+    const classes = screen.getByTestId('frame').className.split(/\s+/)
+    expect(classes).toContain('rounded-lg')
+    expect(classes).not.toContain('rounded-sm')
+  })
+
   it('marks its root with data-field and forwards the size to every slot', () => {
     render(
       <Field size="sm" data-testid="root">

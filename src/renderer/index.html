@@ -18,9 +18,10 @@
           ((!choice || choice === 'system') &&
             window.matchMedia('(prefers-color-scheme: dark)').matches)
         if (dark) document.documentElement.classList.add('dark')
-        // On macOS the window is frosted glass and the page shows it through;
-        // marked here, before the first paint, so no frame is painted over it.
-        if (window.api && window.api.platform === 'darwin') {
+        // Where the window is the OS's own blur (macOS, Windows 11's acrylic)
+        // the page shows it through; marked here, before the first paint, so
+        // no frame is painted over it.
+        if (window.api && window.api.frosted) {
           document.documentElement.dataset.frosted = ''
         }
       } catch (e) {

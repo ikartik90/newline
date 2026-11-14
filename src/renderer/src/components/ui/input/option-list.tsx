@@ -17,7 +17,6 @@ import {
   type ReactElement,
   type ReactNode
 } from 'react'
-import { Toggle } from '@base-ui/react/toggle'
 import { getInputModality, getPointerPosition, useInputModality } from '@/hooks/use-input-modality'
 import { useScrollHandoff } from '@/hooks/use-scroll-handoff'
 import { filterOptions, type OptionItem } from '@/utils/option-filter'
@@ -70,15 +69,15 @@ interface Variants {
 // matching active edge on a pseudo so it composes with the focus ring.
 const ON_STATE =
   'aria-selected:bg-surface-field-active aria-selected:text-glyph-field-active aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active ' +
-  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-border-field-active aria-selected:after:pointer-events-none ' +
-  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-border-field-active aria-pressed:after:pointer-events-none'
+  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:[corner-shape:inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-border-field-active aria-selected:after:pointer-events-none ' +
+  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:[corner-shape:inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-border-field-active aria-pressed:after:pointer-events-none'
 
 const ON_BRAND_STATE =
   'aria-selected:bg-surface-field-selected aria-selected:text-glyph-field-default aria-pressed:bg-surface-field-selected aria-pressed:text-glyph-field-default aria-selected:after:border-0 aria-pressed:after:border-0'
 
 /**
- * The slot classes, resolved once in the root from its variants. Exported so
- * the Combobox's Base UI list wears exactly the rows this list draws.
+ * The slot classes, resolved once in the root from its variants. Exported for
+ * the tests that check every class against Tailwind's scanner.
  */
 export function optionListClasses({ tone, direction, fit, size }: Variants) {
   const brand = tone === 'onBrand'
@@ -92,15 +91,13 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
         active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover-brand',
         listboxHover:
           '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover-brand',
-        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover-brand',
-        highlighted: 'data-[highlighted]:not-aria-selected:bg-surface-field-hover-brand'
+        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover-brand'
       }
     : {
         active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover',
         listboxHover:
           '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover',
-        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover',
-        highlighted: 'data-[highlighted]:not-aria-selected:bg-surface-field-hover'
+        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover'
       }
   return {
     // A popover that owns the surface, or an inline row in the consumer's
@@ -145,7 +142,9 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       // by stylesheet order, so `w-full` from the block layout beat the
       // inline row's `w-auto` and every toolbar chip stretched to the rail.
       direction === 'inline' ? 'w-auto' : 'w-full',
-      'flex items-center gap-2 shrink-0 rounded-sm relative border-none bg-transparent appearance-none',
+      // A row's option is cornered as an icon button is; a column's keeps its own.
+      direction === 'inline' ? 'rounded-xl' : 'rounded-sm',
+      'flex items-center gap-2 shrink-0 relative border-none bg-transparent appearance-none',
       'text-left text-style-body-sm cursor-pointer select-none whitespace-nowrap overflow-hidden text-ellipsis',
       'transition-[background-color,color,box-shadow] duration-150',
       '[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block',
@@ -155,6 +154,9 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
       // target and so carries both attributes.
       tint.active,
       brand ? ON_BRAND_STATE : ON_STATE,
+      // An icon at rest takes the icon ink, one step softer on a sheet; a
+      // selected or pressed one keeps the chip's.
+      !brand && 'not-aria-selected:not-aria-pressed:[&_svg]:text-glyph-icon',
       'disabled:text-glyph-field-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
       '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--outline-focus)]',
       size === 'sm' ? 'px-1 py-0' : 'p-1'
@@ -165,8 +167,6 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     // roving highlight, so hover always tints there.
     listboxHover: tint.listboxHover,
     toolbarHover: tint.toolbarHover,
-    // Base UI's own roving highlight (the Combobox item), the same tint.
-    highlighted: tint.highlighted,
     empty: cx(
       'flex items-center px-1 text-style-body-sm select-none',
       brand ? 'text-glyph-field-active-muted' : 'text-glyph-field-muted',
@@ -174,7 +174,8 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     ),
     divider: cx(
       'shrink-0 bg-border-divider',
-      direction === 'inline' ? 'w-px h-auto self-stretch' : 'w-full h-px'
+      // In a row, 16px tall and centred rather than the row's full height.
+      direction === 'inline' ? 'w-px h-4 self-center' : 'w-full h-px'
     )
   }
 }
@@ -526,6 +527,8 @@ export interface OptionListListboxProps extends HTMLAttributes<HTMLDivElement> {
    * search-less select's answer to "where does the keyboard land?".
    */
   autoFocus?: boolean
+  /** Draw the empty row inside the list. Off where an `OptionList.Status` says it instead. */
+  emptyRow?: boolean
 }
 
 /**
@@ -539,6 +542,7 @@ function OptionListListbox({
   externalKeys = false,
   loop = false,
   autoFocus = false,
+  emptyRow = true,
   ...rest
 }: OptionListListboxProps) {
   const {
@@ -700,7 +704,21 @@ function OptionListListbox({
       onKeyDown={handleKeyDown}
       {...rest}
     >
-      {hasOptions ? visible : <div className={styles.empty}>{emptyLabel}</div>}
+      {hasOptions ? visible : emptyRow && <div className={styles.empty}>{emptyLabel}</div>}
+    </div>
+  )
+}
+
+/**
+ * A live row above the list, kept at a row's height while it is blank, that
+ * says the empty label when the filter leaves nothing — the Select's, which
+ * has always stood one row clear of its search.
+ */
+function OptionListStatus() {
+  const { styles, filteredValues, emptyLabel } = useOptionList('OptionList.Status')
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true" className={styles.empty}>
+      {filteredValues.size === 0 ? emptyLabel : null}
     </div>
   )
 }
@@ -725,7 +743,7 @@ export interface OptionListOptionProps extends Omit<
  * One item — a real `<button>`. Its SEMANTICS follow the container it sits in:
  *   • Listbox → `role="option"`, `aria-selected`, `data-active` (the roving
  *     cursor), and a click selects its `value`.
- *   • Toolbar → a Base UI Toggle when `pressed` is passed, else a plain action
+ *   • Toolbar → a toggle (`aria-pressed`) when `pressed` is passed, else a plain action
  *     button; mousedown is prevented so the press can't collapse the editor's
  *     text selection, and the consumer's `onClick` runs.
  */
@@ -770,16 +788,9 @@ function OptionListOption({
       onClick
     }
     // A toggle's pressed state stays controlled by the consumer, per option;
-    // the Toggle only announces it.
-    if (pressed !== undefined) {
-      return (
-        <Toggle {...shared} pressed={pressed} onPressedChange={() => {}}>
-          {content}
-        </Toggle>
-      )
-    }
+    // the button only announces it.
     return (
-      <button {...shared} type="button">
+      <button {...shared} type="button" aria-pressed={pressed}>
         {content}
       </button>
     )
@@ -870,6 +881,7 @@ function OptionListDivider({ className, ...rest }: HTMLAttributes<HTMLSpanElemen
  */
 export const OptionList = Object.assign(OptionListRoot, {
   Listbox: OptionListListbox,
+  Status: OptionListStatus,
   Option: OptionListOption,
   Toolbar: OptionListToolbar,
   Divider: OptionListDivider

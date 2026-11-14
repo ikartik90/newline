@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SelectionToolbar } from '../selection-toolbar'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
+
+// The Popover shell a toolbar floats in.
+const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-surface-sheet')!
+
 import type { Mark } from '@shared/domain/nodes'
 
 function noopHandlers() {
@@ -22,6 +27,21 @@ function noopHandlers() {
 const empty: ReadonlySet<Mark['type']> = new Set()
 
 describe('SelectionToolbar — format mode', () => {
+  it('floats every mode at a button’s 28px height', () => {
+    for (const mode of ['format', 'link-view', 'sidenote-view'] as const) {
+      const { unmount } = render(
+        <SelectionToolbar mode={mode} activeMarks={empty} {...noopHandlers()} />
+      )
+      const shell = shellOf(screen.getAllByRole('toolbar')[0])
+      for (const c of POPOVER_TOOLBAR.split(' ')) expect(shell.classList).toContain(c)
+      unmount()
+    }
+    render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...noopHandlers()} />)
+    const edit = screen.getByRole('toolbar', { name: 'Edit link' }).classList
+    expect(edit).toContain('h-(--size-toolbar-button)')
+    expect(edit).not.toContain('h-10')
+  })
+
   it('renders the formatting buttons', () => {
     render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
     expect(screen.getByRole('toolbar', { name: 'Format selection' })).toBeDefined()

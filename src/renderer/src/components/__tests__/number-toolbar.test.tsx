@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { NumberToolbar } from '../number-toolbar'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
+
+// The Popover shell a toolbar floats in.
+const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-surface-sheet')!
 
 function handlers() {
   return {
@@ -13,6 +17,12 @@ function handlers() {
 }
 
 describe('NumberToolbar', () => {
+  it('floats on the shared 28px toolbar rail', () => {
+    render(<NumberToolbar marker="decimal" continueActive={false} {...handlers()} />)
+    const shell = shellOf(screen.getByRole('toolbar'))
+    for (const c of POPOVER_TOOLBAR.split(' ')) expect(shell.classList).toContain(c)
+  })
+
   it('offers the lettered swap on a numbered run, and the numbered swap on a lettered one', () => {
     const { rerender } = render(
       <NumberToolbar marker="decimal" continueActive={false} {...handlers()} />

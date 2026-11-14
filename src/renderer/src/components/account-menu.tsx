@@ -1,5 +1,5 @@
-import { Menu as BaseMenu } from '@base-ui/react/menu'
 import { menuItemStyle, menuPopupStyle } from '@/components/menu-button'
+import { Menu, MenuItem } from '@/components/ui/menu'
 import ChevronDownIcon from '@/assets/icons/chevron-down.svg'
 
 // ---------------------------------------------------------------------------
@@ -16,7 +16,7 @@ export interface AccountMenuProps {
 // not the button, takes up the rest of the foot. The avatar is a head glyph's
 // size, so it is centred under the red window button as they are.
 const triggerStyle =
-  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-lg squircle text-left text-style-sidebar text-glyph-default hover:bg-surface-field-hover data-[popup-open]:bg-surface-field-hover transition-colors outline-none'
+  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-glyph-body hover:bg-surface-field-hover data-[popup-open]:bg-surface-field-hover transition-colors outline-none'
 const avatarStyle =
   'flex items-center justify-center shrink-0 size-5 rounded-full overflow-hidden bg-surface-button-secondary-default text-glyph-body text-style-caption font-medium'
 const addressStyle = 'px-2 pb-1 text-style-caption text-glyph-body/50 truncate'
@@ -29,28 +29,27 @@ function shortName(user: AccountMenuProps['user']): string {
 export function AccountMenu({ user, onSignOut }: AccountMenuProps) {
   const name = shortName(user)
   return (
-    <BaseMenu.Root modal={false}>
-      <BaseMenu.Trigger aria-label="Account" className={triggerStyle}>
-        <span className={avatarStyle} aria-hidden>
-          {user.picture ? (
-            <img src={user.picture} alt="" className="size-full object-cover" />
-          ) : (
-            name.charAt(0).toUpperCase()
-          )}
-        </span>
-        <span className="truncate">{name}</span>
-        <ChevronDownIcon className="shrink-0 size-4 text-glyph-default" aria-hidden />
-      </BaseMenu.Trigger>
-      <BaseMenu.Portal>
-        <BaseMenu.Positioner side="top" align="start" sideOffset={4} className="z-50">
-          <BaseMenu.Popup className={menuPopupStyle}>
-            <div className={addressStyle}>{user.email}</div>
-            <BaseMenu.Item className={menuItemStyle} onClick={onSignOut}>
-              Sign out
-            </BaseMenu.Item>
-          </BaseMenu.Popup>
-        </BaseMenu.Positioner>
-      </BaseMenu.Portal>
-    </BaseMenu.Root>
+    <Menu
+      side="top"
+      className={menuPopupStyle}
+      trigger={
+        <button type="button" aria-label="Account" className={triggerStyle}>
+          <span className={avatarStyle} aria-hidden>
+            {user.picture ? (
+              <img src={user.picture} alt="" className="size-full object-cover" />
+            ) : (
+              name.charAt(0).toUpperCase()
+            )}
+          </span>
+          <span className="truncate">{name}</span>
+          <ChevronDownIcon className="shrink-0 size-4 text-glyph-body" aria-hidden />
+        </button>
+      }
+    >
+      <div className={addressStyle}>{user.email}</div>
+      <MenuItem className={menuItemStyle} onSelect={onSignOut}>
+        Sign out
+      </MenuItem>
+    </Menu>
   )
 }

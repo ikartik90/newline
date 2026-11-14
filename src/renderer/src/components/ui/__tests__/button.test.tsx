@@ -1,6 +1,7 @@
 import { createRef } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { actionStyles } from '../action'
 import { Button } from '../button'
 import { Tooltip } from '../tooltip'
 
@@ -125,24 +126,33 @@ describe('Button', () => {
   })
 
   describe('shape', () => {
-    it('makes every text button the one 32px body-sm chip', () => {
+    // As tall as an icon button: a 20px glyph on a 4px inset.
+    it('makes every text button the one 28px body-sm chip', () => {
       render(<Button>Save</Button>)
       const button = screen.getByRole('button', { name: 'Save' })
-      expect(button.className).toContain('h-8')
+      expect(button.className.split(' ')).toContain('h-7')
       expect(button.className).toContain('text-style-body-sm')
-      expect(button.className).not.toContain('h-10')
+      expect(button.className).not.toMatch(/\bh-(8|10)\b/)
       expect(button.dataset.size).toBeUndefined()
     })
 
-    it('corners an icon button as the shell does: 12px, eased into a squircle', () => {
+    it('corners an icon button as the shell does: 16px, eased into a squircle', () => {
       render(
         <Button aria-label="Close">
           <svg />
         </Button>
       )
       const button = screen.getByRole('button', { name: 'Close' })
-      expect(button.className).toContain('rounded-lg squircle')
-      expect(button.className).not.toContain('rounded-sm')
+      const classes = button.className.split(/\s+/)
+      expect(classes).toContain('rounded-xl')
+      expect(classes).not.toContain('rounded-lg')
+    })
+
+    it('corners a text button at 12px', () => {
+      render(<Button>Save</Button>)
+      const classes = screen.getByRole('button', { name: 'Save' }).className.split(/\s+/)
+      expect(classes).toContain('rounded-lg')
+      expect(classes).not.toContain('rounded-md')
     })
   })
 
@@ -211,5 +221,35 @@ describe('Button', () => {
       fireEvent.pointerEnter(ref.current!, { pointerType: 'mouse' })
       expect(onPointerEnter).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+// An icon button's glyph at rest takes the icon ink, one step softer on a sheet;
+// pressed, it keeps the brand chip's ink, and the chip floating on a picture
+// keeps its own.
+describe('an icon button’s glyph at rest', () => {
+  it('takes the icon ink only while not pressed, and never on a picture', () => {
+    const rest = 'not-aria-pressed:[&_svg]:text-glyph-icon'
+    expect(actionStyles({ variant: 'icon', emphasis: 'tertiary' }).split(/\s+/)).toContain(rest)
+    expect(actionStyles({ variant: 'icon', emphasis: 'glass' })).not.toContain('text-glyph-icon')
+    expect(actionStyles({ variant: 'text', emphasis: 'tertiary' })).not.toContain('text-glyph-icon')
+  })
+})
+
+// A secondary or tertiary text button at rest takes the control ink, ink 2,
+// its icon with it; a primary keeps its flipped ink and the chip on a picture its own.
+describe('a text button at rest', () => {
+  it('takes the control ink, label and icon both', () => {
+    const secondary = actionStyles({ variant: 'text', emphasis: 'secondary' }).split(/\s+/)
+    expect(secondary).toContain('text-glyph-control')
+    expect(secondary).not.toContain('text-glyph-body')
+    expect(actionStyles({ variant: 'text', emphasis: 'primary' })).not.toContain('glyph-control')
+    expect(actionStyles({ variant: 'text', emphasis: 'glass' })).not.toContain('glyph-control')
+  })
+
+  it('takes the control ink as a tertiary too', () => {
+    const tertiary = actionStyles({ variant: 'text', emphasis: 'tertiary' }).split(/\s+/)
+    expect(tertiary).toContain('text-glyph-control')
+    expect(tertiary).not.toContain('text-glyph-body')
   })
 })

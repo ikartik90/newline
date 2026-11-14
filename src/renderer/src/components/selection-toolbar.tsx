@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type FC, type SVGProps } from 'react'
-import { Popover, type PopoverRect } from '@/components/ui/popover'
+import { Popover, POPOVER_TOOLBAR, type PopoverRect } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
 import { TextInput } from '@/components/ui/input/text-input'
 import type { Mark } from '@shared/domain/nodes'
@@ -71,17 +71,14 @@ const FORMAT_GROUPS: FormatButton[][] = [
 // Styles
 // ---------------------------------------------------------------------------
 
-// The shared `toolbar` rail at its default size: a 40px row with a 6px inset
-// and 4px gap, hugging its contents. The hairline, elevation and clip that
-// floating costs (`selectionPopover`) come from the Popover shell.
-const railStyle = 'flex items-center gap-1 h-10 px-1.5 w-max'
-// The link editor: the same rail, holding one field at the width a URL needs.
-const editRailStyle = 'flex items-center gap-2 h-10 px-1.5 w-80'
+// The link editor: a button's height, as every toolbar is, holding one field at the width a
+// URL needs, flush to the shell's leading edge.
+const editRailStyle = 'flex items-center gap-2 h-(--size-toolbar-button) pr-2 w-80'
 // "Esc to exit" — a key-cap and a muted label (the `inlineEditRow` hint).
 const hintStyle = 'flex items-center gap-1 shrink-0 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-default text-style-caption whitespace-nowrap'
-const hintLabelStyle = 'text-glyph-default/50 text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
+const hintLabelStyle = 'text-glyph-body/50 text-style-caption whitespace-nowrap'
 // Pairs with a stylesheet that positions against the same target.
 const selectionAnchor = '--selection-popover'
 
@@ -163,7 +160,12 @@ export function SelectionToolbar({
 
   if (mode === 'link-view') {
     return (
-      <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+      <Popover
+        rect={rect}
+        anchorName={selectionAnchor}
+        className={POPOVER_TOOLBAR}
+        onDismiss={onDismiss}
+      >
         <OptionList direction="inline">
           <OptionList.Toolbar aria-label="Link actions">
             <OptionList.Option aria-label="Edit link" onClick={onEditLink}>
@@ -183,7 +185,12 @@ export function SelectionToolbar({
 
   if (mode === 'sidenote-view') {
     return (
-      <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+      <Popover
+        rect={rect}
+        anchorName={selectionAnchor}
+        className={POPOVER_TOOLBAR}
+        onDismiss={onDismiss}
+      >
         <OptionList direction="inline">
           <OptionList.Toolbar aria-label="Sidenote actions">
             <OptionList.Option aria-label="Edit sidenote" onClick={onEditSidenote}>
@@ -199,7 +206,12 @@ export function SelectionToolbar({
   }
 
   return (
-    <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+    <Popover
+      rect={rect}
+      anchorName={selectionAnchor}
+      className={POPOVER_TOOLBAR}
+      onDismiss={onDismiss}
+    >
       <OptionList direction="inline">
         <OptionList.Toolbar aria-label="Format selection">
           <OptionList.Option

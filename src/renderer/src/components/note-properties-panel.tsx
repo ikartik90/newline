@@ -42,7 +42,7 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
           {note.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-surface-raised text-style-caption text-glyph-default leading-none"
+              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-surface-raised text-style-caption text-glyph-body leading-none"
             >
               {tag}
               <button
