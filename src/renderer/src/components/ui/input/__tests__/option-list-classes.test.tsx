@@ -43,7 +43,7 @@ function unscanned(classes: string[]): string[] {
 }
 
 describe('option list classes are ones Tailwind can see in the source', () => {
-  it.each(['default', 'onBrand', 'plain'] as const)('listbox rows and list, tone %s', (tone) => {
+  it.each(['default', 'plain'] as const)('listbox rows and list, tone %s', (tone) => {
     const { getByRole } = render(
       <OptionList tone={tone} value="b">
         <OptionList.Listbox>
@@ -58,7 +58,7 @@ describe('option list classes are ones Tailwind can see in the source', () => {
     expect(unscanned(all)).toEqual([])
   })
 
-  it.each(['default', 'onBrand'] as const)('toolbar buttons, tone %s', (tone) => {
+  it.each(['default', 'plain'] as const)('toolbar buttons, tone %s', (tone) => {
     const { getByRole } = render(
       <OptionList tone={tone} direction="inline">
         <OptionList.Toolbar aria-label="Marks">
@@ -77,7 +77,7 @@ describe('option list classes are ones Tailwind can see in the source', () => {
 
   // Some slots (the empty row, a variant's search) never land on an element
   // here, so the resolved slot strings are checked as well.
-  it.each(['default', 'onBrand', 'plain'] as const)('every resolved slot, tone %s', (tone) => {
+  it.each(['default', 'plain', 'menu'] as const)('every resolved slot, tone %s', (tone) => {
     for (const direction of ['block', 'inline'] as const) {
       for (const size of ['md', 'sm'] as const) {
         const slots = optionListClasses({ tone, direction, fit: 'scroll', size })
@@ -96,8 +96,8 @@ describe('a root that collapses says nothing else', () => {
   it.each([
     ['plain, block', { tone: 'plain', direction: 'block' }],
     ['plain, inline', { tone: 'plain', direction: 'inline' }],
-    ['default, inline', { tone: 'default', direction: 'inline' }],
-    ['onBrand, inline', { tone: 'onBrand', direction: 'inline' }]
+    ['menu, block', { tone: 'menu', direction: 'block' }],
+    ['default, inline', { tone: 'default', direction: 'inline' }]
   ] as const)('%s', (_name, variant) => {
     const { root } = optionListClasses({ ...variant, fit: 'scroll', size: 'md' })
     expect(root.split(/\s+/).filter(Boolean)).toEqual(['contents'])
@@ -116,29 +116,36 @@ describe('a root that collapses says nothing else', () => {
 })
 
 describe('a root that does draw a box states each property once', () => {
-  it.each(['default', 'onBrand'] as const)('one width, tone %s', (tone) => {
-    const { root } = optionListClasses({ tone, direction: 'block', fit: 'scroll', size: 'md' })
+  it('one width', () => {
+    const { root } = optionListClasses({
+      tone: 'default',
+      direction: 'block',
+      fit: 'scroll',
+      size: 'md'
+    })
     expect(root.split(/\s+/).filter((c) => /^w-/.test(c))).toHaveLength(1)
   })
 })
 
-// An option's icon at rest takes the icon ink (one step softer on a sheet); a
-// selected or pressed one keeps the chip's own ink, as does every icon on the
-// brand tone.
+// An option's icon takes its text's ink, at rest, selected or pressed.
 describe('an icon at rest', () => {
-  const rest = 'not-aria-selected:not-aria-pressed:[&_svg]:text-glyph-icon'
-  it('takes the icon ink only while its option is neither selected nor pressed', () => {
-    for (const tone of ['default', 'plain'] as const) {
+  it('takes no ink of its own', () => {
+    for (const tone of ['default', 'plain', 'menu'] as const) {
       const { option } = optionListClasses({ tone, direction: 'inline', fit: 'scroll', size: 'md' })
-      expect(option.split(/\s+/)).toContain(rest)
+      expect(option.split(/\s+/).filter((c) => c.includes('[&_svg]:text-'))).toEqual([])
     }
-    const { option } = optionListClasses({
-      tone: 'onBrand',
-      direction: 'inline',
-      fit: 'scroll',
-      size: 'md'
-    })
-    expect(option).not.toContain('text-glyph-icon')
+  })
+
+  // Every list stands on a sheet or a field: none has a brand-tinted ground to retint for.
+  it('has no brand tone', () => {
+    for (const tone of ['default', 'plain', 'menu'] as const) {
+      for (const direction of ['block', 'inline'] as const) {
+        const slots = optionListClasses({ tone, direction, fit: 'scroll', size: 'md' })
+        expect(Object.values(slots).join(' ')).not.toMatch(
+          /hover-brand|ink-field-placeholder-focus/
+        )
+      }
+    }
   })
 })
 
@@ -171,5 +178,25 @@ describe('a toolbar row', () => {
     expect(divider).toEqual(expect.arrayContaining(['w-px', 'h-4', 'self-center']))
     expect(divider).not.toContain('self-stretch')
     expect(divider).not.toContain('h-auto')
+  })
+})
+
+// A floating menu is the toolbar stood on end: rows as tall as a toolbar
+// button and cornered as one, filling the shell with no inset and no gap.
+describe('a menu column', () => {
+  const menu = optionListClasses({ tone: 'menu', direction: 'block', fit: 'content', size: 'md' })
+
+  it('stands its rows as tall as a toolbar button, cornered as an icon button is', () => {
+    const option = menu.option.split(/\s+/)
+    expect(option).toEqual(expect.arrayContaining(['h-(--size-toolbar-button)', 'rounded-xl']))
+    expect(option).not.toContain('rounded-sm')
+    expect(option).not.toContain('p-1')
+  })
+
+  it('lays its rows edge to edge, with no inset', () => {
+    const list = menu.list.split(/\s+/)
+    expect(list).toEqual(expect.arrayContaining(['p-0', 'gap-0']))
+    expect(list.filter((c) => /^(p|px|py)-/.test(c))).toEqual(['p-0'])
+    expect(list.filter((c) => /^max-h-/.test(c))).toHaveLength(1)
   })
 })

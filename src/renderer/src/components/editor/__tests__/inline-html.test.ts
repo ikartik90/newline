@@ -40,6 +40,18 @@ describe('inlineNodesToHtml', () => {
     ).toBe('<s class="article-strikethrough">s</s>')
   })
 
+  it('draws a link as the anchor alone, with no style a stored note gave it', () => {
+    expect(
+      inlineNodesToHtml([
+        {
+          type: 'text',
+          text: 'go',
+          marks: [{ type: 'bold' }, { type: 'highlight' }, { type: 'link', href: 'https://x.io' }]
+        }
+      ])
+    ).toBe('<a href="https://x.io" class="article-link">go</a>')
+  })
+
   it('wraps a link in an anchor carrying its href', () => {
     expect(
       inlineNodesToHtml([
@@ -195,6 +207,14 @@ describe('domToInlineNodes', () => {
     ])
     expect(parse('<mark>m</mark>')).toEqual([
       { type: 'text', text: 'm', marks: [{ type: 'highlight' }] }
+    ])
+  })
+
+  it('reads a styled link, pasted or typed, as the link alone', () => {
+    const el = document.createElement('div')
+    el.innerHTML = '<mark><strong><em><a href="https://x.io">go</a></em></strong></mark>'
+    expect(domToInlineNodes(el)).toEqual([
+      { type: 'text', text: 'go', marks: [{ type: 'link', href: 'https://x.io' }] }
     ])
   })
 

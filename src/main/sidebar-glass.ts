@@ -68,7 +68,7 @@ export function isFrostedWindow(platform: NodeJS.Platform, release: string): boo
  * the whole window instead, and Windows 11 acrylic: the OS's own blur either
  * way. Elsewhere Electron's default is white, which flashes on launch and
  * shows through while resizing in dark mode; these are the two
- * `--surface-canvas` values.
+ * `--bg-canvas` values.
  */
 export function glassWindowOptions(
   platform: NodeJS.Platform,

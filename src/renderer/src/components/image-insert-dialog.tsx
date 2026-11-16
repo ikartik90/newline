@@ -15,7 +15,7 @@ import {
   mediaKindOf
 } from '@shared/domain/media'
 import { formatFileSize, formatMediaType } from '@/utils/format-file-size'
-import CloseIcon from '@/assets/icons/cross.svg'
+import CloseIcon from '@/assets/icons/close.svg'
 import PageIcon from '@/assets/icons/page.svg'
 import TrashIcon from '@/assets/icons/trash.svg'
 import UploadIcon from '@/assets/icons/upload.svg'
@@ -46,7 +46,7 @@ const libraryListStyle = 'flex-auto min-h-0 max-h-none! p-0!'
 
 const thumbnailStyle = cx(
   'relative shrink-0 size-8 rounded-xs border border-solid border-border-divider overflow-hidden',
-  'flex items-center justify-center [&>svg]:size-5 [&>svg]:text-glyph-body/50',
+  'flex items-center justify-center [&>svg]:size-5 [&>svg]:text-ink-body/50',
   '[&_:is(img,video)]:absolute [&_:is(img,video)]:inset-0 [&_:is(img,video)]:size-full [&_:is(img,video)]:object-cover [&_:is(img,video)]:block'
 )
 
@@ -68,25 +68,25 @@ const metadataRowStyle =
 // The filename reads as plain text until you click it — a bare input with
 // the chrome stripped, like the alt field it sits above.
 const filenameFieldStyle =
-  'flex-auto min-w-0 bg-transparent border-none p-0 [font:inherit] text-glyph-body text-ellipsis whitespace-nowrap placeholder:text-glyph-body/50'
+  'flex-auto min-w-0 bg-transparent border-none p-0 [font:inherit] text-ink-body text-ellipsis whitespace-nowrap placeholder:text-ink-body/50'
 
 const fileMetaStyle =
-  'shrink-0 w-[120px] text-right text-glyph-body/50 tabular-nums overflow-hidden text-ellipsis whitespace-nowrap'
+  'shrink-0 w-[120px] text-right text-ink-body/50 tabular-nums overflow-hidden text-ellipsis whitespace-nowrap'
 
 const altRowStyle = 'block w-full max-w-(--size-image-preview-max) min-w-0 self-center'
 
 const altFieldStyle =
-  'w-full min-w-0 bg-transparent border-none p-0 text-style-caption text-glyph-body leading-5 resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-glyph-body/50'
+  'w-full min-w-0 bg-transparent border-none p-0 text-style-caption text-ink-body leading-5 resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-ink-body/50'
 
 const deleteRowStyle =
   'flex justify-center w-full max-w-(--size-image-preview-max) min-w-0 self-center'
 
-const selectionCountStyle = 'text-style-caption text-glyph-body/50 m-0 tabular-nums'
+const selectionCountStyle = 'text-style-caption text-ink-body/50 m-0 tabular-nums'
 
-const errorStyle = 'text-style-caption text-glyph-highlight text-center'
+const errorStyle = 'text-style-caption text-ink-error text-center'
 
 /** A document's stand-in: nothing draws a PDF, and the name below answers which file it is. */
-const documentGlyphStyle = 'size-10 text-glyph-body/50'
+const documentGlyphStyle = 'size-10 text-ink-body/50'
 
 // --- The drop zone -----------------------------------------------------------
 
@@ -94,20 +94,20 @@ const uploadSlotStyle = 'flex flex-col items-center justify-center flex-1 w-full
 
 const uploadBodyStyle = cx(
   'flex flex-col items-center justify-center gap-0.5 w-(--size-image-preview-max) h-40 shrink-0 cursor-pointer text-center',
-  'data-[drag-over]:bg-surface-field-hover data-[drag-over]:rounded-sm',
+  'data-[drag-over]:bg-bg-field-hover data-[drag-over]:rounded-sm',
   'aria-disabled:cursor-default'
 )
 
-const illustrationStyle = 'size-10 shrink-0 text-glyph-body/50 [&>svg]:size-full'
+const illustrationStyle = 'size-10 shrink-0 text-ink-body/50 [&>svg]:size-full'
 
-const hintStyle = 'text-style-body-sm text-glyph-body text-pretty leading-6 m-0'
+const hintStyle = 'text-style-body-sm text-ink-body text-pretty leading-6 m-0'
 
-const formatsStyle = 'text-style-caption text-glyph-body/50 leading-5 m-0'
+const formatsStyle = 'text-style-caption text-ink-body/50 leading-5 m-0'
 
 // No byte count comes back from the main process, so the bar sweeps rather
-// than fills: a shimmer across the divider in the brand hue.
+// than fills: a shimmer across the divider in the highlight.
 const progressStyle =
-  'w-full max-w-(--size-image-preview-max) h-0.5 rounded-xs bg-[linear-gradient(90deg,var(--border-divider),var(--glyph-highlight),var(--border-divider))] bg-[length:200%_100%] animate-shimmer'
+  'w-full max-w-(--size-image-preview-max) h-0.5 rounded-xs bg-[linear-gradient(90deg,var(--border-divider),var(--border-progress),var(--border-divider))] bg-[length:200%_100%] animate-shimmer'
 
 // Built from the allow-lists rather than restated, so the file picker cannot
 // drift from what `processFiles` and the main process will actually take.

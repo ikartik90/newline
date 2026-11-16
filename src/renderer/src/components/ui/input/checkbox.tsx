@@ -58,12 +58,12 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
         // The 16px box centred in the 20px frame, the 2px surround keeping it
         // optically centred on the label's cap-height. Off = neutral, on = the
         // field family's active accent.
-        'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-sm before:bg-surface-field-default',
+        'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-sm before:bg-bg-field-default',
         'before:shadow-[inset_0_0_0_0.5px_var(--border-field-default)] before:transition-[background-color,box-shadow] before:duration-150',
-        'checked:before:bg-surface-field-active checked:before:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]',
+        'checked:before:bg-bg-field-selected checked:before:shadow-[inset_0_0_0_0.5px_var(--border-field-selected)]',
         // The 20px tick over the whole frame, hanging 2px off every side of the
         // box, revealed by opacity so it fades rather than pops.
-        'after:absolute after:inset-0 after:bg-glyph-field-active after:mask-(--check-glyph) after:opacity-0 after:transition-opacity after:duration-150',
+        'after:absolute after:inset-0 after:bg-ink-field-selected after:mask-(--check-glyph) after:opacity-0 after:transition-opacity after:duration-150',
         'checked:after:opacity-100',
         toggleControlClass(field),
         className

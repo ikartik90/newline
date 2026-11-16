@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { TextInput } from '../text-input'
-import CalendarIcon from '@/assets/icons/calendar.svg'
+import SearchIcon from '@/assets/icons/search.svg'
 
 describe('TextInput', () => {
   it('associates the label with the input', () => {
@@ -42,7 +42,7 @@ describe('TextInput', () => {
   })
 
   it('renders a caller-marked decorative leading icon (aria-hidden)', () => {
-    render(<TextInput label="Label" iconBefore={<CalendarIcon aria-hidden data-testid="cal" />} />)
+    render(<TextInput label="Label" iconBefore={<SearchIcon aria-hidden data-testid="cal" />} />)
     // Icons pass bare into the frame; the caller marks a purely decorative one
     // aria-hidden, and the frame just sizes/tints it.
     expect(screen.getByTestId('cal').closest('[aria-hidden]')).not.toBeNull()
@@ -56,7 +56,7 @@ describe('TextInput', () => {
   })
 
   it("focuses the control when the frame's dead space is clicked", () => {
-    render(<TextInput label="Label" iconBefore={<CalendarIcon />} />)
+    render(<TextInput label="Label" iconBefore={<SearchIcon />} />)
     const input = screen.getByRole('textbox') as HTMLInputElement
     const frame = input.parentElement as HTMLElement // Field.Frame wraps the control
     expect(document.activeElement).not.toBe(input)

@@ -30,7 +30,7 @@ import TrashIcon from '@/assets/icons/trash.svg'
 
 // Cornered as an icon button and the sidebar's rows are, and inked as the rows are.
 const iconButton =
-  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-xl text-glyph-body hover:bg-surface-field-hover transition-colors'
+  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-xl text-ink-body hover:bg-bg-field-hover transition-colors'
 
 // One bar is fixed across the top of the window, over the rail and the note
 // pane alike, and holds only the sidebar toggle. It stays put whether the rail
@@ -43,8 +43,8 @@ const iconButton =
 // level, as the settings gear does; collapsed, it stands on the canvas, and
 // peeked at it stands on the sidebar's solid sheet, off the glass.
 const topBar =
-  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--glyph-body:var(--glyph-sidebar)] [--glyph-icon:currentColor]!'
-const topBarOverSidebar = `${topBar} surface-level-1`
+  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--ink-body:var(--ink-sidebar)]'
+const topBarOverSidebar = `${topBar} bg-level-1`
 // The traffic lights start 16px in (main/index.ts) and are three 14px buttons
 // 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
 // Where there are no lights (full screen, other platforms) it takes the first
@@ -63,17 +63,17 @@ const barOverPeek =
 // whole window and everything the page holds fades, so only that stands over
 // the glass.
 const shellStyle =
-  'relative h-screen flex text-glyph-body opacity-100 transition-opacity duration-150'
+  'relative h-screen flex text-ink-body opacity-100 transition-opacity duration-150'
 const shellFadedStyle =
-  'relative h-screen flex text-glyph-body opacity-0 transition-opacity duration-150'
-const solidShellStyle = 'relative h-screen flex bg-surface-sheet text-glyph-body'
+  'relative h-screen flex text-ink-body opacity-0 transition-opacity duration-150'
+const solidShellStyle = 'relative h-screen flex bg-bg-sheet text-ink-body'
 // Under the palette, a press anywhere in the window only closes it; it
 // outlasts the palette to the end of the press.
 const paletteBackdropStyle = 'fixed inset-0 z-50'
 // The note pane runs to the window's edges with no margin of its own; its
 // spacing is inside it. Its first 48px are under the bar. The line between
 // it and the rail is the rail's own edge.
-const notePane = 'flex-1 flex min-w-0 pt-12 bg-surface-canvas'
+const notePane = 'flex-1 flex min-w-0 pt-12 bg-bg-canvas'
 
 // Once the note has scrolled under the bar, a hairline rules the bar off from
 // it. It stands on the note column's top, which is the bar's foot.
@@ -272,8 +272,8 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-surface-canvas">
-        <div className="text-glyph-body text-style-body-sm">Loading…</div>
+      <div className="h-screen flex items-center justify-center bg-bg-canvas">
+        <div className="text-ink-body text-style-body-sm">Loading…</div>
       </div>
     )
   }
@@ -373,11 +373,11 @@ function App() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <h2 className="text-style-subheading text-glyph-body">Newline</h2>
-                <p className="mt-2 text-style-body-sm text-glyph-body/50">
+                <h2 className="text-style-subheading text-ink-body">Newline</h2>
+                <p className="mt-2 text-style-body-sm text-ink-body/50">
                   Select a note or create a new one
                 </p>
-                <p className="mt-1 text-style-caption text-glyph-body/50">
+                <p className="mt-1 text-style-caption text-ink-body/50">
                   {modifier}N to create, {modifier}K to search
                 </p>
                 {/* The standalone CTA, in the pill the site's own wears: the
@@ -385,7 +385,7 @@ function App() {
                 <button
                   type="button"
                   onClick={createNote}
-                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover transition-colors"
+                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-bg-button-secondary-default text-ink-body hover:bg-bg-button-secondary-hover transition-colors"
                 >
                   New note
                 </button>

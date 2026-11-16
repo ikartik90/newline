@@ -21,8 +21,8 @@ import type { SidenoteEntry } from '@/utils/sidenotes'
 // at the START of the reveal so Edit auto-focus has something to land on.
 const cardStyle =
   'fixed z-40 flex flex-col gap-1 p-2 max-w-(--size-sidenote-max-width) ' +
-  'bg-surface-sheet surface-level-1 rounded-md border border-border-divider ' +
-  'shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] text-glyph-body ' +
+  'bg-bg-sheet bg-level-1 rounded-md border border-border-divider ' +
+  'shadow-[0_4px_16px_var(--shadow-sheet)] text-ink-body ' +
   'opacity-0 invisible pointer-events-none transition-[opacity,visibility] duration-[120ms] ease-out [transition-behavior:allow-discrete] ' +
   'data-[active]:opacity-100 data-[active]:visible data-[active]:pointer-events-auto'
 // Vertical geometry per placement. `left`/`width` come from inline styles
@@ -32,20 +32,20 @@ const placementStyle = {
   stacked: 'mt-1 -translate-x-1/2 [position-try-fallbacks:flip-block]'
 } as const
 // The text row: ordinal marker, then the note body.
-const contentStyle = 'flex gap-0.5 flex-[1_0_0] min-w-0 text-style-sidenote text-glyph-body'
-// The ordinal, painted in the brand gradient like the annotation's superscript.
-const markerStyle = 'font-medium text-surface-branded select-none'
+const contentStyle = 'flex gap-0.5 flex-[1_0_0] min-w-0 text-style-sidenote text-ink-body'
+// The ordinal, inked in the highlight, as the annotation's superscript is.
+const markerStyle = 'font-medium text-ink-sidenote-marker select-none'
 // inline-block + a min width gives an EMPTY contentEditable a line box, so the
 // caret is placeable on click. Paragraphs are block children 4px apart.
 const bodyStyle =
-  'inline-block min-w-2 caret-glyph-body outline-none [&>*+*]:mt-1 ' +
-  'empty:after:content-[attr(data-placeholder)] empty:after:text-glyph-body/40'
+  'inline-block min-w-2 caret-ink-body outline-none [&>*+*]:mt-1 ' +
+  'empty:after:content-[attr(data-placeholder)] empty:after:text-ink-body/40'
 // "Esc to exit" below the note body — mirrors the link-input hint in the
 // selection toolbar (an Esc key-cap followed by a muted label).
 const hintStyle = 'flex items-center gap-1 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
-const hintLabelStyle = 'text-glyph-body/50 text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-bg-field-hover text-ink-body text-style-caption whitespace-nowrap'
+const hintLabelStyle = 'text-ink-body/50 text-style-caption whitespace-nowrap'
 
 // Horizontal geometry (mirrors the `--size-sidenote-*` tokens in main.css).
 // The `left`/`width` of a card are computed here from the rail's measured rect

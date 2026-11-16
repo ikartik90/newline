@@ -92,7 +92,7 @@ describe('CommandPalette', () => {
     render(<CommandPalette />)
     showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
     const ground = screen.getByRole('combobox').closest('[data-on-glass]')
-    expect(ground?.className).toContain('surface-level-1')
+    expect(ground?.className).toContain('bg-level-1')
   })
 
   // Liquid Glass draws its own rim along its own corner (panelGlass):

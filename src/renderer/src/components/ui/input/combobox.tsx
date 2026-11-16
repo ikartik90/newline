@@ -40,8 +40,8 @@ import ChevronUpIcon from '@/assets/icons/chevron-up.svg'
 // Collapsed, it renders the shared `field` frame (a `role="combobox"` button
 // showing the selected label + a chevron); the whole frame is the open target.
 // Activated, the chevron flips up and a manual popover in the top layer,
-// anchored to the trigger (`[data-popover]` in main.css), holds an `OptionList`
-// in the brand tone with a `Field.Search` filter on top. The focus goes into
+// anchored to the trigger (`[data-popover]` in main.css), stands on the sheet as
+// every popover does and holds an `OptionList` with a `Field.Search` filter on top. The focus goes into
 // the search as it opens and back to the trigger as it closes; Escape is
 // `useDismiss`'s, so it closes one layer at a time, and a press outside or a
 // Tab past either end closes it too.
@@ -143,7 +143,7 @@ function ComboboxRoot({
       onClose={close}
     >
       <OptionList
-        tone="onBrand"
+        tone="plain"
         fit="scroll"
         size={listSize}
         value={selected}
@@ -273,8 +273,8 @@ function ComboboxPopup({
       data-side="bottom"
       data-align="start"
       className={cx(
-        'flex flex-col mt-0.5 [--popover-edge:5px] w-[anchor-size(width)] min-w-(--size-option-list-width) rounded-sm overflow-hidden outline-none',
-        'bg-surface-field-popover shadow-[inset_0_0_0_0.5px_var(--border-field-active),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]'
+        'flex flex-col mt-0.5 [--popover-edge:5px] w-[anchor-size(width)] min-w-(--size-option-list-width) rounded-lg overflow-hidden outline-none',
+        'bg-bg-sheet bg-level-1 shadow-[0_4px_16px_var(--shadow-sheet)]'
       )}
       onKeyDown={handleKeyDown}
     >

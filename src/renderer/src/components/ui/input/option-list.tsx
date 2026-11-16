@@ -53,7 +53,7 @@ import { cx, Field, useOptionalField, type FieldSearchProps } from './field'
 // in the list itself (no search), the same keys rove real button focus instead.
 // ---------------------------------------------------------------------------
 
-type Tone = 'default' | 'onBrand' | 'plain'
+type Tone = 'default' | 'plain' | 'menu'
 type Direction = 'block' | 'inline'
 type Fit = 'scroll' | 'content'
 type Size = 'md' | 'sm'
@@ -68,57 +68,44 @@ interface Variants {
 // The same brand chip for a selected row and a pressed toggle, wearing the
 // matching active edge on a pseudo so it composes with the focus ring.
 const ON_STATE =
-  'aria-selected:bg-surface-field-active aria-selected:text-glyph-field-active aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active ' +
-  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:[corner-shape:inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-border-field-active aria-selected:after:pointer-events-none ' +
-  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:[corner-shape:inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-border-field-active aria-pressed:after:pointer-events-none'
-
-const ON_BRAND_STATE =
-  'aria-selected:bg-surface-field-selected aria-selected:text-glyph-field-default aria-pressed:bg-surface-field-selected aria-pressed:text-glyph-field-default aria-selected:after:border-0 aria-pressed:after:border-0'
+  'aria-selected:bg-bg-field-selected aria-selected:text-ink-field-selected aria-pressed:bg-bg-field-selected aria-pressed:text-ink-field-selected ' +
+  'aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-0 aria-selected:after:rounded-[inherit] aria-selected:after:[corner-shape:inherit] aria-selected:after:border-[0.5px] aria-selected:after:border-solid aria-selected:after:border-border-field-selected aria-selected:after:pointer-events-none ' +
+  'aria-pressed:after:content-[""] aria-pressed:after:absolute aria-pressed:after:inset-0 aria-pressed:after:rounded-[inherit] aria-pressed:after:[corner-shape:inherit] aria-pressed:after:border-[0.5px] aria-pressed:after:border-solid aria-pressed:after:border-border-field-selected aria-pressed:after:pointer-events-none'
 
 /**
  * The slot classes, resolved once in the root from its variants. Exported for
  * the tests that check every class against Tailwind's scanner.
  */
 export function optionListClasses({ tone, direction, fit, size }: Variants) {
-  const brand = tone === 'onBrand'
+  // A floating menu's column: the popover toolbar stood on end.
+  const menu = tone === 'menu' && direction === 'block'
   // Each tint spelled out whole, for both palettes: Tailwind reads class names
   // out of the source, so a name assembled at runtime — `data-[active]:${tint}`
   // — reaches the DOM with no rule behind it and dresses nothing. That is how
   // the keyboard highlight went invisible. `option-list-classes.test.tsx`
   // checks every rendered class against the scanner.
-  const tint = brand
-    ? {
-        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover-brand',
-        listboxHover:
-          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover-brand',
-        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover-brand'
-      }
-    : {
-        active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-surface-field-hover',
-        listboxHover:
-          '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-surface-field-hover',
-        toolbarHover: 'hover:not-aria-pressed:bg-surface-field-hover'
-      }
+  const tint = {
+    active: 'data-[active]:not-aria-selected:not-aria-pressed:bg-bg-field-hover',
+    listboxHover:
+      '[html:not([data-input-modality=keyboard])_&]:hover:not-aria-selected:bg-bg-field-hover',
+    toolbarHover: 'hover:not-aria-pressed:bg-bg-field-hover'
+  }
   return {
     // A popover that owns the surface, or an inline row in the consumer's
     // frame: the root collapses. Alternatives, not a base plus `contents` —
     // same-property utilities resolve by stylesheet order, and `.flex` is
     // emitted after `.contents`.
     root:
-      tone === 'plain' || direction === 'inline'
+      tone === 'plain' || tone === 'menu' || direction === 'inline'
         ? 'contents'
         : cx(
             'flex flex-col rounded-sm overflow-hidden',
-            brand ? 'w-full' : 'w-(--size-option-list-width)',
-            tone === 'default' &&
-              'bg-surface-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)]'
+            'w-(--size-option-list-width) bg-bg-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)]'
           ),
     search: cx(
       'shrink-0 w-full px-2 py-0 border-0 border-b-[0.5px] border-solid bg-transparent appearance-none',
-      'caret-glyph-field-active [&::-webkit-search-cancel-button]:hidden',
-      brand
-        ? 'text-glyph-field-active border-b-border-field-active placeholder:text-glyph-field-active-muted'
-        : 'text-glyph-field-default border-b-border-field-default placeholder:text-glyph-field-placeholder',
+      'caret-ink-field-focus [&::-webkit-search-cancel-button]:hidden',
+      'text-ink-field-default border-b-border-field-default placeholder:text-ink-field-placeholder',
       size === 'sm' ? 'h-7 text-style-body-sm' : 'h-10 text-style-body-lg'
     ),
     // The two layouts are written as alternatives rather than as a base with
@@ -128,38 +115,44 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     list:
       direction === 'inline'
         ? 'flex flex-row items-center gap-0.5 p-0 w-max max-h-none overflow-visible'
-        : cx(
-            'flex flex-col overflow-x-hidden overflow-y-auto',
-            // 7 full rows + a half-row peek that says there is more to scroll;
-            // the dense list fits 9 shorter rows in the same idea.
-            size === 'sm'
-              ? 'gap-0.5 px-1 py-1 max-h-[calc(9*var(--size-option-row-sm)+8*2px+2*4px+12px)]'
-              : 'gap-0 p-1 max-h-[calc(7*var(--size-option-row)+2*4px+12px)]',
-            fit === 'content' && 'max-h-[calc(100dvh-80px)]'
-          ),
+        : menu
+          ? cx(
+              'flex flex-col gap-0 p-0 overflow-x-hidden overflow-y-auto',
+              fit === 'content'
+                ? 'max-h-[calc(100dvh-80px)]'
+                : 'max-h-[calc(7.5*var(--size-toolbar-button))]'
+            )
+          : cx(
+              'flex flex-col overflow-x-hidden overflow-y-auto',
+              // 7 full rows + a half-row peek that says there is more to scroll;
+              // the dense list fits 9 shorter rows in the same idea.
+              size === 'sm'
+                ? 'gap-0.5 px-1 py-1 max-h-[calc(9*var(--size-option-row-sm)+8*2px+2*4px+12px)]'
+                : 'gap-0 p-1 max-h-[calc(7*var(--size-option-row)+2*4px+12px)]',
+              fit === 'content' && 'max-h-[calc(100dvh-80px)]'
+            ),
     option: cx(
       // One width or the other, never both: same-property utilities resolve
       // by stylesheet order, so `w-full` from the block layout beat the
       // inline row's `w-auto` and every toolbar chip stretched to the rail.
       direction === 'inline' ? 'w-auto' : 'w-full',
-      // A row's option is cornered as an icon button is; a column's keeps its own.
-      direction === 'inline' ? 'rounded-xl' : 'rounded-sm',
+      // A row's option, and a menu's, is cornered as an icon button is; a
+      // column's keeps its own.
+      direction === 'inline' || menu ? 'rounded-xl' : 'rounded-sm',
       'flex items-center gap-2 shrink-0 relative border-none bg-transparent appearance-none',
       'text-left text-style-body-sm cursor-pointer select-none whitespace-nowrap overflow-hidden text-ellipsis',
       'transition-[background-color,color,box-shadow] duration-150',
       '[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block',
-      brand ? 'text-glyph-field-active' : 'text-glyph-field-default',
+      'text-ink-field-default',
       // `data-active` is the roving/keyboard highlight; the `not-` guards keep
       // the neutral tint off the selected row, which is the default roving
       // target and so carries both attributes.
       tint.active,
-      brand ? ON_BRAND_STATE : ON_STATE,
-      // An icon at rest takes the icon ink, one step softer on a sheet; a
-      // selected or pressed one keeps the chip's.
-      !brand && 'not-aria-selected:not-aria-pressed:[&_svg]:text-glyph-icon',
-      'disabled:text-glyph-field-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
+      ON_STATE,
+      'disabled:text-ink-field-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:data-[active]:bg-transparent',
       '[html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--outline-focus)]',
-      size === 'sm' ? 'px-1 py-0' : 'p-1'
+      // A menu's row is as tall as a toolbar button.
+      menu ? 'h-(--size-toolbar-button) px-1 py-0' : size === 'sm' ? 'px-1 py-0' : 'p-1'
     ),
     // The bare :hover tint, gated on the live input modality for a LISTBOX
     // row: a cursor parked over a menu opened with `/` would otherwise paint a
@@ -169,7 +162,7 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
     toolbarHover: tint.toolbarHover,
     empty: cx(
       'flex items-center px-1 text-style-body-sm select-none',
-      brand ? 'text-glyph-field-active-muted' : 'text-glyph-field-muted',
+      'text-ink-field-muted',
       size === 'sm' ? 'h-(--size-option-row-sm)' : 'h-(--size-option-row)'
     ),
     divider: cx(
@@ -311,8 +304,9 @@ export interface OptionListProps extends Omit<
   emptyLabel?: string
   /**
    * Retint for the surface it sits on. `default` = standalone self-framed
-   * surface; `onBrand` = the Combobox popover's brand-tinted surface (palette
-   * inverts); `plain` = a menu whose popover owns the surface (the slash menu).
+   * surface; `plain` = a list whose container owns the surface (the Combobox's popover); `menu` = a
+   * floating menu whose popover owns it (the slash menu), its rows as tall as
+   * the popover toolbar's buttons, cornered as they are and laid edge to edge.
    */
   tone?: Tone
   /**

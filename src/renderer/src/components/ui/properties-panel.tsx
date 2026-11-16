@@ -79,7 +79,7 @@ const EXIT_MS = 200
 const RULE =
   'after:content-[""] after:absolute after:bottom-0 after:left-px after:right-0 after:h-px after:bg-border-divider after:pointer-events-none'
 
-const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-glyph-body'
+const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-ink-body'
 
 /** A control that fills the panel stops where the FIELD column stops. */
 const BLOCK_WIDTH = 'w-[calc(100%-8px-var(--size-property-row-action))]'
@@ -221,9 +221,9 @@ function PropertiesPanelRoot({
           // Docked, not floating: no radius, and the hairline on the one edge
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
-          'bg-surface-sheet shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+          'bg-bg-sheet shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_var(--shadow-sheet)]',
           // A sheet: its fields stand a step up, on surface 2.
-          'surface-level-1',
+          'bg-level-1',
           // The panel IS the scroll container; the sticky header stays put.
           'overflow-auto overscroll-contain',
           exiting ? 'animate-panel-out' : 'animate-panel-in'
@@ -262,7 +262,7 @@ function PropertiesPanelHeader({
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
         // an opaque child). Its rule starts past that edge, as a section's does.
-        'sticky top-0 z-1 bg-surface-sheet surface-level-1',
+        'sticky top-0 z-1 bg-bg-sheet bg-level-1',
         'shadow-[inset_1px_0_0_var(--border-divider)]',
         RULE
       )}
@@ -399,7 +399,7 @@ function PropertiesPanelSectionHeader({ icon, children }: PropertiesPanelSection
  * third child and nothing here has to move.
  */
 const CONTROL_PANEL = cx(
-  'flex flex-col items-stretch gap-2 p-3 text-glyph-body',
+  'flex flex-col items-stretch gap-2 p-3 text-ink-body',
   '[&_[data-property-block]]:w-[calc(100%-8px-var(--size-property-row-action))]',
   '[&_[data-property-control]]:grid [&_[data-property-control]]:items-center [&_[data-property-control]]:gap-x-2 [&_[data-property-control]]:w-max',
   '[&_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)_var(--size-property-row-action)]',
@@ -568,7 +568,7 @@ function PropertiesPanelText({
       className={cx(
         BLOCK_WIDTH,
         'min-w-0 m-0 p-0 bg-transparent border-none resize-none field-sizing-content',
-        'text-style-sidenote text-glyph-body caret-glyph-body placeholder:text-glyph-body/40',
+        'text-style-sidenote text-ink-body caret-ink-body placeholder:text-ink-body/40',
         '[html[data-keyboard-focus]_&]:focus-visible:shadow-none',
         className
       )}

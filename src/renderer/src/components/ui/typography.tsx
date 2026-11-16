@@ -5,6 +5,7 @@ export type TypographyType =
   | 'subheading'
   | 'bodyLarge'
   | 'bodySmall'
+  | 'prose'
   | 'quote'
   | 'caption'
   | 'sidenote'
@@ -36,13 +37,15 @@ type Wrap = 'pretty' | 'balance'
 // their own (a caption centred under something), where what matters is that the
 // lines come out even, so those balance.
 const TYPE_STYLES: Record<TypographyType, { style: string; color: string; wrap: Wrap }> = {
-  title: { style: 'text-style-title', color: 'text-glyph-title', wrap: 'balance' },
-  subheading: { style: 'text-style-subheading', color: 'text-glyph-body', wrap: 'balance' },
-  bodyLarge: { style: 'text-style-body-lg', color: 'text-glyph-body', wrap: 'pretty' },
-  bodySmall: { style: 'text-style-body-sm', color: 'text-glyph-body', wrap: 'pretty' },
-  quote: { style: 'text-style-quote', color: 'text-glyph-body', wrap: 'pretty' },
-  caption: { style: 'text-style-caption', color: 'text-glyph-body', wrap: 'balance' },
-  sidenote: { style: 'text-style-sidenote', color: 'text-glyph-body', wrap: 'pretty' }
+  title: { style: 'text-style-title', color: 'text-ink-title', wrap: 'balance' },
+  subheading: { style: 'text-style-subheading', color: 'text-ink-body', wrap: 'balance' },
+  bodyLarge: { style: 'text-style-body-lg', color: 'text-ink-body', wrap: 'pretty' },
+  bodySmall: { style: 'text-style-body-sm', color: 'text-ink-body', wrap: 'pretty' },
+  // A note's paragraphs: body small in the serif.
+  prose: { style: 'text-style-prose', color: 'text-ink-prose', wrap: 'pretty' },
+  quote: { style: 'text-style-quote', color: 'text-ink-body', wrap: 'pretty' },
+  caption: { style: 'text-style-caption', color: 'text-ink-body', wrap: 'balance' },
+  sidenote: { style: 'text-style-sidenote', color: 'text-ink-body', wrap: 'pretty' }
 }
 
 const WRAP_CLASS: Record<Wrap, string> = {

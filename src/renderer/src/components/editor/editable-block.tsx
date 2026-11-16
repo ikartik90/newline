@@ -32,7 +32,6 @@ import {
 } from './caret'
 import { isBlockEmpty, isCaretlessBlock, isListItemType } from './blocks'
 import {
-  articleBlockquoteBodyStyle,
   articleBlockquoteShellStyle,
   articleBlockquoteStyle,
   articleEyebrowShellStyle,
@@ -1063,34 +1062,31 @@ export function EditableBlock({
   if (block.type === 'blockquote') {
     return (
       <div className={articleBlockquoteShellStyle} data-indented={block.indent ? '' : undefined}>
-        <span className="article-blockquote-mark" aria-hidden />
-        <div className={articleBlockquoteBodyStyle}>
-          <blockquote
-            ref={combinedRef as React.RefCallback<HTMLElement>}
-            className={`${editableBaseStyle} ${articleBlockquoteStyle}`}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
-            onKeyUp={handleKeyUp}
-            onPaste={handlePaste}
-            data-placeholder={placeholder}
-            data-block-index={blockIndex}
-            data-empty={isBlockEmpty(block) ? '' : undefined}
-            {...slashAnchorProps}
-          />
-          <cite
-            ref={captionRef}
-            className={editorBlockquoteCaptionStyle}
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="Add citation..."
-            data-block-index={blockIndex}
-            data-empty={!block.caption?.trim() ? '' : undefined}
-            onInput={handleCaptionInput}
-            onKeyDown={handleCaptionKeyDown}
-          />
-        </div>
+        <blockquote
+          ref={combinedRef as React.RefCallback<HTMLElement>}
+          className={`${editableBaseStyle} ${articleBlockquoteStyle}`}
+          contentEditable
+          suppressContentEditableWarning
+          onKeyDown={handleKeyDown}
+          onInput={handleInput}
+          onKeyUp={handleKeyUp}
+          onPaste={handlePaste}
+          data-placeholder={placeholder}
+          data-block-index={blockIndex}
+          data-empty={isBlockEmpty(block) ? '' : undefined}
+          {...slashAnchorProps}
+        />
+        <cite
+          ref={captionRef}
+          className={editorBlockquoteCaptionStyle}
+          contentEditable
+          suppressContentEditableWarning
+          data-placeholder="Add citation..."
+          data-block-index={blockIndex}
+          data-empty={!block.caption?.trim() ? '' : undefined}
+          onInput={handleCaptionInput}
+          onKeyDown={handleCaptionKeyDown}
+        />
       </div>
     )
   }
@@ -1283,7 +1279,7 @@ export function EditableBlock({
     <p
       ref={combinedRef as React.RefCallback<HTMLParagraphElement>}
       className={`${editableBaseStyle} ${typographyStyles({
-        type: 'bodySmall',
+        type: 'prose',
         wrap: align === 'center' ? 'balance' : undefined
       })}`}
       contentEditable

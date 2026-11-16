@@ -52,36 +52,36 @@ const textStyle =
   'inline-flex items-center justify-center gap-2 min-w-20 h-7 px-2 rounded-lg text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
   primary:
-    'bg-surface-button-primary-default text-glyph-button-primary-default hover:bg-surface-button-primary-hover',
-  // Secondary and tertiary rest in the control ink, one step softer than body
-  // ink; an icon beside the label follows it.
+    'bg-bg-button-primary-default text-ink-button-primary-default hover:bg-bg-button-primary-hover',
+  // Each emphasis rests in its own ink; an icon beside the label follows it.
   secondary:
-    'bg-surface-button-secondary-default text-glyph-control hover:bg-surface-button-secondary-hover',
-  tertiary: 'bg-transparent text-glyph-control hover:bg-surface-field-hover',
+    'bg-bg-button-secondary-default text-ink-button-secondary-default hover:bg-bg-button-secondary-hover active:bg-bg-button-secondary-pressed',
+  tertiary:
+    'bg-transparent text-ink-button-tertiary-default hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed',
   glass:
-    'bg-surface-button-secondary-default/60 backdrop-frost text-glyph-body hover:bg-surface-button-secondary-hover/60'
+    'bg-bg-button-secondary-default/60 backdrop-frost text-ink-button-secondary-default hover:bg-bg-button-secondary-hover/60'
 }
 
 // The compact toolbar chip: a 20px glyph on a 4px inset, cornered as the
-// shell's own sidebar toggle and settings button are, `color: inherit` so
-// the surface owns the glyph hue. The hover wash is for buttons that are NOT
-// on: an on toggle (`aria-pressed`) wears the brand chip every pressed toggle
+// shell's own sidebar toggle and settings button are, its glyph in its
+// emphasis's ink. The hover wash is for buttons that are NOT
+// on: an on toggle (`aria-pressed`) wears the selected chip every pressed toggle
 // in the system wears, and hover cannot reach past it — the press still can,
 // as a fill rather than the base's scale, since scaling drags a lone glyph off
 // the pixel grid.
 const iconStyle =
-  'relative inline-flex items-center justify-center gap-1 p-1 rounded-xl text-inherit text-style-body-sm active:transform-none active:bg-surface-field-pressed aria-pressed:bg-surface-field-active aria-pressed:text-glyph-field-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
-// An icon button is tertiary or glass — never a filled or branded chip.
+  'relative inline-flex items-center justify-center gap-1 p-1 rounded-xl text-style-body-sm active:transform-none aria-pressed:bg-bg-field-selected aria-pressed:text-ink-field-selected [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
+// An icon button is tertiary or glass — never a filled chip.
 type IconEmphasis = Extract<ActionEmphasis, 'tertiary' | 'glass'>
 const iconEmphasis: Record<IconEmphasis, string> = {
-  // Its glyph at rest takes the icon ink, one step softer on a sheet.
+  // Its glyph takes the tertiary ink, as a tertiary text button's label does.
   tertiary:
-    'bg-transparent not-aria-pressed:hover:bg-surface-field-hover not-aria-pressed:[&_svg]:text-glyph-icon',
-  // The one chip that floats ON a picture: the surface at 75% and the app's
-  // one blur keep the glyph legible over whatever moves underneath; opaque on
-  // hover, the chip comes forward as you reach for it.
+    'bg-transparent not-aria-pressed:hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed not-aria-pressed:text-ink-button-tertiary-default',
+  // The one chip that floats ON a picture, a secondary button at 60% in the
+  // secondary's ink: the app's one blur keeps the glyph legible over whatever
+  // moves underneath.
   glass:
-    'bg-surface-button-secondary-default/60 backdrop-frost text-glyph-body hover:bg-surface-button-secondary-hover/60'
+    'bg-bg-button-secondary-default/60 backdrop-frost text-ink-button-secondary-default hover:bg-bg-button-secondary-hover/60 active:bg-bg-field-pressed'
 }
 
 /**
@@ -93,9 +93,9 @@ export function resolveEmphasis(variant: ActionVariant, emphasis?: ActionEmphasi
   return emphasis === 'glass' ? 'glass' : 'tertiary'
 }
 
-// The inline underlined affordance, in the brand ink.
+// The inline underlined affordance, in the link's ink.
 const linkStyle =
-  'inline p-0 bg-transparent text-glyph-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
+  'inline p-0 bg-transparent text-ink-link-default text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
 
 /** The Tailwind classes for an action's look — shared by Button and Link. */
 export function actionStyles({ variant, emphasis }: ActionStyleOptions): string {

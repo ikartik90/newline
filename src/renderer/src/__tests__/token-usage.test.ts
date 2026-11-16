@@ -5,18 +5,18 @@ import { describe, expect, it } from 'vitest'
 // Two token spellings compile happily and paint the wrong thing, so only a
 // check like this catches them.
 //
-// 1. Every colour is named for the role it plays (surface, glyph, border,
+// 1. Every colour is named for the role it plays (bg, ink, border,
 //    outline), and a utility takes any of them: a border written in a
-//    surface or glyph colour compiles, and draws a field's frame in the
+//    bg or ink colour compiles, and draws a field's frame in the
 //    field's own FILL — at the fill's alpha, and when active in the opaque
 //    brand-tinted fill over a background already using it, so a focused
 //    field loses its edge. A border draws in a border or outline colour.
 //
 // 2. Because that theme block is `inline`, Tailwind substitutes the value and
-//    no utility ever reads `--color-surface-field-default`. A surface that
+//    no utility ever reads `--color-bg-field-default`. A surface that
 //    reassigns it to step its fields up reassigns nothing; the variable the
-//    utilities actually read is `--surface-field-default`, and only the
-//    `surface-level-*` utilities reassign it.
+//    utilities actually read is `--bg-field-default`, and only the
+//    `bg-level-*` utilities reassign it.
 //
 // 3. Every divider is a 1px line. A class list drawing in the divider token
 //    at half a pixel is a hairline left over from before.
@@ -58,18 +58,18 @@ function candidates(): string[] {
 
 describe('token usage', () => {
   it('draws every border in a border or outline colour', () => {
-    const trap = /(^|:)border(-[btlrxyse])?-(surface|glyph)-/
+    const trap = /(^|:)border(-[btlrxyse])?-(bg|ink)-/
 
     expect(candidates().filter((c) => trap.test(c))).toEqual([])
   })
 
   it('overrides the field fill through the variable the utilities read', () => {
-    expect(candidates().filter((c) => c.includes('--color-surface-field-default:'))).toEqual([])
+    expect(candidates().filter((c) => c.includes('--color-bg-field-default:'))).toEqual([])
   })
 
   it('raises what stands on a sheet through the step utility, never by hand', () => {
     const byHand = candidates().filter((c) =>
-      /(^|:)\[--surface-(field-(default|hover|pressed)|button-(primary|secondary)-(default|hover)):/.test(
+      /(^|:)\[--bg-(field-(default|hover|pressed)|button-(primary|secondary)-(default|hover)|button-tertiary-(hover|pressed)):/.test(
         c
       )
     )
@@ -86,39 +86,112 @@ describe('token usage', () => {
       '../components/media-object.tsx',
       '../components/Sidebar.tsx'
     ]
-    const flat = sheets.filter((file) => !/\bsurface-level-1\b/.test(SOURCES[file] ?? ''))
+    const flat = sheets.filter((file) => !/\bbg-level-1\b/.test(SOURCES[file] ?? ''))
     expect(flat).toEqual([])
   })
 
-  it('stands the code block’s language picker, raised on the block, a step above it', () => {
-    expect(SOURCES['../components/editor/styles.ts']).toMatch(/bg-surface-raised surface-level-2/)
+  // The block is a sheet, so the picker, a shell on it, steps a level above it.
+  it('stands the code block’s language picker, a shell on the block, a step above it', () => {
+    const styles = SOURCES['../components/editor/styles.ts']
+    expect(styles).toMatch(/editorCodeBlockWrapperStyle = 'relative group\/code bg-level-1'/)
+    expect(styles).toMatch(/bg-bg-shell-default bg-level-2/)
   })
 
   it('never writes a surface primitive in a component, only the system tokens over it', () => {
     const utility =
-      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-surface-(inverse-)?\d(\/|$)/
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-bg-(inverse-)?\d(\/|$)/
     expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
   it('never writes an ink primitive in a component, only the system tokens over it', () => {
     const utility =
-      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-ink-\d(\/|$)/
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to)-ink-(inverse-)?\d(\/|$)/
     expect(candidates().filter((c) => utility.test(c))).toEqual([])
   })
 
-  it('paints a sheet in --surface-sheet, the one name it has', () => {
-    expect(
-      candidates().filter((c) => /surface-(default|sidebar|item-hover)(\/|\)|$)/.test(c))
-    ).toEqual([])
+  it('never writes a divider primitive in a component, only the system tokens over it', () => {
+    const utility =
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to|divide)-divider-\d(\/|$)/
+    expect(candidates().filter((c) => utility.test(c))).toEqual([])
+  })
+
+  // A status stands on no scale: its fill, ink and line are primitives too.
+  it('never writes a status primitive in a component, only the system tokens over it', () => {
+    const utility =
+      /(^|:)(bg|text|border|outline|ring|fill|stroke|decoration|shadow|from|via|to|divide)-(bg|ink)-(highlight|accent|danger|warning|success)(\/|$)|-divider-highlight(\/|$)/
+    expect(candidates().filter((c) => utility.test(c))).toEqual([])
+    const reader = /var\(--(bg|ink|divider)-(highlight|accent|danger|warning|success)\)/
+    expect(Object.keys(SOURCES).filter((file) => reader.test(SOURCES[file] ?? ''))).toEqual([])
+  })
+
+  // The sync status is an ink: its dot is drawn in it, as its words are.
+  it('dots the sync status in its ink', () => {
+    const sync = SOURCES['../components/SyncIndicator.tsx']
+    expect(sync).not.toMatch(/bg-bg-sync/)
+    for (const state of ['syncing', 'synced', 'offline', 'error']) {
+      expect(sync).toMatch(new RegExp(`\\$\\{DOT\\} bg-ink-sync-${state}\\b`))
+    }
+  })
+
+  // The delete a row uncovers is danger, its fill and its words.
+  it('fills and inks a row’s delete in its own danger tokens', () => {
+    const sidebar = SOURCES['../components/Sidebar.tsx']
+    expect(sidebar).toMatch(/deleteActionStyle =\s+'[^']*\bbg-bg-row-delete text-ink-row-delete\b/)
+    expect(candidates().filter((c) => /(^|:)text-bg-/.test(c))).toEqual([])
+  })
+
+  // A floating sheet's shadow is the canvas under it.
+  it('shadows every floating sheet in --shadow-sheet, never in neutral', () => {
+    const shadows = candidates().filter((c) => /(^|:)shadow-\[0_4px_16px/.test(c))
+    expect(shadows.length).toBeGreaterThan(0)
+    expect(shadows.filter((c) => !c.endsWith('0_4px_16px_var(--shadow-sheet)]'))).toEqual([])
+    expect(candidates().filter((c) => /neutral-\d/.test(c))).toEqual([])
+  })
+
+  it('paints a sheet in --bg-sheet, the one name it has', () => {
+    expect(candidates().filter((c) => /bg-(default|sidebar)(\/|\)|$)/.test(c))).toEqual([])
   })
 
   it('floats the chip on a picture as a secondary button at 60%, its hover stepped as any button’s', () => {
-    expect(candidates().filter((c) => /surface-glass/.test(c))).toEqual([])
+    expect(candidates().filter((c) => /bg-glass/.test(c))).toEqual([])
     const action = SOURCES['../components/ui/action.tsx']
     const glass =
-      /glass:\s+'bg-surface-button-secondary-default\/60 backdrop-frost text-glyph-body hover:bg-surface-button-secondary-hover\/60'/g
+      /glass:\s+'bg-bg-button-secondary-default\/60 backdrop-frost text-ink-button-secondary-default hover:bg-bg-button-secondary-hover\/60( active:bg-bg-field-pressed)?'/g
     expect(action.match(glass)).toHaveLength(2)
-    expect(action).not.toMatch(/hover:bg-surface-sheet/)
+    expect(action).not.toMatch(/hover:bg-bg-sheet/)
+  })
+
+  // A component inks in tokens of its own, never a shared control or icon ink.
+  it('names no shared control or icon ink', () => {
+    const borrowers = Object.keys(SOURCES).filter((file) =>
+      /ink-(control|icon)\b/.test(SOURCES[file] ?? '')
+    )
+    expect(borrowers).toEqual([])
+  })
+
+  it('names no ink for the glass', () => {
+    const borrowers = Object.keys(SOURCES).filter((file) =>
+      /ink-[\w-]*glass/.test(SOURCES[file] ?? '')
+    )
+    expect(borrowers).toEqual([])
+  })
+
+  // A tertiary button and the avatar have tokens of their own; neither borrows
+  // a field's or a secondary button's.
+  it('fills a tertiary button and the avatar in their own tokens', () => {
+    const action = SOURCES['../components/ui/action.tsx']
+    expect(action).toMatch(
+      /tertiary:\s+'bg-transparent text-ink-button-tertiary-default hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed'/
+    )
+    expect(action).toMatch(
+      /tertiary:\s+'bg-transparent not-aria-pressed:hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed /
+    )
+    expect(action).toMatch(
+      /secondary:\s+'bg-bg-button-secondary-default text-ink-button-secondary-default hover:bg-bg-button-secondary-hover active:bg-bg-button-secondary-pressed'/
+    )
+    const account = SOURCES['../components/account-menu.tsx']
+    expect(account).toMatch(/avatarStyle =\s+'[^']*\bbg-bg-avatar-default\b/)
+    expect(account).not.toMatch(/bg-button-secondary/)
   })
 
   it('draws every divider a full pixel wide', () => {

@@ -46,6 +46,14 @@ describe('SidenoteLayer — cards', () => {
     expect(card('n2').textContent).toContain('2.')
   })
 
+  it('inks a card’s number in the highlight', () => {
+    render(<SidenoteLayer entries={[entry()]} />)
+    const number = [...card().querySelectorAll('span[aria-hidden]')].find((span) =>
+      span.textContent?.includes('1.')
+    )!
+    expect(number.className.split(' ')).toContain('text-ink-sidenote-marker')
+  })
+
   it('reveals only the active card in caret mode', () => {
     const { rerender } = render(
       <SidenoteLayer

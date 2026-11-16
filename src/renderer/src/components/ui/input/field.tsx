@@ -45,23 +45,46 @@ const TEXT_STYLE: Record<FieldTextStyle, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// The ACTIVE state is CSS-driven off the control's engagement rather than a
+// The FOCUS state is CSS-driven off the control's engagement rather than a
 // prop: a text input's `:focus-visible` (which the spec makes always match on a
 // keyboard-editable element, click or tab — the slider's range input included), a
 // focusable INSIDE a `data-control` box (the slider thumb, whose input is
 // hidden in it), or an open trigger's `aria-expanded`. Tracked from the field
 // ROOT with `:has`, so the label recolours even though it sits outside the
-// frame. Every part that shifts on activation spells the same three variants.
+// frame. Every part that shifts on focus spells the same three variants, each
+// written whole, as Tailwind's scanner must read a class to emit its rule.
 // ---------------------------------------------------------------------------
-const ACTIVE_VARIANTS = [
-  'group-has-[[data-control]:focus-visible]/field:',
-  'group-has-[[data-control]_:focus-visible]/field:',
-  'group-has-[[data-control][aria-expanded=true]]/field:'
-]
-
-/** `cls` under every selector that means "this field is engaged". */
-export function whenFieldActive(cls: string): string {
-  return ACTIVE_VARIANTS.map((v) => v + cls).join(' ')
+export const FIELD_FOCUS = {
+  /** The label and the frame’s text and icons. */
+  label: [
+    'group-has-[[data-control]:focus-visible]/field:text-ink-field-focus',
+    'group-has-[[data-control]_:focus-visible]/field:text-ink-field-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:text-ink-field-focus'
+  ].join(' '),
+  /** The frame’s fill and edge. */
+  frame: [
+    'group-has-[[data-control]:focus-visible]/field:bg-bg-field-focus',
+    'group-has-[[data-control]_:focus-visible]/field:bg-bg-field-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:bg-bg-field-focus',
+    'group-has-[[data-control]:focus-visible]/field:border-border-field-focus',
+    'group-has-[[data-control]_:focus-visible]/field:border-border-field-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:border-border-field-focus'
+  ].join(' '),
+  /** The placeholder, as an attribute or drawn by `data-placeholder`. */
+  placeholder: [
+    'group-has-[[data-control]:focus-visible]/field:placeholder:text-ink-field-placeholder-focus',
+    'group-has-[[data-control]_:focus-visible]/field:placeholder:text-ink-field-placeholder-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:placeholder:text-ink-field-placeholder-focus',
+    'group-has-[[data-control]:focus-visible]/field:data-[placeholder]:text-ink-field-placeholder-focus',
+    'group-has-[[data-control]_:focus-visible]/field:data-[placeholder]:text-ink-field-placeholder-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:data-[placeholder]:text-ink-field-placeholder-focus'
+  ].join(' '),
+  /** A hairline inside the frame: a divider or a slider tick. */
+  divider: [
+    'group-has-[[data-control]:focus-visible]/field:bg-border-field-focus',
+    'group-has-[[data-control]_:focus-visible]/field:bg-border-field-focus',
+    'group-has-[[data-control][aria-expanded=true]]/field:bg-border-field-focus'
+  ].join(' ')
 }
 
 // Label, value, hint and frame height move together, so you get a "small
@@ -245,14 +268,14 @@ function FieldLabel({ children, type, className, ...rest }: FieldLabelProps) {
       htmlFor={controlId}
       data-size={size}
       className={cx(
-        'w-full break-words cursor-default text-glyph-field-muted transition-colors duration-150',
-        whenFieldActive('text-glyph-field-active'),
+        'w-full break-words cursor-default text-ink-field-muted transition-colors duration-150',
+        FIELD_FOCUS.label,
         // Toggle archetype: the label is a full statement beside the control,
         // so it reads as resting field text rather than a muted label, and
         // clicking it toggles.
         toggle &&
           cx(
-            'row-start-1 w-auto text-glyph-field-default cursor-pointer',
+            'row-start-1 w-auto text-ink-field-default cursor-pointer',
             labelFirst ? 'col-start-1' : 'col-start-2'
           ),
         type ? TEXT_STYLE[type] : SIZE[size].label,
@@ -283,14 +306,13 @@ function FieldFrame({ children, className, onMouseDown, ...rest }: FieldFramePro
       data-size={size}
       className={cx(
         'flex items-center gap-2 w-full px-2 rounded-lg border-[0.5px] border-solid overflow-hidden cursor-text',
-        'bg-surface-field-default border-border-field-default text-glyph-field-default transition-[background-color,border-color,color] duration-150',
+        'bg-bg-field-default border-border-field-default text-ink-field-default transition-[background-color,border-color,color] duration-150',
         // A multi-line control grows instead of holding the fixed height, and
         // the padding turns vertical because the frame no longer centres it.
         'has-[textarea]:items-start has-[textarea]:py-1',
         SIZE[size].frame,
-        whenFieldActive('bg-surface-field-active'),
-        whenFieldActive('border-border-field-active'),
-        whenFieldActive('text-glyph-field-active'),
+        FIELD_FOCUS.frame,
+        FIELD_FOCUS.label,
         // The keyboard ring goes on the shell so it hugs the whole field, icon
         // included; inset, so `overflow: hidden` cannot clip it.
         '[html[data-keyboard-focus]_[data-field]:has([data-control]:focus-visible)_&]:shadow-[inset_0_0_0_1.5px_var(--outline-focus)]',
@@ -327,10 +349,9 @@ export function controlClass(size: FieldSize, fill = true): string {
   return cx(
     fill && 'flex-1 w-full',
     'min-w-0 m-0 p-0 border-none bg-transparent appearance-none text-inherit',
-    'caret-glyph-field-active transition-colors duration-150',
-    'placeholder:text-glyph-field-placeholder data-[placeholder]:text-glyph-field-placeholder',
-    whenFieldActive('placeholder:text-glyph-field-active-muted'),
-    whenFieldActive('data-[placeholder]:text-glyph-field-active-muted'),
+    'caret-ink-field-focus transition-colors duration-150',
+    'placeholder:text-ink-field-placeholder data-[placeholder]:text-ink-field-placeholder',
+    FIELD_FOCUS.placeholder,
     // The app-wide keyboard ring targets the raw <input>, which the frame's
     // overflow:hidden clips into an awkward inner rectangle. The frame carries
     // the ring instead.
@@ -415,7 +436,7 @@ function FieldHint({ children, type, className, ...rest }: FieldHintProps) {
       id={hintId}
       data-size={size}
       className={cx(
-        'w-full break-words mt-1 text-glyph-field-muted',
+        'w-full break-words mt-1 text-ink-field-muted',
         // Toggle archetype: the hint drops under the label, aligned to it.
         toggle && cx('row-start-2 w-auto mt-0', labelFirst ? 'col-start-1' : 'col-start-2'),
         type ? TEXT_STYLE[type] : SIZE[size].hint,

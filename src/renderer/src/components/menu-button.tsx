@@ -1,5 +1,4 @@
 import { useEffect, useState, type ComponentType, type SVGProps } from 'react'
-import MenuIcon from '@/assets/icons/menu.svg'
 import { useHasCursor } from '@/hooks/use-has-cursor'
 import { useShortcutLabel } from '@/hooks/use-shortcut-label'
 import { hasShortcutModifier, shortcutLabel } from '@/utils/keyboard-shortcut'
@@ -55,7 +54,8 @@ export interface MenuButtonProps {
   label?: string
   /** The bare key that opens the menu with the platform modifier. Default `K`. */
   shortcut?: string
-  icon?: Icon
+  /** The chip's glyph: the surface names what its menu holds. */
+  icon: Icon
   className?: string
 }
 
@@ -67,28 +67,28 @@ const rowStyle = 'flex items-center gap-0.5'
 // reads as a single box changing what it says rather than two chips trading
 // places. Then the handover described above.
 const shortcutStyle =
-  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-sheet text-glyph-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
+  'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-bg-sheet text-ink-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
 
 // The `menuPopover` recipe, expanded: a 200px column on the surface. It fades in
 // and out; the 95% scale is set and dropped at once, never animated.
 export const menuPopupStyle =
-  'hidden open:flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-surface-sheet surface-level-1 rounded-md overflow-hidden outline-none shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] transition-[opacity,display,overlay] transition-discrete duration-150 ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95'
+  'hidden open:flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-bg-sheet bg-level-1 rounded-md overflow-hidden outline-none shadow-[0_4px_16px_var(--shadow-sheet)] transition-[opacity,display,overlay] transition-discrete duration-150 ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 export const menuItemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-glyph-body outline-none data-[highlighted]:bg-surface-field-hover aria-disabled:opacity-50'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-ink-body outline-none data-[highlighted]:bg-bg-field-hover aria-disabled:opacity-50'
 export const menuItemIconStyle = 'shrink-0 size-5'
 
 // The `hotkey` recipe inside a menu: the wash a hovered row wears, held against
 // the far end of the row.
 const itemShortcutStyle =
-  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-surface-field-hover text-glyph-body text-style-caption whitespace-nowrap'
+  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-bg-field-hover text-ink-body text-style-caption whitespace-nowrap'
 
 export function MenuButton({
   items,
   label = 'Menu',
   shortcut = 'K',
-  icon: Glyph = MenuIcon,
+  icon: Glyph,
   className
 }: MenuButtonProps) {
   const [open, setOpen] = useState(false)

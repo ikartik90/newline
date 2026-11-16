@@ -118,14 +118,14 @@ function Harness() {
   const { effectiveTheme, setTheme } = useTheme()
   const [snapshot, setSnapshot] = useState<EditorSnapshot | null>(null)
   return (
-    <div className="h-screen flex flex-col bg-surface-canvas text-glyph-body">
-      <div className="h-12 flex items-center px-4 text-style-caption text-glyph-body/50 shrink-0">
+    <div className="h-screen flex flex-col bg-bg-canvas text-ink-body">
+      <div className="h-12 flex items-center px-4 text-style-caption text-ink-body/50 shrink-0">
         Harness · last change:{' '}
         {snapshot ? `${snapshot.document.content.length} blocks` : 'none yet'}
         <button
           type="button"
           onClick={() => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')}
-          className="ml-auto h-7 px-2 rounded-sm bg-surface-button-secondary-default text-glyph-body hover:bg-surface-button-secondary-hover"
+          className="ml-auto h-7 px-2 rounded-sm bg-bg-button-secondary-default text-ink-body hover:bg-bg-button-secondary-hover"
         >
           {effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme'}
         </button>

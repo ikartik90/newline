@@ -98,11 +98,11 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, 'ti
 // on it as the sidebar's rows do (`data-on-glass`).
 const panelStyle: Record<DialogMaterial, string> = {
   solid:
-    'flex flex-col items-stretch justify-start p-0 max-w-none bg-surface-sheet surface-level-1 text-glyph-body rounded-md border border-border-divider overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-surface-canvas/50 backdrop:backdrop-frost backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-[80ms] backdrop:ease-out backdrop:opacity-0 open:backdrop:opacity-100 starting:open:backdrop:opacity-0',
+    'flex flex-col items-stretch justify-start p-0 max-w-none bg-bg-sheet bg-level-1 text-ink-body rounded-md border border-border-divider overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-bg-canvas/50 backdrop:backdrop-frost backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-[80ms] backdrop:ease-out backdrop:opacity-0 open:backdrop:opacity-100 starting:open:backdrop:opacity-0',
   frosted:
-    'flex flex-col items-stretch justify-start p-0 max-w-none frosted-sheet surface-level-1 text-glyph-body rounded-3xl border border-border-divider shadow-lg overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-black/15 backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-[80ms] backdrop:ease-out backdrop:opacity-0 open:backdrop:opacity-100 starting:open:backdrop:opacity-0',
+    'flex flex-col items-stretch justify-start p-0 max-w-none frosted-sheet bg-level-1 text-ink-body rounded-3xl border border-border-divider shadow-lg overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-black/15 backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-[80ms] backdrop:ease-out backdrop:opacity-0 open:backdrop:opacity-100 starting:open:backdrop:opacity-0',
   glass:
-    'flex flex-col items-stretch justify-start p-0 max-w-none bg-transparent surface-level-1 text-glyph-body overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-transparent'
+    'flex flex-col items-stretch justify-start p-0 max-w-none bg-transparent bg-level-1 text-ink-body overflow-hidden outline-none transition-[opacity,display,overlay] transition-discrete duration-[80ms] ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95 backdrop:bg-transparent'
 }
 
 // 16px (`xl`) of viewport on either side is the least a panel keeps.
@@ -445,7 +445,7 @@ export function DialogHeader({ className, children, ...rest }: DialogSlotProps) 
   )
 }
 
-const titleStyle = 'm-0 p-0 text-style-body-sm text-glyph-body [font-weight:inherit] text-balance'
+const titleStyle = 'm-0 p-0 text-style-body-sm text-ink-body [font-weight:inherit] text-balance'
 
 /** Registers a slot's id with the dialog while the slot is mounted. */
 function useSlotId(register: ((id: string | undefined) => void) | undefined, given?: string) {

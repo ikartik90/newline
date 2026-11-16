@@ -7,7 +7,7 @@ import { useNoteSearch } from '@/hooks/use-note-search'
 import { formatRelativeTime, noteDisplayTitle } from '@/utils/note-display'
 import { shortcutLabel } from '@/utils/keyboard-shortcut'
 import SearchIcon from '@/assets/icons/search.svg'
-import CrossIcon from '@/assets/icons/cross.svg'
+import CrossIcon from '@/assets/icons/close.svg'
 import DraftIcon from '@/assets/icons/draft.svg'
 
 // ---------------------------------------------------------------------------
@@ -63,17 +63,17 @@ export const RECENT_LIMIT = 8
 // The `commandHeader` recipe: the palette's top row, with a divider under it.
 // Its 12px inset lands the field on the line the row icons sit on (group 4px +
 // row 8px).
-const rootStyle = 'contents [--glyph-body:var(--glyph-sidebar)] [--glyph-icon:currentColor]'
+const rootStyle = 'contents [--ink-body:var(--ink-sidebar)]'
 const headerStyle =
-  'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-glyph-body'
+  'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-ink-body'
 const inputStyle =
-  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-sidebar text-glyph-body placeholder:text-glyph-body/50'
+  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-sidebar text-ink-body placeholder:text-ink-body/50'
 const iconStyle = 'shrink-0 size-5'
 
 // The way out: named as the key that does it where there is a key, drawn as
 // the button that does it where there is not. The icon button pads its glyph
 // by 4px, so it is pulled out by that much to land on the row's own inset.
-const hintStyle = 'flex items-center gap-1 shrink-0 text-style-caption text-glyph-body/40'
+const hintStyle = 'flex items-center gap-1 shrink-0 text-style-caption text-ink-body/40'
 const hintLabelStyle = 'whitespace-nowrap'
 const closeButtonStyle = '-mr-1'
 
@@ -82,19 +82,19 @@ const closeButtonStyle = '-mr-1'
 // used, so it draws no ring of its own; the highlighted row says where it is.
 const listStyle = 'flex flex-col gap-1 py-2 max-h-96 overflow-y-auto outline-none'
 const groupStyle = 'flex flex-col px-1'
-const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-glyph-body/50'
-const emptyStyle = 'px-3 py-6 text-style-sidebar text-glyph-body/50 text-center'
+const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-ink-body/50'
+const emptyStyle = 'px-3 py-6 text-style-sidebar text-ink-body/50 text-center'
 
 // A sidebar row: 32px on an 8px inset, cornered as the sidebar's rows are,
 // washed when highlighted — on the glass, the title ink at 6%.
 const itemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-lg cursor-default text-style-sidebar text-glyph-body data-[selected=true]:bg-surface-field-hover'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-lg cursor-default text-style-sidebar text-ink-body data-[selected=true]:bg-bg-field-hover'
 const itemTitleStyle = 'truncate'
-const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-glyph-body/50 whitespace-nowrap'
+const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-ink-body/50 whitespace-nowrap'
 
 // A key is named as the sidebar names New note's: in the caption, at 40%.
 const hotkeyStyle = 'shrink-0 whitespace-nowrap'
-const itemHotkeyStyle = 'ml-auto shrink-0 text-style-caption text-glyph-body/40 whitespace-nowrap'
+const itemHotkeyStyle = 'ml-auto shrink-0 text-style-caption text-ink-body/40 whitespace-nowrap'
 
 export function CommandMenu({ open, onClose, actions, onOpenNote }: CommandMenuProps) {
   return (

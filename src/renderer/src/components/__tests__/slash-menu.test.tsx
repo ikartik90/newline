@@ -43,6 +43,14 @@ describe('SlashMenu', () => {
     // key in one test would otherwise suppress the next one's hover.
     resetInputModality()
   })
+  it('stands its rows on the menu tone: toolbar-tall, edge to edge', () => {
+    render(<SlashMenu onSelect={onSelect} onDismiss={onDismiss} />)
+    const listbox = screen.getByRole('listbox')
+    expect(listbox.className.split(/\s+/)).toContain('p-0')
+    for (const option of screen.getAllByRole('option')) {
+      expect(option.className.split(/\s+/)).toContain('h-(--size-toolbar-button)')
+    }
+  })
 
   function renderMenu(props: Partial<React.ComponentProps<typeof SlashMenu>> = {}) {
     return render(<SlashMenu onSelect={onSelect} onDismiss={onDismiss} {...props} />)

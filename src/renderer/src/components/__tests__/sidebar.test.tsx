@@ -52,10 +52,19 @@ function swipe(element: HTMLElement, from: number, to: number) {
 const deleteButtons = () => screen.queryAllByRole('button', { name: 'Delete' })
 
 describe('Sidebar', () => {
-  it('insets the rows 6.5px from either edge, with the scrollbar in the right margin', () => {
+  it('hovers a note in the shell hover and stands the open one in the shell selected', () => {
+    const { rerender, props } = renderSidebar()
+    rerender(<Sidebar {...props} activeId="b" />)
+    expect(row('Apples').className.split(/\s+/)).toContain('hover:bg-bg-shell-hover')
+    expect(row('Bread').className.split(/\s+/)).toContain('bg-bg-shell-selected')
+    expect(row('Apples').className).not.toMatch(/field/)
+    expect(row('Bread').className).not.toMatch(/field/)
+  })
+
+  it('insets the rows 6.5px from the left, with the scrollbar in the right margin', () => {
     renderSidebar()
-    // The list's inset stops 6px short on the right and the gutter, held open
-    // whether or not the list scrolls, is the rest of the 6.5px.
+    // The list's inset is 0.5px on the right and the gutter, held open
+    // whether or not the list scrolls, is the rest of the margin.
     const scroll = row('Apples').closest('.overflow-y-auto')!
     expect(scroll.className.split(/\s+/)).toContain('[scrollbar-gutter:stable]')
     const listInset = scroll.parentElement!.className.split(/\s+/)
@@ -100,8 +109,8 @@ describe('Sidebar', () => {
     const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
     for (const name of ['New note', 'Search']) {
       const row = screen.getByRole('button', { name })
-      expect(classes(row)).toContain('text-glyph-body')
-      expect(classes(row.querySelector('svg')!)).toContain('text-glyph-body')
+      expect(classes(row)).toContain('text-ink-body')
+      expect(classes(row.querySelector('svg')!)).toContain('text-ink-body')
     }
   })
 
@@ -187,20 +196,20 @@ describe('Sidebar', () => {
   it('inks its text in its own grey, base 600 light and base 300 dark, and leaves the rest of the app alone', () => {
     renderSidebar()
     const aside = screen.getByRole('complementary', { name: 'Notes' })
-    expect(aside.className.split(/\s+/)).toContain('[--glyph-body:var(--glyph-sidebar)]')
+    expect(aside.className.split(/\s+/)).toContain('[--ink-body:var(--ink-sidebar)]')
     // Every block of the theme's, the primitives' and the system tokens'.
     const block = (selector: string) =>
       [...css.matchAll(new RegExp(`\n${selector} \\{([^}]*)\\}`, 'g'))]
         .map(([, body]) => body)
         .join('')
     // Ink 3 and ink 1, which the themes shade.
-    expect(block(':root')).toMatch(/--glyph-sidebar: var\(--ink-3\);/)
-    expect(block(':root')).toMatch(/--glyph-body: var\(--ink-1\);/)
+    expect(block(':root')).toMatch(/--ink-sidebar: var\(--ink-3\);/)
+    expect(block(':root')).toMatch(/--ink-body: var\(--ink-1\);/)
     expect(block(':root')).toMatch(/--ink-3: var\(--color-base-600\);/)
     expect(block('\\.dark')).toMatch(/--ink-3: var\(--color-base-300\);/)
     expect(block(':root')).toMatch(/--ink-1: var\(--color-base-800\);/)
     expect(block('\\.dark')).toMatch(/--ink-1: var\(--color-base-100\);/)
-    expect(block('\\.dark')).not.toMatch(/--glyph-(sidebar|default):/)
+    expect(block('\\.dark')).not.toMatch(/--ink-(sidebar|default):/)
   })
 
   it('creates a note and opens the search from its head', () => {
@@ -235,6 +244,17 @@ describe('Sidebar', () => {
     fireEvent.click(remove)
     expect(props.onDelete).toHaveBeenCalledWith('a')
     expect(deleteButtons()).toHaveLength(0)
+  })
+
+  it('fills the wells at a swiped row’s rounded end in the delete’s fill', () => {
+    renderSidebar()
+    swipe(row('Apples'), 200, 100)
+    const wells = row('Apples')
+      .closest('[data-swipe-open]')
+      ?.querySelector('[data-swipe-wells] > *') as HTMLElement
+    expect(wells.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['rounded-xl', 'shadow-[0_0_0_16px_var(--bg-row-delete)]'])
+    )
   })
 
   it('does not choose the note the swipe ended on', () => {
@@ -371,7 +391,7 @@ describe('Sidebar', () => {
       expect(classes(rail())).not.toContain('overflow-hidden')
       // A sheet over the pane, going as a peek let go does.
       expect(classes(contents()!)).toEqual(
-        expect.arrayContaining(['bg-surface-sheet', 'opacity-0', '-translate-x-2'])
+        expect.arrayContaining(['bg-bg-sheet', 'opacity-0', '-translate-x-2'])
       )
       fadeEnd(contents()!)
       expect(contents()).toBeNull()
@@ -394,7 +414,7 @@ describe('Sidebar', () => {
       )
       expect(classes(contents()!)).toEqual(
         expect.arrayContaining([
-          'bg-surface-sheet',
+          'bg-bg-sheet',
           'opacity-100',
           'starting:opacity-0',
           'starting:-translate-x-2'
@@ -402,9 +422,40 @@ describe('Sidebar', () => {
       )
       expect(rail().hasAttribute('data-on-glass')).toBe(false)
       fireEvent.transitionEnd(rail(), { propertyName: 'width' })
-      expect(contents()!.className).not.toMatch(/bg-surface/)
+      expect(contents()!.className).not.toMatch(/bg-bg-/)
       expect(rail().hasAttribute('data-on-glass')).toBe(true)
       expect(classes(rail())).toContain('overflow-hidden')
+    })
+
+    // The note pane's edge still glides the rail's whole width. Behind a
+    // half-faded sheet, glass (or the sheet) on one side of it and the canvas
+    // on the other would read as the sidebar sliding its width; a peek never
+    // moves the pane, so it shows none. While a toggle floats the rail, the
+    // rail paints the canvas, so the ground behind the fade is one colour.
+    it('paints the canvas behind its fade while a toggle floats it, so the pane’s edge never shows', () => {
+      const { props, rerender } = renderSidebar()
+      expect(classes(rail())).not.toContain('bg-bg-canvas')
+
+      rerender(<Sidebar {...props} collapsed />)
+      expect(classes(rail())).toContain('bg-bg-canvas')
+      // The sheet stands there at once, not fading up from the glass over the
+      // canvas the rail now paints.
+      expect(classes(contents()!)).toEqual(
+        expect.arrayContaining(['bg-bg-sheet', 'transition-[opacity,translate]'])
+      )
+      expect(contents()!.className).not.toMatch(/background-color/)
+      fadeEnd(contents()!)
+      expect(classes(rail())).not.toContain('bg-bg-canvas')
+
+      rerender(<Sidebar {...props} collapsed={false} />)
+      expect(classes(rail())).toContain('bg-bg-canvas')
+      fireEvent.transitionEnd(rail(), { propertyName: 'width' })
+      // Settled, under the sheet's still-solid fill, the canvas goes and the
+      // fill fades into the glass.
+      expect(classes(rail())).not.toContain('bg-bg-canvas')
+      expect(classes(contents()!)).toContain(
+        'transition-[opacity,translate,background-color,box-shadow]'
+      )
     })
 
     it('slides its contents 8px left and fades them out in those 150ms, rather than cutting them off', () => {
@@ -415,7 +466,7 @@ describe('Sidebar', () => {
       expect(classes(fading)).toEqual(
         expect.arrayContaining([
           'w-(--size-sidebar)',
-          'transition-[opacity,translate,background-color,box-shadow]',
+          'transition-[opacity,translate]',
           'duration-150',
           'opacity-0',
           '-translate-x-2'
@@ -472,7 +523,7 @@ describe('Sidebar', () => {
       expect(rail().hasAttribute('data-on-glass')).toBe(false)
       expect(classes(contents()!)).toEqual(
         expect.arrayContaining([
-          'bg-surface-sheet',
+          'bg-bg-sheet',
           'opacity-100',
           'starting:opacity-0',
           'starting:-translate-x-2'
@@ -495,7 +546,7 @@ describe('Sidebar', () => {
       rerender(<Sidebar {...props} collapsed />)
       expect(classes(rail())).toEqual(expect.arrayContaining(['z-[5]', 'overflow-visible']))
       expect(classes(contents()!)).toEqual(
-        expect.arrayContaining(['bg-surface-sheet', 'opacity-0', '-translate-x-2'])
+        expect.arrayContaining(['bg-bg-sheet', 'opacity-0', '-translate-x-2'])
       )
       expect(contents()!.hasAttribute('inert')).toBe(true)
       fireEvent.transitionEnd(contents()!, { propertyName: 'opacity' })
@@ -520,7 +571,7 @@ describe('Sidebar', () => {
 
       // Once the pane has made room, the fill fades off into the glass.
       fireEvent.transitionEnd(rail(), { propertyName: 'width' })
-      expect(contents()!.className).not.toMatch(/bg-surface|shadow-\[/)
+      expect(contents()!.className).not.toMatch(/bg-bg-|shadow-\[/)
       expect(classes(contents()!)).toEqual(
         expect.arrayContaining([
           'transition-[opacity,translate,background-color,box-shadow]',
@@ -555,7 +606,7 @@ describe('Sidebar', () => {
         expect(rail().hasAttribute('data-on-glass')).toBe(false)
         act(() => vi.advanceTimersByTime(200))
         expect(rail().hasAttribute('data-on-glass')).toBe(true)
-        expect(contents()!.className).not.toMatch(/bg-surface/)
+        expect(contents()!.className).not.toMatch(/bg-bg-/)
       } finally {
         vi.useRealTimers()
       }
@@ -595,14 +646,14 @@ describe('Sidebar', () => {
     })
 
     it('is a sheet: surface 1, the ground popovers, dialogs and toolbars share', () => {
-      expect(css).toMatch(/--surface-sheet: var\(--surface-1\);/)
-      expect(css).toMatch(/--color-surface-sheet: var\(--surface-sheet\);/)
+      expect(css).toMatch(/--bg-sheet: var\(--bg-1\);/)
+      expect(css).toMatch(/--color-bg-sheet: var\(--bg-sheet\);/)
     })
 
     it('raises what stands on it a step, to surface 2', () => {
       renderSidebar()
       const rail = screen.getByRole('complementary', { name: 'Notes' })
-      expect(rail.className.split(/\s+/)).toContain('surface-level-1')
+      expect(rail.className.split(/\s+/)).toContain('bg-level-1')
     })
   })
 })

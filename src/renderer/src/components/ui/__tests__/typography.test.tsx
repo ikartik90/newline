@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Typography, typographyStyles } from '../typography'
+import { editorListItemContentStyle } from '@/components/editor/styles'
 
 const classes = (cls: string) => cls.split(/\s+/).filter(Boolean)
 
@@ -8,22 +9,33 @@ describe('typographyStyles', () => {
   it('gives a title its own text style, ink and balanced wrapping', () => {
     const cls = classes(typographyStyles({ type: 'title' }))
     expect(cls).toContain('text-style-title')
-    expect(cls).toContain('text-glyph-title')
+    expect(cls).toContain('text-ink-title')
     expect(cls).toContain('[text-wrap:balance]')
     // One colour and one wrap — the base's are replaced, not stacked beside.
-    expect(cls).not.toContain('text-glyph-body')
+    expect(cls).not.toContain('text-ink-body')
     expect(cls).not.toContain('[text-wrap:pretty]')
   })
 
   it('sets body prose in the body ink with pretty wrapping', () => {
     const large = classes(typographyStyles({ type: 'bodyLarge' }))
     expect(large).toContain('text-style-body-lg')
-    expect(large).toContain('text-glyph-body')
+    expect(large).toContain('text-ink-body')
     expect(large).toContain('[text-wrap:pretty]')
 
     const small = classes(typographyStyles({ type: 'bodySmall' }))
     expect(small).toContain('text-style-body-sm')
-    expect(small).toContain('text-glyph-body')
+    expect(small).toContain('text-ink-body')
+  })
+
+  it("sets a note's prose in the prose style, the prose ink and pretty wrapping", () => {
+    const cls = classes(typographyStyles({ type: 'prose' }))
+    expect(cls).toEqual(['text-style-prose', 'text-ink-prose', '[text-wrap:pretty]'])
+  })
+
+  it("inks a list item's text as the prose it is set in", () => {
+    const cls = classes(editorListItemContentStyle)
+    expect(cls).toContain('text-ink-prose')
+    expect(cls).not.toContain('text-ink-body')
   })
 
   it('balances a caption and a subheading, keeps a quote and a sidenote pretty', () => {
@@ -31,7 +43,7 @@ describe('typographyStyles', () => {
     expect(classes(typographyStyles({ type: 'subheading' }))).toContain('[text-wrap:balance]')
     expect(classes(typographyStyles({ type: 'quote' }))).toContain('[text-wrap:pretty]')
     expect(classes(typographyStyles({ type: 'sidenote' }))).toContain('[text-wrap:pretty]')
-    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-glyph-body')
+    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-ink-body')
   })
 
   it('lets a caller ask for balanced lines on a type that wraps pretty', () => {

@@ -60,40 +60,20 @@ describe('Tooltip', () => {
     expect(box('Delete').hasAttribute('data-open')).toBe(false)
   })
 
-  // Its label and icons stand in the control ink, ink 2; the brand tone keeps its own.
-  it('inks its label as a control at rest, the brand tone its own', () => {
-    const { unmount } = render(host(<Tooltip.Text>Delete</Tooltip.Text>))
-    const plain = box('Delete').className.split(/\s+/)
-    expect(plain).toContain('text-glyph-control')
-    expect(plain).not.toContain('text-glyph-body')
-    unmount()
-
+  // Its label and icons stand in the tooltip ink: one tone, with no brand of its own.
+  it('inks its label in the tooltip ink, and takes a className on the box', () => {
     render(
-      <Button aria-label="Try">
+      <Button aria-label="Delete">
         <svg />
-        <Button.Tooltip tone="brand">
-          <Tooltip.Text>Try it</Tooltip.Text>
+        <Button.Tooltip className="custom">
+          <Tooltip.Text>Delete</Tooltip.Text>
         </Button.Tooltip>
       </Button>
     )
-    const brand = box('Try it').className.split(/\s+/)
-    expect(brand).toContain('text-glyph-field-active')
-    expect(brand).not.toContain('text-glyph-control')
-  })
-
-  it('takes the brand tone and a className on the box', () => {
-    render(host(<Tooltip.Text>Delete</Tooltip.Text>))
-    render(
-      <Button aria-label="Try">
-        <svg />
-        <Button.Tooltip tone="brand" className="custom">
-          <Tooltip.Text>Try it</Tooltip.Text>
-        </Button.Tooltip>
-      </Button>
-    )
-    const brand = box('Try it')
-    expect(brand.dataset.tone).toBe('brand')
-    expect(brand.className).toContain('custom')
+    const classes = box('Delete').className.split(/\s+/)
+    expect(classes).toContain('text-ink-tooltip-default')
+    expect(classes).toContain('custom')
+    expect(classes).not.toContain('bg-bg-field-popover')
     expect(box('Delete').dataset.tone).toBeUndefined()
   })
 

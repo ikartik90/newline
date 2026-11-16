@@ -18,7 +18,7 @@ import {
   type SliderScale
 } from '@/utils/slider-value'
 import { beginControlDrag, endControlDrag } from '@/utils/control-drag'
-import { controlClass, cx, Field, useField, whenFieldActive, type FieldSize } from './field'
+import { controlClass, cx, Field, useField, FIELD_FOCUS, type FieldSize } from './field'
 
 // ---------------------------------------------------------------------------
 // Slider — the third control archetype of the field family, composed INTO a
@@ -288,7 +288,7 @@ function SliderTrack({
           data-slider-tick
           className={cx(
             'absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-1 rounded-full bg-border-field-default pointer-events-none transition-colors duration-150',
-            whenFieldActive('bg-border-field-active')
+            FIELD_FOCUS.divider
           )}
           style={{ left: `${tick * 100}%` }}
         />
@@ -347,7 +347,7 @@ function SliderSeparator({ className, ...rest }: SliderSeparatorProps) {
       aria-hidden
       className={cx(
         'self-stretch shrink-0 w-[0.5px] bg-border-field-default transition-colors duration-150',
-        whenFieldActive('bg-border-field-active'),
+        FIELD_FOCUS.divider,
         className
       )}
       {...rest}

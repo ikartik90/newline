@@ -124,12 +124,6 @@ describe('CommandMenu', () => {
     expect(dialog().className.split(/\s+/)).toContain('frosted-sheet')
   })
 
-  // It stands on the glass, so its icons keep their ink, not a sheet's step down.
-  it('keeps its icons in its own ink', () => {
-    renderMenu()
-    expect(dialog().querySelector('[class~="[--glyph-icon:currentColor]"]')).not.toBeNull()
-  })
-
   it('stands where the glass palette does', () => {
     renderMenu()
     expect(dialog().dataset.align).toBe('palette')

@@ -31,16 +31,16 @@ describe('ToggleBar', () => {
     expect(pressed.map((button) => button.textContent)).toEqual(['Down', 'Right'])
   })
 
-  // A toggle not pressed rests in the control ink; a pressed one keeps the
-  // chip's brand ink, which the softening must not reach.
-  it('softens only the toggles not pressed to the control ink', () => {
+  // A toggle not pressed rests in the segment ink; a pressed one keeps the
+  // selected chip's ink, which the segment ink must not reach.
+  it('inks only the toggles not pressed in the segment ink', () => {
     render(<ToggleBar ariaLabel="Direction" options={DIRECTIONS} value={['up']} />)
     for (const button of screen.getAllByRole('button')) {
       const classes = button.className.split(/\s+/)
       expect(classes).toContain(
-        'not-aria-selected:not-aria-pressed:not-disabled:text-glyph-control'
+        'not-aria-selected:not-aria-pressed:not-disabled:text-ink-segment-default'
       )
-      expect(classes.filter((c) => c.endsWith(':text-glyph-control'))).toHaveLength(1)
+      expect(classes.filter((c) => c.endsWith(':text-ink-segment-default'))).toHaveLength(1)
     }
   })
 

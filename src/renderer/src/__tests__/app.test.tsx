@@ -252,16 +252,16 @@ describe('App chrome', () => {
     render(<App />)
     for (const name of ['Collapse sidebar', 'Settings']) {
       const button = await screen.findByRole('button', { name })
-      expect(classesOf(button)).toContain('text-glyph-body')
+      expect(classesOf(button)).toContain('text-ink-body')
       // Both stand where the sidebar's own grey is the ink.
-      expect(button.closest('[class~="[--glyph-body:var(--glyph-sidebar)]"]')).not.toBeNull()
+      expect(button.closest('[class~="[--ink-body:var(--ink-sidebar)]"]')).not.toBeNull()
     }
   })
 
   it('stands the toggle on the open sidebar as the settings gear does, and on the canvas once it collapses', async () => {
     installApi([makeNote()])
     render(<App />)
-    const level = (button: Element) => button.closest('.surface-level-1')
+    const level = (button: Element) => button.closest('.bg-level-1')
     const gear = await screen.findByRole('button', { name: 'Settings' })
     const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
     // On the glass and on the sheet's level, so its hover steps as the gear's does.
@@ -274,7 +274,7 @@ describe('App chrome', () => {
   it('peeks at the collapsed sidebar from the toggle, and pins it open with a click', async () => {
     installApi([makeNote()])
     render(<App />)
-    const level = (button: Element) => button.closest('.surface-level-1')
+    const level = (button: Element) => button.closest('.bg-level-1')
     await userEvent.click(await screen.findByRole('button', { name: 'Collapse sidebar' }))
     const toggle = screen.getByRole('button', { name: 'Expand sidebar' })
     // Still under the pointer that collapsed it: no peek until a fresh reach.
@@ -369,18 +369,6 @@ describe('App chrome', () => {
     expect(screen.getByRole('main').closest('[data-on-glass]')).toBeNull()
   })
 
-  // What stands on the glass keeps its icons in its own ink: a sheet's step
-  // down is for toolbars, menus and dialogs, not the sidebar or the bar.
-  it('keeps the icons on the top bar and the sidebar in their own ink', async () => {
-    installApi([makeNote()])
-    render(<App />)
-    const bar = await screen.findByRole('banner')
-    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
-    for (const glass of [bar, sidebar]) {
-      expect(glass.className.split(/\s+/)).toContain('[--glyph-icon:currentColor]!')
-    }
-  })
-
   it('collapses and expands the sidebar, the toggle staying put beside the window controls', async () => {
     installApi([makeNote()])
     render(<App />)
@@ -462,7 +450,7 @@ describe('App chrome', () => {
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     await userEvent.click(within(sidebar).getByRole('button', { name: 'Settings' }))
     const dialog = await screen.findByRole('dialog', { name: 'Settings' })
-    await userEvent.click(within(dialog).getByRole('option', { name: 'Dark' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Dark' }))
     expect(api.theme.setSource).toHaveBeenLastCalledWith('dark')
   })
 
@@ -493,7 +481,7 @@ describe('App chrome', () => {
     expect(classesOf(pane).some((c) => c.startsWith('border'))).toBe(false)
     expect(sidebar.querySelector('[data-rail-edge]')).not.toBeNull()
     expect(hasMargin(pane)).toBe(false)
-    expect(classesOf(pane)).toContain('bg-surface-canvas')
+    expect(classesOf(pane)).toContain('bg-bg-canvas')
     expect(classesOf(pane).some((c) => c.startsWith('rounded'))).toBe(false)
     // Its own first 48px are under the bar.
     expect(classesOf(pane)).toContain('pt-12')
@@ -508,8 +496,8 @@ describe('App chrome', () => {
     render(<App />)
     const handle = await screen.findByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
-    expect(classesOf(pane)).toContain('bg-surface-canvas')
-    expect(css).toMatch(/\n {2}--surface-canvas: var\(--surface-0\);/)
+    expect(classesOf(pane)).toContain('bg-bg-canvas')
+    expect(css).toMatch(/\n {2}--bg-canvas: var\(--bg-0\);/)
   })
 
   it('makes the divider between the rail and the note pane a handle that resizes the rail', async () => {
@@ -521,7 +509,7 @@ describe('App chrome', () => {
     // lights in the brand's ink when the pointer is over it.
     expect(sidebar.nextElementSibling).toBe(handle.parentElement)
     expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'inset-y-0']))
-    expect(handle.querySelector('.group-hover\\:bg-glyph-highlight')).not.toBeNull()
+    expect(handle.querySelector('.group-hover\\:bg-border-resize-handle-hover')).not.toBeNull()
 
     const shell = screen.getByRole('banner').parentElement!
     expect(shell.style.getPropertyValue('--size-sidebar')).toBe('256px')
@@ -545,8 +533,8 @@ describe('App chrome', () => {
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     const shell = sidebar.parentElement!
-    expect(classesOf(shell)).not.toContain('bg-surface-sheet')
-    expect(sidebar.className).not.toMatch(/bg-surface-sheet/)
+    expect(classesOf(shell)).not.toContain('bg-bg-sheet')
+    expect(sidebar.className).not.toMatch(/bg-bg-sheet/)
   })
 
   it('tells main how wide the sidebar is, for AppKit’s glass under it', async () => {
@@ -564,7 +552,7 @@ describe('App chrome', () => {
     ;(api as { frosted: boolean }).frosted = false
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    expect(classesOf(sidebar.parentElement!)).toContain('bg-surface-sheet')
+    expect(classesOf(sidebar.parentElement!)).toContain('bg-bg-sheet')
   })
 
   it('is clear over the window’s own blur wherever main made one, Windows’ acrylic too', async () => {
@@ -572,7 +560,7 @@ describe('App chrome', () => {
     ;(api as { platform: string }).platform = 'win32'
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    expect(classesOf(sidebar.parentElement!)).not.toContain('bg-surface-sheet')
+    expect(classesOf(sidebar.parentElement!)).not.toContain('bg-bg-sheet')
   })
 
   it('tells main the theme, so the window’s own materials follow it', async () => {
@@ -589,8 +577,8 @@ describe('App chrome', () => {
     const buttons = await screen.findAllByRole('button', { name: 'New note' })
     const classes = buttons[buttons.length - 1].className.split(/\s+/)
     expect(classes).toContain('rounded-full')
-    expect(classes).toContain('bg-surface-button-secondary-default')
-    expect(classes).toContain('hover:bg-surface-button-secondary-hover')
+    expect(classes).toContain('bg-bg-button-secondary-default')
+    expect(classes).toContain('hover:bg-bg-button-secondary-hover')
     // The 40px chip on a 12px inset, floored at 80px — the `md` text action.
     expect(classes).toContain('h-10')
     expect(classes).toContain('px-3')

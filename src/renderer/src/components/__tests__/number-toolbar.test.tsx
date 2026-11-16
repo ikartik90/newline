@@ -4,7 +4,7 @@ import { NumberToolbar } from '../number-toolbar'
 import { POPOVER_TOOLBAR } from '@/components/ui/popover'
 
 // The Popover shell a toolbar floats in.
-const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-surface-sheet')!
+const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-bg-sheet')!
 
 function handlers() {
   return {

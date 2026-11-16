@@ -3,8 +3,9 @@
 /* Newline toggles `.dark` on <html> (see hooks/use-theme). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Overused Grotesk (Bao Nguyen / RandomMaerks) and JetBrains Mono, under the OFL beside
-   them in fonts/. Overused Grotesk has no italic: the browser slants the upright. */
+/* Overused Grotesk (Bao Nguyen / RandomMaerks), EB Garamond (Georg Duffner, Octavio Pardo) and
+   JetBrains Mono, under the OFL beside them in fonts/. EB Garamond is upright and italic from 400
+   to 800; Overused Grotesk and JetBrains Mono have no italic, so the browser slants the upright. */
 @font-face {
   font-family: 'Overused Grotesk';
   src: url('./fonts/OverusedGrotesk-Variable.woff2') format('woff2');
@@ -14,9 +15,26 @@
 }
 
 @font-face {
+  font-family: 'EB Garamond';
+  src: url('./fonts/EBGaramond-Variable.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('./fonts/EBGaramond-Italic-Variable.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'JetBrains Mono';
   src: url('./fonts/JetBrainsMono-Variable.woff2') format('woff2');
   font-weight: 100 800;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -27,20 +45,15 @@
 --------------------------------------------------------------------------- */
 @theme {
   --font-sans: 'Overused Grotesk', Helvetica, sans-serif;
+  /* A note's prose: its paragraphs, list items and quotes. */
+  --font-serif: 'EB Garamond', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --font-weight-medium: 500;
   --font-weight-bold: 550;
 
-  --color-neutral-100: #eef2f6;
-  --color-neutral-200: #d8dde3;
-  --color-neutral-300: #c3cdd7;
-  --color-neutral-400: #a9bfd6;
-  --color-neutral-500: #576675;
-  --color-neutral-600: #414244;
-  --color-neutral-700: #384047;
-  --color-neutral-800: #2e3338;
-  --color-neutral-900: #1f2123;
+  /* Every grey is base: Tailwind's own neutral is turned off. */
+  --color-neutral-*: initial;
 
   /* Palettes from palettes.html: ten shades a hue, 50 lightest to 900 darkest,
      all in oklch. */
@@ -186,46 +199,100 @@
    are built on. A shade in light mirrors its dark twin (900 is 50, 800 is
    100). The inverse is each step in the other theme's shade, for what stands
    out against the scale: a primary button. The ink scale is the surface
-   scale with its themes swapped, 0 the strongest. No utility writes them:
-   components write the system tokens.
+   scale with its themes swapped, 0 the strongest, and its inverse is each
+   ink in the other theme's shade, for ink on the inverse. The divider scale
+   is solid, each step a shade past the surface step of its number (base 100
+   to 600 in light, mirrored as 800 to 300 in dark), for lines: a divider is
+   0 to 2 as it steps, a field's edge 2. No utility writes them: components write the
+   system tokens.
 --------------------------------------------------------------------------- */
 :root {
-  --surface-0: var(--color-base-50);
-  --surface-1: var(--color-base-100);
-  --surface-2: var(--color-base-200);
-  --surface-3: var(--color-base-300);
-  --surface-4: var(--color-base-400);
-  --surface-inverse-1: var(--color-base-800);
-  --surface-inverse-2: var(--color-base-700);
-  --surface-inverse-3: var(--color-base-600);
-  --surface-inverse-4: var(--color-base-500);
+  --bg-0: var(--color-base-50);
+  --bg-1: var(--color-base-100);
+  --bg-2: var(--color-base-200);
+  --bg-3: var(--color-base-300);
+  --bg-4: var(--color-base-400);
+  --bg-inverse-0: var(--color-base-900);
+  --bg-inverse-1: var(--color-base-800);
+  --bg-inverse-2: var(--color-base-700);
+  --bg-inverse-3: var(--color-base-600);
+  --bg-inverse-4: var(--color-base-500);
+  --bg-inverse-5: var(--color-base-400);
+  --bg-inverse-6: var(--color-base-300);
+  --bg-inverse-7: var(--color-base-200);
+  /* The statuses stand on no scale: each a primitive of its own on a palette
+     step, an ink 500 in light and 400 in dark, a fill 100 and 800. */
+  --bg-highlight: var(--color-sky-100);
+  --bg-danger: var(--color-candy-100);
+  --bg-warning: var(--color-honey-100);
+  --bg-success: var(--color-mint-100);
   --ink-0: var(--color-base-900);
   --ink-1: var(--color-base-800);
   --ink-2: var(--color-base-700);
   --ink-3: var(--color-base-600);
   --ink-4: var(--color-base-500);
+  --ink-inverse-0: var(--color-base-50);
+  --ink-inverse-1: var(--color-base-100);
+  --ink-inverse-2: var(--color-base-200);
+  --ink-inverse-3: var(--color-base-300);
+  --ink-inverse-4: var(--color-base-400);
+  --ink-highlight: var(--color-sky-500);
+  --ink-danger: var(--color-candy-500);
+  --ink-warning: var(--color-honey-500);
+  --ink-success: var(--color-mint-500);
+  --divider-0: var(--color-base-100);
+  --divider-1: var(--color-base-200);
+  --divider-2: var(--color-base-300);
+  --divider-3: var(--color-base-400);
+  --divider-4: var(--color-base-500);
+  --divider-5: var(--color-base-600);
+  --divider-highlight: var(--color-sky-500);
 }
 
 .dark {
-  --surface-0: var(--color-base-900);
-  --surface-1: var(--color-base-800);
-  --surface-2: var(--color-base-700);
-  --surface-3: var(--color-base-600);
-  --surface-4: var(--color-base-500);
-  --surface-inverse-1: var(--color-base-100);
-  --surface-inverse-2: var(--color-base-200);
-  --surface-inverse-3: var(--color-base-300);
-  --surface-inverse-4: var(--color-base-400);
+  --bg-0: var(--color-base-900);
+  --bg-1: var(--color-base-800);
+  --bg-2: var(--color-base-700);
+  --bg-3: var(--color-base-600);
+  --bg-4: var(--color-base-500);
+  --bg-inverse-0: var(--color-base-50);
+  --bg-inverse-1: var(--color-base-100);
+  --bg-inverse-2: var(--color-base-200);
+  --bg-inverse-3: var(--color-base-300);
+  --bg-inverse-4: var(--color-base-400);
+  --bg-inverse-5: var(--color-base-500);
+  --bg-inverse-6: var(--color-base-600);
+  --bg-inverse-7: var(--color-base-700);
+  --bg-highlight: var(--color-sky-800);
+  --bg-danger: var(--color-candy-800);
+  --bg-warning: var(--color-honey-800);
+  --bg-success: var(--color-mint-800);
   --ink-0: var(--color-base-50);
   --ink-1: var(--color-base-100);
   --ink-2: var(--color-base-200);
   --ink-3: var(--color-base-300);
   --ink-4: var(--color-base-400);
+  --ink-inverse-0: var(--color-base-900);
+  --ink-inverse-1: var(--color-base-800);
+  --ink-inverse-2: var(--color-base-700);
+  --ink-inverse-3: var(--color-base-600);
+  --ink-inverse-4: var(--color-base-500);
+  --ink-highlight: var(--color-sky-400);
+  --ink-danger: var(--color-candy-400);
+  --ink-warning: var(--color-honey-400);
+  --ink-success: var(--color-mint-400);
+  --divider-0: var(--color-base-800);
+  --divider-1: var(--color-base-700);
+  --divider-2: var(--color-base-600);
+  --divider-3: var(--color-base-500);
+  --divider-4: var(--color-base-400);
+  --divider-5: var(--color-base-300);
+  --divider-highlight: var(--color-sky-400);
 }
 
 /* ---------------------------------------------------------------------------
    System tokens — light values on :root, dark values under .dark. Exposed
-   to utilities through `@theme inline` below so `bg-surface-canvas` resolves at the
+   to utilities through `@theme inline` below so `bg-bg-canvas` resolves at the
    element and follows the theme.
 --------------------------------------------------------------------------- */
 :root {
@@ -235,70 +302,93 @@
   /* The canvas is surface 0 and every sheet — the sidebar, a dialog, a
      popover, a toolbar — surface 1. Whatever stands on a surface takes the
      next step up: a field on the canvas is surface 1, on a sheet surface 2
-     (`surface-level-*` below). The themes change only the scale, so the
+     (`bg-level-*` below). The themes change only the scale, so the
      names over it are written once, here. */
-  --surface-canvas: var(--surface-0);
-  --surface-sheet: var(--surface-1);
-  --surface-raised: var(--surface-2);
-  --surface-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --surface-selection: var(--color-sky-400);
-  --surface-highlight: var(--color-sky-100);
-  --surface-button-primary-default: var(--surface-inverse-1);
-  --surface-button-primary-hover: var(--surface-inverse-2);
-  --surface-button-secondary-default: var(--surface-1);
-  --surface-button-secondary-hover: var(--surface-2);
-  /* The brand colour, flat: Sky 500 in light, Sky 400 in dark. */
-  --surface-branded: var(--color-sky-500);
+  --bg-canvas: var(--bg-0);
+  --bg-sheet: var(--bg-1);
+  /* The prose's highlight mark, and a text selection, which reads like it. */
+  --bg-mark-default: var(--bg-highlight);
+  /* The swiped-open delete on a note's row. */
+  --bg-row-delete: var(--bg-danger);
+  /* A scrollbar's thumb: a step up under the pointer, two pressed. */
+  --bg-scrollbar-thumb-default: var(--bg-1);
+  --bg-scrollbar-thumb-hover: var(--bg-2);
+  --bg-scrollbar-thumb-pressed: var(--bg-3);
+  --bg-button-primary-default: var(--bg-inverse-1);
+  --bg-button-primary-hover: var(--bg-inverse-2);
+  --bg-button-secondary-default: var(--bg-1);
+  --bg-button-secondary-hover: var(--bg-2);
+  --bg-button-tertiary-hover: var(--bg-1);
+  --bg-button-tertiary-pressed: var(--bg-2);
 
-  --glyph-body: var(--ink-1);
-  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --glyph-body. */
-  --glyph-sidebar: var(--ink-3);
-  /* An icon at rest: its text's ink, one step softer on a sheet (surface-level-1, -2). */
-  --glyph-icon: currentColor;
-  /* A control's label at rest — a secondary button, a segment not picked, a tooltip:
-     one step softer than body ink, wherever it stands. */
-  --glyph-control: var(--ink-2);
+  --ink-body: var(--ink-1);
+  /* A note's paragraphs and list items (text-style-prose): one step softer than body ink. */
+  --ink-prose: var(--ink-2);
+  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --ink-body. */
+  --ink-sidebar: var(--ink-3);
   /* A list's numbers, letters, bullets and icons. */
-  --glyph-list-marker: var(--ink-2);
-  --glyph-title: var(--ink-0);
-  --glyph-button-primary-default: var(--color-base-100);
-  --glyph-selection: var(--color-neutral-900);
-  --glyph-highlight: var(--color-sky-400);
+  --ink-list-marker: var(--ink-2);
+  --ink-title: var(--ink-0);
+  /* A component's ink, its icons' as well as its text's, on every surface. */
+  --ink-button-primary-default: var(--ink-inverse-1);
+  --ink-button-secondary-default: var(--ink-2);
+  --ink-button-tertiary-default: var(--ink-2);
+  /* A segment not picked, in a segmented control or a toggle bar. */
+  --ink-segment-default: var(--ink-2);
+  --ink-tooltip-default: var(--ink-2);
+  /* What is inked in the highlight: a link, a sidenote's number, code's
+     accent, an eyebrow, a metric and the highlight mark. */
+  --ink-link-default: var(--ink-highlight);
+  --ink-sidenote-marker: var(--ink-highlight);
+  --ink-code-accent: var(--ink-highlight);
+  --ink-eyebrow: var(--ink-highlight);
+  --ink-metric: var(--ink-highlight);
+  --ink-mark-default: var(--ink-highlight);
 
-  /* Status inks. kartik.to has no success/warning/danger family — it paints
-     every notice in the brand colour — but sync state has to say WHICH state
-     it is, so these are newline's own, from the palettes: 500 light, 400
-     dark. Used as ink and as the status dot's fill, so `text-*` and `bg-*`
-     both resolve. */
-  --glyph-danger: var(--color-candy-500);
-  --glyph-warning: var(--color-honey-500);
-  --glyph-success: var(--color-mint-500);
-  --glyph-info: var(--color-sky-500);
+  /* An error said in words, a row's delete in its words, and the sync status in
+     its state, its dot and its words. kartik.to has no status family; sync has to say which state it is in. */
+  --ink-error: var(--ink-danger);
+  --ink-row-delete: var(--ink-danger);
+  --ink-sync-syncing: var(--ink-highlight);
+  --ink-sync-synced: var(--ink-success);
+  --ink-sync-offline: var(--ink-warning);
+  --ink-sync-error: var(--ink-danger);
 
-  /* Glass: the theme's ink, faint enough for what is behind a line to show
-     through it, yet apart from the canvas and the sidebar it is drawn on. Being
-     glass, two lines over one pixel draw it darker: where two meet, one stops
-     a pixel short. */
-  --border-divider: color-mix(in srgb, var(--color-neutral-900) 7.5%, transparent);
-  --outline-image: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
-  --outline-focus: var(--color-sky-400);
+  /* A shade past the ground it is drawn on: divider 0 on the canvas, 1 on a
+     sheet, 2 on a shell. */
+  --border-divider: var(--divider-0);
+  --outline-focus: var(--divider-highlight);
 
-  --surface-field-default: var(--surface-1);
-  --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
-  --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --surface-field-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-100));
-  --surface-field-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
-  --surface-field-hover: var(--surface-1);
-  --surface-field-pressed: var(--surface-2);
-  --surface-field-hover-brand: color-mix(in srgb, var(--color-sky-400) 10%, transparent);
-  --border-field-default: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --border-field-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  /* What a floating sheet casts: the colour of the canvas it floats over. */
+  --shadow-sheet: var(--bg-0);
+
+  --bg-field-default: var(--bg-1);
+  --bg-field-selected: var(--bg-highlight);
+  --bg-field-focus: var(--bg-highlight);
+  --bg-field-hover: var(--bg-1);
+  --bg-field-pressed: var(--bg-2);
+  /* A shell — a chip, a note's row — stands a step above its ground: its fill
+     and hover one step up, selected two. */
+  --bg-shell-default: var(--bg-1);
+  --bg-shell-hover: var(--bg-1);
+  --bg-shell-selected: var(--bg-2);
+  --border-field-default: var(--divider-2);
+  --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  /* A line in the highlight: a quote's rule, a link's underline as it grows,
+     the sidebar's resize line, an upload's progress sweep. */
+  --border-quote: var(--divider-highlight);
+  --border-link-hover: var(--divider-highlight);
+  --border-resize-handle-hover: var(--divider-highlight);
+  --border-progress: var(--divider-highlight);
   /* A control's text is the secondary button's, ink 1; its softer shades follow it. */
-  --glyph-field-default: var(--ink-1);
-  --glyph-field-muted: color-mix(in srgb, var(--ink-1) 50%, var(--color-neutral-200));
-  --glyph-field-placeholder: color-mix(in srgb, var(--ink-1) 25%, transparent);
-  --glyph-field-active: var(--color-sky-400);
-  --glyph-field-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --ink-field-default: var(--ink-1);
+  --ink-field-muted: var(--ink-4);
+  --ink-field-placeholder: color-mix(in srgb, var(--ink-1) 25%, transparent);
+  /* A picked option's ink and a focused field's: the highlight. */
+  --ink-field-selected: var(--ink-highlight);
+  --ink-field-focus: var(--ink-highlight);
+  --ink-field-placeholder-focus: color-mix(in srgb, var(--ink-highlight) 25%, transparent);
 
   --opacity-hairline: 0.25;
 
@@ -307,6 +397,8 @@
   --size-article-showcase: 960px;
   --size-toolbar-button: 28px;
   --size-list-marker: 24px;
+  /* An item's first line, text-style-prose's line: the marker box's height. */
+  --size-list-marker-line: 1.75rem;
   --size-list-bullet: 4px;
   /* The slot a numbered marker's period hangs in, at the marker column's end. */
   --size-list-marker-period: 5px;
@@ -314,7 +406,6 @@
      being 1ch in the column's tabular figures. Resolved where it is used. */
   --size-list-marker-ones: calc(var(--size-list-marker-period) + 0.5ch);
   --size-list-bullet-glyph: 20px;
-  --size-quote-mark: 52px;
   --size-tooltip-icon: 14px;
   --size-sidenote-width: 320px;
   --size-sidenote-offset: 100px;
@@ -348,123 +439,138 @@
 .dark {
   color-scheme: dark;
 
-  --surface-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --surface-selection: var(--color-sky-400);
-  --surface-highlight: var(--color-sky-800);
-  --surface-branded: var(--color-sky-400);
-
-  --glyph-highlight: var(--color-sky-400);
-  --glyph-button-primary-default: var(--color-base-800);
-
-  --glyph-danger: var(--color-candy-400);
-  --glyph-warning: var(--color-honey-400);
-  --glyph-success: var(--color-mint-400);
-  --glyph-info: var(--color-sky-400);
-
-  --border-divider: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --outline-image: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --outline-focus: var(--color-sky-400);
-
-  --surface-field-active: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
-  --surface-field-active-veil: color-mix(in srgb, var(--color-sky-400) 15%, transparent);
-  --surface-field-popover: color-mix(in srgb, var(--color-sky-400) 15%, var(--color-neutral-900));
-  --surface-field-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
-  --surface-field-hover-brand: color-mix(in srgb, var(--color-sky-400) 5%, transparent);
-  --border-field-default: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --border-field-active: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
-  --glyph-field-muted: color-mix(in srgb, var(--ink-1) 50%, var(--color-neutral-800));
-  --glyph-field-active: var(--color-sky-400);
-  --glyph-field-active-muted: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.5;
 }
 
 @theme inline {
-  --color-surface-canvas: var(--surface-canvas);
-  --color-surface-sheet: var(--surface-sheet);
-  --color-surface-raised: var(--surface-raised);
-  --color-surface-notice: var(--surface-notice);
-  --color-surface-selection: var(--surface-selection);
-  --color-surface-highlight: var(--surface-highlight);
-  --color-surface-button-primary-default: var(--surface-button-primary-default);
-  --color-surface-button-primary-hover: var(--surface-button-primary-hover);
-  --color-surface-button-secondary-default: var(--surface-button-secondary-default);
-  --color-surface-button-secondary-hover: var(--surface-button-secondary-hover);
-  --color-surface-branded: var(--surface-branded);
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-sheet: var(--bg-sheet);
+  --color-bg-mark-default: var(--bg-mark-default);
+  --color-bg-row-delete: var(--bg-row-delete);
+  --color-bg-scrollbar-thumb-default: var(--bg-scrollbar-thumb-default);
+  --color-bg-scrollbar-thumb-hover: var(--bg-scrollbar-thumb-hover);
+  --color-bg-scrollbar-thumb-pressed: var(--bg-scrollbar-thumb-pressed);
+  --color-bg-button-primary-default: var(--bg-button-primary-default);
+  --color-bg-button-primary-hover: var(--bg-button-primary-hover);
+  --color-bg-button-secondary-default: var(--bg-button-secondary-default);
+  --color-bg-button-secondary-hover: var(--bg-button-secondary-hover);
+  /* Set on the glass alone; elsewhere a press keeps the hover. */
+  --color-bg-button-secondary-pressed: var(
+    --bg-button-secondary-pressed,
+    var(--bg-button-secondary-hover)
+  );
+  --color-bg-button-tertiary-hover: var(--bg-button-tertiary-hover);
+  --color-bg-button-tertiary-pressed: var(--bg-button-tertiary-pressed);
+  /* Set on the glass alone, the one ground the avatar stands on. */
+  --color-bg-avatar-default: var(--bg-avatar-default);
 
-  --color-glyph-body: var(--glyph-body);
-  --color-glyph-icon: var(--glyph-icon);
-  --color-glyph-control: var(--glyph-control);
-  --color-glyph-title: var(--glyph-title);
-  --color-glyph-button-primary-default: var(--glyph-button-primary-default);
-  --color-glyph-selection: var(--glyph-selection);
-  --color-glyph-highlight: var(--glyph-highlight);
+  --color-ink-body: var(--ink-body);
+  --color-ink-prose: var(--ink-prose);
+  --color-ink-title: var(--ink-title);
+  --color-ink-button-primary-default: var(--ink-button-primary-default);
+  --color-ink-button-secondary-default: var(--ink-button-secondary-default);
+  --color-ink-button-tertiary-default: var(--ink-button-tertiary-default);
+  --color-ink-segment-default: var(--ink-segment-default);
+  --color-ink-tooltip-default: var(--ink-tooltip-default);
+  --color-ink-link-default: var(--ink-link-default);
+  --color-ink-sidenote-marker: var(--ink-sidenote-marker);
+  --color-ink-code-accent: var(--ink-code-accent);
+  --color-ink-eyebrow: var(--ink-eyebrow);
+  --color-ink-metric: var(--ink-metric);
+  --color-ink-mark-default: var(--ink-mark-default);
 
-  --color-glyph-danger: var(--glyph-danger);
-  --color-glyph-warning: var(--glyph-warning);
-  --color-glyph-success: var(--glyph-success);
-  --color-glyph-info: var(--glyph-info);
+  --color-ink-error: var(--ink-error);
+  --color-ink-row-delete: var(--ink-row-delete);
+  --color-ink-sync-syncing: var(--ink-sync-syncing);
+  --color-ink-sync-synced: var(--ink-sync-synced);
+  --color-ink-sync-offline: var(--ink-sync-offline);
+  --color-ink-sync-error: var(--ink-sync-error);
 
   --color-border-divider: var(--border-divider);
-  --color-outline-image: var(--outline-image);
   --color-outline-focus: var(--outline-focus);
 
-  --color-surface-field-default: var(--surface-field-default);
-  --color-surface-field-active: var(--surface-field-active);
-  --color-surface-field-active-veil: var(--surface-field-active-veil);
-  --color-surface-field-popover: var(--surface-field-popover);
-  --color-surface-field-selected: var(--surface-field-selected);
-  --color-surface-field-hover: var(--surface-field-hover);
-  --color-surface-field-pressed: var(--surface-field-pressed);
-  --color-surface-field-hover-brand: var(--surface-field-hover-brand);
+  --color-bg-field-default: var(--bg-field-default);
+  --color-bg-field-selected: var(--bg-field-selected);
+  --color-bg-field-focus: var(--bg-field-focus);
+  --color-bg-shell-default: var(--bg-shell-default);
+  --color-bg-shell-hover: var(--bg-shell-hover);
+  --color-bg-shell-selected: var(--bg-shell-selected);
+  --color-bg-field-hover: var(--bg-field-hover);
+  --color-bg-field-pressed: var(--bg-field-pressed);
   --color-border-field-default: var(--border-field-default);
-  --color-border-field-active: var(--border-field-active);
-  --color-glyph-field-default: var(--glyph-field-default);
-  --color-glyph-field-muted: var(--glyph-field-muted);
-  --color-glyph-field-placeholder: var(--glyph-field-placeholder);
-  --color-glyph-field-active: var(--glyph-field-active);
-  --color-glyph-field-active-muted: var(--glyph-field-active-muted);
+  --color-border-field-selected: var(--border-field-selected);
+  --color-border-field-focus: var(--border-field-focus);
+  --color-border-quote: var(--border-quote);
+  --color-border-link-hover: var(--border-link-hover);
+  --color-border-resize-handle-hover: var(--border-resize-handle-hover);
+  --color-border-progress: var(--border-progress);
+  --color-ink-field-default: var(--ink-field-default);
+  --color-ink-field-muted: var(--ink-field-muted);
+  --color-ink-field-placeholder: var(--ink-field-placeholder);
+  --color-ink-field-selected: var(--ink-field-selected);
+  --color-ink-field-focus: var(--ink-field-focus);
+  --color-ink-field-placeholder-focus: var(--ink-field-placeholder-focus);
 }
 
 /* A surface at level n stands what is on it — a secondary button, a field,
    a hovered item — on surface n + 1, and a button's hover or a press on n + 2;
    a primary button takes the same steps on the inverse. A sheet is
-   level 1, a raised chip level 2; each reassigns the variables the utilities
+   level 1, a shell on it level 2; each reassigns the variables the utilities
    read, so its children pick the step up wherever they are. */
-@utility surface-level-1 {
-  --surface-button-primary-default: var(--surface-inverse-2);
-  --surface-button-primary-hover: var(--surface-inverse-3);
-  --surface-button-secondary-default: var(--surface-2);
-  --surface-button-secondary-hover: var(--surface-3);
-  --surface-field-default: var(--surface-2);
-  --surface-field-hover: var(--surface-2);
-  --surface-field-pressed: var(--surface-3);
-  --glyph-icon: var(--ink-2);
+@utility bg-level-1 {
+  --bg-button-primary-default: var(--bg-inverse-2);
+  --bg-button-primary-hover: var(--bg-inverse-3);
+  --bg-button-secondary-default: var(--bg-2);
+  --bg-button-secondary-hover: var(--bg-3);
+  --bg-button-tertiary-hover: var(--bg-2);
+  --bg-button-tertiary-pressed: var(--bg-3);
+  --bg-field-default: var(--bg-2);
+  --bg-field-hover: var(--bg-2);
+  --bg-field-pressed: var(--bg-3);
+  --bg-shell-default: var(--bg-2);
+  --bg-shell-hover: var(--bg-2);
+  --bg-shell-selected: var(--bg-3);
+  --border-divider: var(--divider-1);
 }
-@utility surface-level-2 {
-  --surface-button-primary-default: var(--surface-inverse-3);
-  --surface-button-primary-hover: var(--surface-inverse-4);
-  --surface-button-secondary-default: var(--surface-3);
-  --surface-button-secondary-hover: var(--surface-4);
-  --surface-field-default: var(--surface-3);
-  --surface-field-hover: var(--surface-3);
-  --surface-field-pressed: var(--surface-4);
-  --glyph-icon: var(--ink-2);
+@utility bg-level-2 {
+  --bg-button-primary-default: var(--bg-inverse-3);
+  --bg-button-primary-hover: var(--bg-inverse-4);
+  --bg-button-secondary-default: var(--bg-3);
+  --bg-button-secondary-hover: var(--bg-4);
+  --bg-button-tertiary-hover: var(--bg-3);
+  --bg-button-tertiary-pressed: var(--bg-4);
+  --bg-field-default: var(--bg-3);
+  --bg-field-hover: var(--bg-3);
+  --bg-field-pressed: var(--bg-4);
+  --border-divider: var(--divider-2);
 }
 
-/* On macOS a sheet's ground is AppKit's glass (`html[data-frosted]`). What
-   stands on it steps in the ink at a low alpha, a step at 6% and the one
-   above at 10%, so a hover or a press is the glass a shade darker in light
-   and lighter in dark, its colour kept. A primary keeps its solid fill, for
-   its flipped ink. In the utilities layer, where it outranks the level by
-   specificity. */
+/* On macOS a sheet's ground is AppKit's glass (`html[data-frosted]`). A
+   secondary button on it rests in inverse 7 at 15%, hovers in inverse 5 at
+   15% and presses in inverse 3 at 15%; a tertiary hovers and presses as the
+   secondary does; a primary keeps its solid fill, for its flipped ink. The
+   avatar's disc is the secondary's rest, and a divider is divider 3 at 15%. No field stands on the glass: what borrows a field's hover and
+   press steps as a shell does, and a picked option is a selected shell. In the
+   utilities layer, where it outranks the level by specificity. */
 @layer utilities {
-  html[data-frosted] [data-on-glass].surface-level-1 {
-    --surface-button-secondary-default: color-mix(in oklab, var(--glyph-title) 6%, transparent);
-    --surface-button-secondary-hover: color-mix(in oklab, var(--glyph-title) 10%, transparent);
-    --surface-field-default: color-mix(in oklab, var(--glyph-title) 6%, transparent);
-    --surface-field-hover: color-mix(in oklab, var(--glyph-title) 6%, transparent);
-    --surface-field-pressed: color-mix(in oklab, var(--glyph-title) 10%, transparent);
+  html[data-frosted] [data-on-glass].bg-level-1 {
+    --bg-avatar-default: color-mix(in srgb, var(--bg-inverse-7) 15%, transparent);
+    --bg-button-secondary-default: color-mix(in srgb, var(--bg-inverse-7) 15%, transparent);
+    --bg-button-secondary-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-button-secondary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    --bg-button-tertiary-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-button-tertiary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    --bg-field-hover: var(--bg-shell-hover);
+    --bg-field-pressed: var(--bg-shell-selected);
+    --bg-field-selected: var(--bg-shell-selected);
+    /* A shell's hover and selected on the glass: the primary's scale at 15%. */
+    --bg-shell-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-shell-selected: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    /* A line on the glass lets it show through: divider 3 at 15%. */
+    --border-divider: color-mix(in srgb, var(--divider-3) 15%, transparent);
   }
 }
 
@@ -495,6 +601,13 @@
   font-size: 0.875rem;
   line-height: 1.72;
 }
+/* A note's paragraphs and list items, set in the serif. */
+@utility text-style-prose {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
 /* The sidebar's labels: a point smaller than body small, on its line. */
 @utility text-style-sidebar {
   font-family: var(--font-sans);
@@ -503,10 +616,10 @@
   line-height: calc(0.875rem * 1.72);
 }
 @utility text-style-quote {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-weight: 400;
-  font-size: 1.25rem;
-  line-height: 1.8;
+  font-size: 1.375rem;
+  line-height: 2rem;
 }
 @utility text-style-caption {
   font-family: var(--font-sans);
@@ -528,7 +641,8 @@
 }
 @utility text-style-inline-code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 @utility text-style-code {
   font-family: var(--font-mono);
@@ -611,11 +725,11 @@
    the page behind it, as strong as AppKit's glass. Solid where the
    backdrop cannot be blurred. */
 @utility frosted-sheet {
-  background-color: color-mix(in srgb, var(--surface-sheet) 72%, transparent);
+  background-color: color-mix(in srgb, var(--bg-sheet) 72%, transparent);
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
   backdrop-filter: blur(24px) saturate(1.5);
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    background-color: var(--surface-sheet);
+    background-color: var(--bg-sheet);
   }
 }
 /* The blur of what veils the page: a dialog's backdrop, a chip on a picture. */
@@ -631,25 +745,28 @@
 --------------------------------------------------------------------------- */
 @utility inline-code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
-  background: var(--surface-sheet);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  background: var(--bg-sheet);
   padding-inline: 4px;
-  padding-block: 2px;
-  border-radius: var(--radius-sm);
+  /* An inline box fills the font's own height (JetBrains Mono's 1.32em), not its line:
+     the padding gives back the difference, so the fill is the 16px line and 2px either side. */
+  padding-block: calc(2px - (1.32em - 1rem) / 2);
+  border-radius: var(--radius-md);
   corner-shape: squircle;
 }
 
 /* The underline is two stacked background bars, not text-decoration, so the
-   hover can grow the brand-coloured bar over the muted one. */
+   hover can grow the highlight bar over the muted one. */
 @utility article-link {
   text-decoration-line: none;
-  color: var(--glyph-body);
+  color: var(--ink-body);
   padding-bottom: 2px;
   background-image:
-    linear-gradient(var(--surface-branded), var(--surface-branded)),
+    linear-gradient(var(--border-link-hover), var(--border-link-hover)),
     linear-gradient(
-      color-mix(in srgb, var(--glyph-body) 50%, transparent),
-      color-mix(in srgb, var(--glyph-body) 50%, transparent)
+      color-mix(in srgb, var(--ink-body) 50%, transparent),
+      color-mix(in srgb, var(--ink-body) 50%, transparent)
     );
   background-repeat: no-repeat;
   background-position: 0 100%;
@@ -662,7 +779,7 @@
     color 150ms ease,
     background-size 150ms ease;
   &:hover {
-    color: var(--glyph-title);
+    color: var(--ink-title);
     background-size:
       100% 1px,
       100% 1px;
@@ -679,10 +796,10 @@
   text-decoration-line: line-through;
 }
 
-/* The brand accent at 15% behind the accent at full strength. */
+/* The highlight's fill behind its ink. */
 @utility article-highlight {
-  background-color: var(--surface-highlight);
-  color: var(--glyph-highlight);
+  background-color: var(--bg-mark-default);
+  color: var(--ink-mark-default);
   padding-inline: 1px;
   padding-block: 1px;
   -webkit-box-decoration-break: clone;
@@ -704,7 +821,7 @@
 @utility article-sidenote-text {
   text-decoration-line: underline;
   text-decoration-style: dotted;
-  text-decoration-color: color-mix(in srgb, var(--glyph-body) 50%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--ink-body) 50%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
@@ -720,7 +837,7 @@
   display: inline;
   &::after {
     content: attr(data-sidenote-number);
-    color: var(--surface-branded);
+    color: var(--ink-sidenote-marker);
   }
 }
 
@@ -730,7 +847,7 @@
   line-height: 2;
   width: fit-content;
   word-break: break-word;
-  color: var(--surface-branded);
+  color: var(--ink-eyebrow);
 }
 
 @utility article-metric-value {
@@ -740,57 +857,22 @@
   width: fit-content;
   max-width: 100%;
   word-break: break-word;
-  color: var(--surface-branded);
+  color: var(--ink-metric);
 }
 
-/* The 52px quote mark: the brand colour at 15% under a 1px full-strength
-   edge, both masked off the same glyph path. */
-@utility article-blockquote-mark {
-  position: relative;
-  width: var(--size-quote-mark);
-  height: var(--size-quote-mark);
-  flex-shrink: 0;
-  pointer-events: none;
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-  }
-  &::before {
-    background: var(--surface-branded);
-    opacity: 0.15;
-    mask-image: var(--quote-glyph-fill);
-    -webkit-mask-image: var(--quote-glyph-fill);
-  }
-  &::after {
-    background: var(--surface-branded);
-    mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
-    mask-composite: intersect;
-    -webkit-mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
-    -webkit-mask-composite: source-in;
-  }
-}
-
-/* The column every list marker occupies: a fixed 24px box, as tall as the
-   body's first line (14px at 1.72), so the ink centres on it unshifted. */
+/* The column every list marker occupies: 24px wide and as tall as the item's
+   first line (28px), so the ink centres on it unshifted. */
 @utility list-marker-box {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  height: var(--size-list-marker);
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
   width: var(--size-list-marker);
-  /* The list text's own font (text-style-body-sm), figures tabular. */
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
+  /* The list text's font and size (text-style-prose), figures tabular. */
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
   font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
@@ -802,9 +884,9 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: baseline;
-  color: var(--glyph-list-marker);
+  color: var(--ink-list-marker);
   line-height: 1.72;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
@@ -821,11 +903,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  height: var(--size-list-marker);
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
   /* The numbered column's font, so 1ch is its digit. */
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
   font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
@@ -836,7 +918,7 @@
     height: var(--size-list-bullet);
     margin-inline-end: calc(var(--size-list-marker-ones) - var(--size-list-bullet) / 2);
     border-radius: 50%;
-    background: var(--glyph-list-marker);
+    background: var(--ink-list-marker);
   }
 }
 
@@ -845,11 +927,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  height: var(--size-list-marker);
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
   /* The numbered column's font, so 1ch is its digit. */
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
   font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
@@ -875,7 +957,7 @@
     width: var(--size-list-bullet-glyph);
     height: var(--size-list-bullet-glyph);
     transform: translate(-50%, -50%);
-    background: var(--glyph-list-marker);
+    background: var(--ink-list-marker);
     mask-size: contain;
     mask-repeat: no-repeat;
     mask-position: center;
@@ -903,7 +985,7 @@
   &:empty::before,
   &[data-empty]::before {
     content: attr(data-placeholder);
-    color: color-mix(in srgb, var(--glyph-body) 40%, transparent);
+    color: color-mix(in srgb, var(--ink-body) 40%, transparent);
     pointer-events: none;
   }
 }
@@ -911,10 +993,6 @@
 :root {
   --check-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.05994 10.1813L9.14253 12.6249L12.9396 7.62488' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --cross-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.5 7.5L7.5 12.5M12.5 12.5L7.5 7.5' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  /* blockquote.svg as two masks off the same path: fill for the body, a 2px
-     stroke (intersected with the body) for the 1px inner edge. */
-  --quote-glyph-fill: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='white'/%3E%3C/svg%3E");
-  --quote-glyph-stroke: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* A `[data-tooltip]` slid in from the window's right edge, below the cursor or,
@@ -942,8 +1020,8 @@
 
   body {
     margin: 0;
-    color: var(--glyph-body);
-    background: var(--surface-canvas);
+    color: var(--ink-body);
+    background: var(--bg-canvas);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -974,8 +1052,8 @@
 
   /* Selection reads like the prose highlight — same two tokens. */
   ::selection {
-    background-color: var(--surface-highlight);
-    color: var(--glyph-highlight);
+    background-color: var(--bg-mark-default);
+    color: var(--ink-mark-default);
   }
 
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus {
@@ -1121,7 +1199,7 @@
 
   article :is(strong, b) {
     font-weight: var(--font-weight-bold);
-    color: var(--glyph-body);
+    color: var(--ink-body);
   }
 
   /* Slash menu anchor — the editor sets this on its own node. */
@@ -1143,12 +1221,12 @@
 
   /* A media object with nothing to paint yet. */
   [data-media-pending] {
-    background-color: var(--surface-sheet);
+    background-color: var(--bg-sheet);
     background-image: linear-gradient(
       90deg,
       transparent 0%,
       transparent 35%,
-      color-mix(in srgb, var(--surface-canvas) 70%, transparent) 50%,
+      color-mix(in srgb, var(--bg-canvas) 70%, transparent) 50%,
       transparent 65%,
       transparent 100%
     );
@@ -1159,11 +1237,11 @@
   /* A see-through picture on a checkerboard of the app's own two surfaces,
      so the pattern reads in either theme without competing with the artwork. */
   [data-checkered] {
-    background-color: var(--surface-canvas);
+    background-color: var(--bg-canvas);
     background-image: conic-gradient(
-      var(--surface-sheet) 25%,
+      var(--bg-sheet) 25%,
       transparent 0 50%,
-      var(--surface-sheet) 0 75%,
+      var(--bg-sheet) 0 75%,
       transparent 0
     );
     background-size: 16px 16px;
@@ -1194,8 +1272,10 @@
     cursor: col-resize !important;
   }
 
+  /* The track is the thumb at its widest, 6px, and a pixel either side; the
+     thumb's clear inline border insets it to 2px until the pointer is on it. */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -1203,12 +1283,20 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-neutral-300);
-    border-radius: 3px;
+    background-color: var(--bg-scrollbar-thumb-default);
+    background-clip: padding-box;
+    border-inline: 3px solid transparent;
+    border-radius: 0;
   }
 
-  .dark ::-webkit-scrollbar-thumb {
-    background-color: var(--color-neutral-700);
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--bg-scrollbar-thumb-hover);
+    border-inline-width: 1px;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--bg-scrollbar-thumb-pressed);
+    border-inline-width: 1px;
   }
 
   @media (prefers-reduced-motion: reduce) {

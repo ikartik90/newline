@@ -51,17 +51,10 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 // so it never intercepts the pointer. It fades in from `@starting-style` and
 // out with `display` held to the end of the fade.
 const boxStyle =
-  'flex items-center gap-1 h-5 px-1 overflow-hidden rounded-sm border border-border-divider bg-surface-sheet text-style-caption whitespace-nowrap pointer-events-none transition-[opacity,filter,display,overlay] transition-discrete duration-150 ease-out opacity-0 blur-[1px] open:opacity-100 open:blur-[0px] starting:open:opacity-0 starting:open:blur-[1px] [&_svg]:shrink-0 [&_svg]:size-(--size-tooltip-icon)'
-
-// Opt-in, for the tooltip that makes an OFFER rather than naming a control.
-// Brand type on the opaque brand surface the popovers already use: the box
-// covers whatever it is drawn over, so the fill cannot be a translucent wash.
-// The bright hue again at 25% for the hairline, as a focused field draws its
-// frame — a neutral hairline would still read as the default tooltip.
-const brandStyle = 'bg-surface-field-popover text-glyph-field-active border-border-field-active'
+  'flex items-center gap-1 h-5 px-1 overflow-hidden rounded-sm border border-border-divider bg-bg-sheet text-style-caption whitespace-nowrap pointer-events-none transition-[opacity,filter,display,overlay] transition-discrete duration-150 ease-out opacity-0 blur-[1px] open:opacity-100 open:blur-[0px] starting:open:opacity-0 starting:open:blur-[1px] [&_svg]:shrink-0 [&_svg]:size-(--size-tooltip-icon)'
 
 // The label and icons a control's at rest: ink 2.
-const plainStyle = 'text-glyph-control'
+const inkStyle = 'text-ink-tooltip-default'
 
 const dividerStyle = 'shrink-0 w-0 h-4 border-l border-border-divider'
 
@@ -79,12 +72,9 @@ function isTooltipText(node: ReactNode): node is ReactElement {
   return isValidElement(node) && node.type === TooltipText
 }
 
-export type TooltipTone = 'brand'
-
 export interface TooltipProps {
   children: ReactNode
   className?: string
-  tone?: TooltipTone
 }
 
 /**
@@ -93,7 +83,7 @@ export interface TooltipProps {
  * screen readers get the trigger's `aria-label`. Must be rendered by a host
  * (inside `ActionTooltipHost`): `Button.Tooltip` and `Link.Tooltip` are the two.
  */
-function TooltipRoot({ children, className, tone }: TooltipProps) {
+function TooltipRoot({ children, className }: TooltipProps) {
   const host = useContext(TooltipHostContext)
   if (!host) return null
   const items = Children.toArray(children)
@@ -125,8 +115,7 @@ function TooltipRoot({ children, className, tone }: TooltipProps) {
         data-tooltip=""
         data-open={host.open ? '' : undefined}
         aria-hidden
-        data-tone={tone}
-        className={cx(boxStyle, tone === 'brand' ? brandStyle : plainStyle, className)}
+        className={cx(boxStyle, inkStyle, className)}
       >
         {label}
         {rest.length > 0 && <span className={dividerStyle} aria-hidden />}

@@ -8,7 +8,7 @@ describe('frosted-sheet', () => {
     // Nested @supports and all: Tailwind guards color-mix with one of its own.
     const rule = await buildMainCss(['frosted-sheet'])
     expect(rule).toMatch(
-      /background-color: color-mix\(in srgb, var\(--surface-sheet\) \d+%, transparent\);/
+      /background-color: color-mix\(in srgb, var\(--bg-sheet\) \d+%, transparent\);/
     )
     expect(rule).toMatch(/-webkit-backdrop-filter: blur\(\d+px\)/)
     expect(rule).toMatch(/[^-]backdrop-filter: blur\(\d+px\)/)
@@ -17,7 +17,7 @@ describe('frosted-sheet', () => {
   it('is the solid sheet where the backdrop cannot be blurred', async () => {
     const built = await buildMainCss(['frosted-sheet'])
     expect(built).toMatch(
-      /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*background-color: var\(--surface-sheet\);/
+      /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*background-color: var\(--bg-sheet\);/
     )
   })
 })

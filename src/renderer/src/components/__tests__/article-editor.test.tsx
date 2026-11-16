@@ -170,6 +170,39 @@ describe('ArticleEditor', () => {
     useEditorStore.getState().reset()
   })
 
+  it('sets paragraphs, list items and quotes in the prose serif', () => {
+    renderEditor([
+      paragraph('Body'),
+      { type: 'list_item', children: [text('Item')] },
+      blockquote('Quoted')
+    ])
+    const has = (el: Element | null, name: string) =>
+      expect(el?.className.split(/\s+/)).toContain(name)
+    has(screen.getByText('Body').closest('[contenteditable]'), 'text-style-prose')
+    has(screen.getByText('Item').closest('[contenteditable]'), 'text-style-prose')
+    has(screen.getByText('Quoted').closest('[contenteditable]'), 'text-style-quote')
+  })
+
+  it('sets a quote with no quote mark beside it', () => {
+    renderEditor([blockquote('Quoted')])
+    expect(document.querySelector('.article-blockquote-mark')).toBeNull()
+  })
+
+  it("rules a quote's left edge in the highlight, 12px from its text", () => {
+    renderEditor([blockquote('Quoted')])
+    const shell = screen.getByText('Quoted').closest('blockquote')!.parentElement!
+    expect(shell.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['border-l-2', 'border-border-quote', 'pl-3'])
+    )
+  })
+
+  it('moves an indented quote in by its margin, so its rule moves in with it', () => {
+    renderEditor([{ type: 'blockquote', indent: true, children: [text('Indented')] }])
+    const shell = screen.getByText('Indented').closest('blockquote')!.parentElement!
+    expect(shell.hasAttribute('data-indented')).toBe(true)
+    expect(shell.className.split(/\s+/)).toContain('data-indented:ml-8')
+  })
+
   it("renders the title input with placeholder 'Title'", () => {
     renderEditor()
     const title = screen.getByLabelText('Title')

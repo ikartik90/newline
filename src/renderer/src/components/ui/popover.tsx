@@ -112,7 +112,7 @@ export interface PopoverProps {
 // fields stand a step up, on surface 2. No edge of its own; cornered as a text button is. Layout
 // is the caller's — a rail and a column list want different things from the same shell.
 const chromeStyle =
-  'bg-surface-sheet surface-level-1 rounded-lg overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] outline-none'
+  'bg-bg-sheet bg-level-1 rounded-lg overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_var(--shadow-sheet)] outline-none'
 
 /**
  * A toolbar floating in the shell, as tall as a button: no inset and no gap, its options

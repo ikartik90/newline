@@ -119,7 +119,7 @@ describe('Button', () => {
         )
         const button = screen.getByRole('button', { name: 'Close' })
         expect(button.dataset.emphasis).toBe('tertiary')
-        expect(button.className).not.toContain('bg-surface-button-primary-default')
+        expect(button.className).not.toContain('bg-bg-button-primary-default')
         unmount()
       }
     })
@@ -224,32 +224,35 @@ describe('Button', () => {
   })
 })
 
-// An icon button's glyph at rest takes the icon ink, one step softer on a sheet;
-// pressed, it keeps the brand chip's ink, and the chip floating on a picture
-// keeps its own.
-describe('an icon button’s glyph at rest', () => {
-  it('takes the icon ink only while not pressed, and never on a picture', () => {
-    const rest = 'not-aria-pressed:[&_svg]:text-glyph-icon'
-    expect(actionStyles({ variant: 'icon', emphasis: 'tertiary' }).split(/\s+/)).toContain(rest)
-    expect(actionStyles({ variant: 'icon', emphasis: 'glass' })).not.toContain('text-glyph-icon')
-    expect(actionStyles({ variant: 'text', emphasis: 'tertiary' })).not.toContain('text-glyph-icon')
+// An icon button's glyph takes its button's ink, as a text button's label
+// does; pressed, it takes the selected chip's.
+describe('an icon button’s glyph', () => {
+  it('takes the tertiary ink while not pressed, and the secondary’s on a picture', () => {
+    const tertiary = actionStyles({ variant: 'icon', emphasis: 'tertiary' }).split(/\s+/)
+    expect(tertiary).toContain('not-aria-pressed:text-ink-button-tertiary-default')
+    expect(tertiary).toContain('aria-pressed:text-ink-field-selected')
+    expect(tertiary.filter((c) => c.includes('[&_svg]:text-'))).toEqual([])
+    expect(tertiary).not.toContain('text-inherit')
+    const glass = actionStyles({ variant: 'icon', emphasis: 'glass' }).split(/\s+/)
+    expect(glass).toContain('text-ink-button-secondary-default')
+    expect(glass.filter((c) => c.includes('ink-button-glass'))).toEqual([])
   })
 })
 
-// A secondary or tertiary text button at rest takes the control ink, ink 2,
-// its icon with it; a primary keeps its flipped ink and the chip on a picture its own.
+// A text button rests in its own emphasis's ink, its icon with it; the chip on
+// a picture is a secondary button, so it takes the secondary's.
 describe('a text button at rest', () => {
-  it('takes the control ink, label and icon both', () => {
-    const secondary = actionStyles({ variant: 'text', emphasis: 'secondary' }).split(/\s+/)
-    expect(secondary).toContain('text-glyph-control')
-    expect(secondary).not.toContain('text-glyph-body')
-    expect(actionStyles({ variant: 'text', emphasis: 'primary' })).not.toContain('glyph-control')
-    expect(actionStyles({ variant: 'text', emphasis: 'glass' })).not.toContain('glyph-control')
-  })
-
-  it('takes the control ink as a tertiary too', () => {
-    const tertiary = actionStyles({ variant: 'text', emphasis: 'tertiary' }).split(/\s+/)
-    expect(tertiary).toContain('text-glyph-control')
-    expect(tertiary).not.toContain('text-glyph-body')
+  it('takes the ink of its own emphasis', () => {
+    const inks = {
+      primary: 'text-ink-button-primary-default',
+      secondary: 'text-ink-button-secondary-default',
+      tertiary: 'text-ink-button-tertiary-default',
+      glass: 'text-ink-button-secondary-default'
+    } as const
+    for (const [emphasis, ink] of Object.entries(inks)) {
+      const classes = actionStyles({ variant: 'text', emphasis: emphasis as keyof typeof inks })
+      expect(classes.split(/\s+/)).toContain(ink)
+      expect(classes).not.toMatch(/ink-(body|control|icon)\b/)
+    }
   })
 })

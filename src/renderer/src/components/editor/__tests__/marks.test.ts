@@ -89,6 +89,61 @@ describe('transformMarksInRange', () => {
   })
 })
 
+// A link is only a link: no bold, italic, code, underline, strikethrough or
+// highlight on it. A sidenote is an annotation, not a style, so it stays.
+describe('a link carries no other style', () => {
+  const href = 'https://example.com'
+
+  it('drops every style from text a link is put on, keeping a sidenote', () => {
+    const out = transformMarksInRange(
+      [
+        {
+          type: 'text',
+          text: 'styled',
+          marks: [
+            { type: 'bold' },
+            { type: 'italic' },
+            { type: 'code' },
+            { type: 'underline' },
+            { type: 'strikethrough' },
+            { type: 'highlight' },
+            { type: 'sidenote', id: 'n1', text: '' }
+          ]
+        }
+      ],
+      0,
+      6,
+      (marks) => [...marks, { type: 'link', href }]
+    )
+    expect(out).toEqual([
+      {
+        type: 'text',
+        text: 'styled',
+        marks: [
+          { type: 'sidenote', id: 'n1', text: '' },
+          { type: 'link', href }
+        ]
+      }
+    ])
+  })
+
+  it('styles only the plain text when a style is put across a link', () => {
+    const out = transformMarksInRange(
+      [
+        { type: 'text', text: 'see ' },
+        { type: 'text', text: 'this', marks: [{ type: 'link', href }] }
+      ],
+      0,
+      8,
+      (marks) => [...marks, { type: 'bold' }]
+    )
+    expect(out).toEqual([
+      { type: 'text', text: 'see ', marks: [{ type: 'bold' }] },
+      { type: 'text', text: 'this', marks: [{ type: 'link', href }] }
+    ])
+  })
+})
+
 describe('normalizeLinkHref', () => {
   it('prepends https:// to a bare host', () => {
     expect(normalizeLinkHref('google.com')).toBe('https://google.com')

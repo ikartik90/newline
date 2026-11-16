@@ -1,8 +1,12 @@
+import type { FC, SVGProps } from 'react'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/ui/input/field'
-import { SegmentedControl } from '@/components/ui/input/segmented-control'
-import CloseIcon from '@/assets/icons/cross.svg'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
+import { OptionList } from '@/components/ui/input/option-list'
+import CloseIcon from '@/assets/icons/close.svg'
+import SystemIcon from '@/assets/icons/system.svg'
+import LightIcon from '@/assets/icons/light.svg'
+import DarkIcon from '@/assets/icons/dark.svg'
 
 // ---------------------------------------------------------------------------
 // The application's settings, opened from the gear at the foot of the
@@ -18,11 +22,15 @@ export interface SettingsDialogProps {
   onThemeChange: (theme: ThemeChoice) => void
 }
 
-const THEME_OPTIONS = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' }
+const THEME_OPTIONS: { value: ThemeChoice; label: string; Icon: FC<SVGProps<SVGSVGElement>> }[] = [
+  { value: 'system', label: 'System', Icon: SystemIcon },
+  { value: 'light', label: 'Light', Icon: LightIcon },
+  { value: 'dark', label: 'Dark', Icon: DarkIcon }
 ]
+
+// A setting's row: its label, then its control on the far edge.
+const settingRowStyle = 'flex items-center justify-between gap-2'
+const settingLabelStyle = 'text-style-sidenote text-ink-field-default'
 
 export function SettingsDialog({ open, onClose, theme, onThemeChange }: SettingsDialogProps) {
   return (
@@ -34,14 +42,26 @@ export function SettingsDialog({ open, onClose, theme, onThemeChange }: Settings
         </Button>
       </Dialog.Header>
       <div className="flex flex-col gap-4 p-3">
-        <Field size="sm">
-          <Field.Label>Theme</Field.Label>
-          <SegmentedControl
-            options={THEME_OPTIONS}
-            value={theme}
-            onValueChange={(next) => onThemeChange(next as ThemeChoice)}
-          />
-        </Field>
+        <div className={settingRowStyle}>
+          <span className={settingLabelStyle}>Theme</span>
+          {/* The floating toolbar's row of icon buttons, standing in the dialog. */}
+          <div className={POPOVER_TOOLBAR}>
+            <OptionList direction="inline">
+              <OptionList.Toolbar aria-label="Theme">
+                {THEME_OPTIONS.map(({ value, label, Icon }) => (
+                  <OptionList.Option
+                    key={value}
+                    aria-label={label}
+                    pressed={theme === value}
+                    onClick={() => onThemeChange(value)}
+                  >
+                    <Icon aria-hidden />
+                  </OptionList.Option>
+                ))}
+              </OptionList.Toolbar>
+            </OptionList>
+          </div>
+        </div>
       </div>
     </Dialog>
   )

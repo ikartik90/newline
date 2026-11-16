@@ -40,13 +40,13 @@ describe('SegmentedControl', () => {
     }
   })
 
-  // A segment not picked takes the control ink, ink 2; the picked
-  // one keeps the chip's, and a disabled one its muted ink.
-  it('softens the segments not picked to the control ink', () => {
+  // A segment not picked takes the segment's ink; the picked one keeps the
+  // chip's, and a disabled one its muted ink.
+  it('inks the segments not picked in the segment ink', () => {
     render(<SegmentedControl ariaLabel="Object fit" options={FITS} value="cover" />)
     for (const option of screen.getAllByRole('option')) {
       expect(option.className.split(/\s+/)).toContain(
-        'not-aria-selected:not-aria-pressed:not-disabled:text-glyph-control'
+        'not-aria-selected:not-aria-pressed:not-disabled:text-ink-segment-default'
       )
     }
   })

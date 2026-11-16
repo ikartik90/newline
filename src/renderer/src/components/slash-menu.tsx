@@ -2,7 +2,7 @@ import type { FC, SVGProps } from 'react'
 import { Popover } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
 import EyebrowIcon from '@/assets/icons/eyebrow.svg'
-import SubheadingIcon from '@/assets/icons/subheading.svg'
+import SubheadingIcon from '@/assets/icons/h2.svg'
 import ParagraphIcon from '@/assets/icons/paragraph.svg'
 import MediaIcon from '@/assets/icons/media.svg'
 import QuoteIcon from '@/assets/icons/quote.svg'
@@ -108,16 +108,17 @@ export function slashMenuHasResults(
 //
 // `externalKeys` keeps focus in the editor: ArrowUp/Down/Enter are captured at
 // the document to drive the highlight and commit, and the option under the
-// pointer is preselected on open. `tone="plain"` because the popover owns the
-// surface. `fit="content"` because the menu IS the vocabulary — the shared
-// 7-row cap belongs to lists you browse, not to one you read whole.
+// pointer is preselected on open. `tone="menu"` because the popover owns the
+// surface and the rows are the floating toolbar's buttons stood on end.
+// `fit="content"` because the menu IS the vocabulary — the shared 7-row cap
+// belongs to lists you browse, not to one you read whole.
 // Element-anchored: the editor stamps `data-slash-anchor` on the active block
 // and the popover opens below its left edge.
 // ---------------------------------------------------------------------------
 
 // The `slashMenuPopover` recipe's 200px column. Surface, radius and
-// elevation come from the Popover shell; no inset of its own — the listbox's
-// 4px is the only gap to the rows.
+// elevation come from the Popover shell; no inset, as the floating toolbar has
+// none: the rows run to its edges.
 const menuStyle = 'w-[200px] flex flex-col'
 
 export function SlashMenu({
@@ -138,7 +139,7 @@ export function SlashMenu({
       onDismiss={onDismiss}
     >
       <OptionList
-        tone="plain"
+        tone="menu"
         fit="content"
         onValueChange={(type) => onSelect(type as SlashMenuBlockType)}
       >

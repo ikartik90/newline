@@ -172,9 +172,9 @@ export function MediaObject({
 // Down until the cell is reached for: inert as well as invisible, so a
 // control you cannot see is not a control you can hit.
 export const mediaObjectRailStyle = cx(
-  'flex items-center gap-1 h-10 px-[6px] rounded-lg w-max bg-surface-sheet surface-level-1',
+  'flex items-center gap-1 h-10 px-[6px] rounded-lg w-max bg-bg-sheet bg-level-1',
   'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[3]',
-  'border border-solid border-border-divider shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
+  'border border-solid border-border-divider shadow-[0_4px_16px_var(--shadow-sheet)]',
   'overflow-hidden max-w-[calc(100%-24px)]',
   'opacity-0 pointer-events-none transition-opacity duration-150',
   'group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto',

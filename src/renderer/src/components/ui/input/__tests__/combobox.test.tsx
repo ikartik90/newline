@@ -223,6 +223,19 @@ describe('the popup', () => {
     show.mockRestore()
   })
 
+  // As every popover does: the sheet, its rows a step up, a picked one the brand chip.
+  it('stands on the sheet, as every popover does', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    const classes = screen.getByRole('dialog').className.split(/\s+/)
+    expect(classes).toContain('bg-bg-sheet')
+    expect(classes).toContain('bg-level-1')
+    expect(classes.join(' ')).not.toMatch(/field-popover|border-field-focus/)
+    const picked = screen.getByRole('option', { selected: true }).className
+    expect(picked).toContain('aria-selected:bg-bg-field-selected')
+    expect(picked).not.toMatch(/hover-brand|note-selected/)
+  })
+
   it('is named on the trigger as the dialog it opens', async () => {
     renderCombobox({ defaultValue: 'grapes' })
     expect(trigger().getAttribute('aria-haspopup')).toBe('dialog')

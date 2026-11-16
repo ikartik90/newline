@@ -41,15 +41,18 @@ const VIRTUALISE_FROM = 100
 // the note pane's edge gliding over in the same 150ms. What it holds is clipped
 // to it, except while it floats over the pane (peeked at, toggled, or widening
 // from a peek to pinned), when it stands above the pane and under the top bar.
-// Its `text-glyph-body` is the sidebar's own grey: `inline` makes the utility read
-// `--glyph-body` itself, so reassigning that here inks everything inside.
+// Its `text-ink-body` is the sidebar's own grey: `inline` makes the utility read
+// `--ink-body` itself, so reassigning that here inks everything inside.
 const sidebarShell =
-  'relative shrink-0 duration-150 ease-in-out surface-level-1 [--glyph-body:var(--glyph-sidebar)] [--glyph-icon:currentColor]!'
+  'relative shrink-0 duration-150 ease-in-out bg-level-1 [--ink-body:var(--ink-sidebar)]'
 const sidebarOpen = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[width,filter]`
 const sidebarResizing = `${sidebarShell} overflow-hidden w-(--size-sidebar) transition-[filter]`
 const sidebarCollapsed = `${sidebarShell} overflow-hidden w-0 transition-[width,filter]`
-const sidebarFloatingCollapsed = `${sidebarShell} overflow-visible z-[5] w-0 transition-[width,filter]`
-const sidebarFloatingOpen = `${sidebarShell} overflow-visible z-[5] w-(--size-sidebar) transition-[width,filter]`
+// Floating, it paints the canvas: a toggle still glides the note pane's edge
+// its whole width, and behind the fading sheet glass (or the sheet) one side of
+// that edge and the canvas the other would read as the sidebar sliding.
+const sidebarFloatingCollapsed = `${sidebarShell} overflow-visible z-[5] w-0 bg-bg-canvas transition-[width,filter]`
+const sidebarFloatingOpen = `${sidebarShell} overflow-visible z-[5] w-(--size-sidebar) bg-bg-canvas transition-[width,filter]`
 
 // What the rail holds is not cut off by its narrowing edge: held at the open
 // width, it slides 8px toward the edge and fades in the same 150ms, and comes
@@ -61,8 +64,10 @@ const railContents =
   'absolute inset-y-0 left-0 flex flex-col w-(--size-sidebar) pt-12 pb-2 transition-[opacity,translate,background-color,box-shadow] duration-150 ease-in-out'
 const railContentsShown = `${railContents} opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
 const railContentsHiding = `${railContents} opacity-0 -translate-x-2`
-const railContentsPeeking = `${railContents} bg-surface-sheet shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
-const railContentsPeekEnding = `${railContents} bg-surface-sheet shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] opacity-0 -translate-x-2`
+const railContentsPeeking = `${railContents} bg-bg-sheet shadow-[0_4px_16px_var(--shadow-sheet)] opacity-100 translate-x-0 starting:opacity-0 starting:-translate-x-2`
+// Going, it is the sheet at once, over the canvas the floating rail paints.
+const railContentsPeekEnding =
+  'absolute inset-y-0 left-0 flex flex-col w-(--size-sidebar) pt-12 pb-2 transition-[opacity,translate] duration-150 ease-in-out bg-bg-sheet shadow-[0_4px_16px_var(--shadow-sheet)] opacity-0 -translate-x-2'
 
 // The rail paints nothing: AppKit's own sidebar, the one Finder's is, lies
 // under it as its ground (main/sidebar-glass.ts).
@@ -78,17 +83,17 @@ const railEdge = 'absolute inset-y-0 right-0 w-px bg-border-divider pointer-even
 // 20px glyph is centred at 23px — under macOS's red window button.
 const headStyle = 'flex flex-col gap-0.5 px-[6.5px] pb-2 shrink-0'
 const headRowStyle =
-  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-glyph-body hover:bg-surface-field-hover transition-colors'
-const headGlyphStyle = 'shrink-0 size-5 text-glyph-body'
-const headShortcutStyle = 'ml-auto text-style-caption text-glyph-body/40'
+  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-ink-body hover:bg-bg-field-hover transition-colors'
+const headGlyphStyle = 'shrink-0 size-5 text-ink-body'
+const headShortcutStyle = 'ml-auto text-style-caption text-ink-body/40'
 
-const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-glyph-body/50 shrink-0'
+const sectionLabelStyle = 'px-[13px] pt-2 pb-1 text-style-caption text-ink-body/50 shrink-0'
 
-// The rows are inset 6.5px from either edge. The list's scrollbar (6px,
-// main.css) lives in that right margin rather than eating into the rows: the
-// list's own inset stops 6px short so the reserved gutter makes up the 6.5px,
-// and it is held open even when the list is too short to scroll — otherwise
-// the rows would widen the moment a note is deleted.
+// The rows are inset 6.5px from the left. The list's scrollbar (8px,
+// main.css) lives in the right margin rather than eating into the rows: past
+// the list's own 0.5px inset, the reserved gutter makes the right 8.5px, and
+// it is held open even when the list is too short to scroll — otherwise the
+// rows would widen the moment a note is deleted.
 const listInset = 'relative flex-1 min-h-0 overflow-hidden pl-[6.5px] pr-[0.5px]'
 const listScroll = '[scrollbar-gutter:stable]'
 
@@ -292,7 +297,7 @@ export default function Sidebar({
           <div className={railBody}>
             <div ref={listRef} className={listInset}>
               {notes.length === 0 ? (
-                <p className="px-3 py-6 text-style-sidebar text-glyph-body/50 text-center">
+                <p className="px-3 py-6 text-style-sidebar text-ink-body/50 text-center">
                   No notes yet
                 </p>
               ) : notes.length < VIRTUALISE_FROM ? (
@@ -354,16 +359,15 @@ function NoteRow({ index, style, ...rowProps }: RowComponentProps<NoteRowProps>)
   )
 }
 
-// The action the row uncovers: a red block the height of the row, the glyph
-// beside its name (a 32px row has no room to stack them), in the canvas ink so it reads on the danger fill in both
-// themes.
+// The action the row uncovers: a danger block the height of the row, the glyph
+// beside its name (a 32px row has no room to stack them).
 const deleteActionStyle =
-  'flex items-center justify-center gap-1 w-full h-full bg-glyph-danger text-surface-canvas text-style-fineprint font-medium'
+  'flex items-center justify-center gap-1 w-full h-full bg-bg-row-delete text-ink-row-delete text-style-fineprint font-medium'
 
 // One line per note — its title alone — as tall as the head's rows.
 const noteRow = 'flex items-center w-full h-8 px-[6.5px] rounded-xl text-left transition-colors'
-const noteRowIdle = `${noteRow} hover:bg-surface-field-hover`
-const noteRowActive = `${noteRow} bg-surface-field-selected`
+const noteRowIdle = `${noteRow} hover:bg-bg-shell-hover`
+const noteRowActive = `${noteRow} bg-bg-shell-selected`
 
 function NoteItem({
   note,
@@ -380,6 +384,7 @@ function NoteItem({
       open={note.id === swipeOpenId}
       onOpenChange={(open) => onSwipeOpenChange(note.id, open)}
       className="rounded-xl mb-0.5"
+      wells="rounded-xl shadow-[0_0_0_16px_var(--bg-row-delete)]"
       actions={
         <button
           type="button"
@@ -401,7 +406,7 @@ function NoteItem({
         aria-current={isActive ? 'true' : undefined}
         className={isActive ? noteRowActive : noteRowIdle}
       >
-        <span className="min-w-0 flex-1 text-style-sidebar truncate text-glyph-body">
+        <span className="min-w-0 flex-1 text-style-sidebar truncate text-ink-body">
           {noteDisplayTitle(note)}
         </span>
       </button>

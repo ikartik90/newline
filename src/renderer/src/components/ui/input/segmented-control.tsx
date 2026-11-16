@@ -33,7 +33,7 @@ import { OptionList, type OptionItem } from './option-list'
  */
 export const SEGMENTED_RAIL =
   'flex items-center flex-1 min-w-0 h-(--size-toolbar-button) gap-0 px-0 rounded-lg overflow-hidden ' +
-  'bg-surface-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)] ' +
+  'bg-bg-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)] ' +
   '[&_:is([role=toolbar],[role=listbox])]:gap-0 [&_:is(button,[role=button])]:rounded-none'
 
 /** The row fills the rail; stretched as well as grown, so the segments inherit a real box. */
@@ -42,11 +42,11 @@ export const SEGMENTED_LIST = 'grow basis-0 min-w-0 self-stretch'
 /**
  * A segment takes an equal share of the rail, centres its label and stands the
  * rail's full height; one neither picked nor pressed (the ToggleBar's toggles
- * are pressed, not selected) is in the control ink, one step softer than body
- * ink, and a disabled one keeps its muted ink.
+ * are pressed, not selected) is in the segment ink, and a disabled one keeps
+ * its muted ink.
  */
 export const SEGMENTED_OPTION =
-  'grow basis-0 min-w-0 justify-center self-stretch relative not-aria-selected:not-aria-pressed:not-disabled:text-glyph-control'
+  'grow basis-0 min-w-0 justify-center self-stretch relative not-aria-selected:not-aria-pressed:not-disabled:text-ink-segment-default'
 
 export interface SegmentedControlProps {
   /** The segments, left to right. Two or three — beyond that use a Combobox. */

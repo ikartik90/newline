@@ -62,12 +62,12 @@ describe('Dialog', () => {
       </Dialog>
     )
     const classes = dialog().className.split(/\s+/)
-    expect(classes).toContain('bg-surface-sheet')
+    expect(classes).toContain('bg-bg-sheet')
     expect(classes).not.toContain('frosted-sheet')
     // The dim is the dialog's own `::backdrop`.
     expect(dialog().getAttribute('data-dialog-backdrop')).toBe('')
     expect(classes).toContain('backdrop:backdrop-frost')
-    expect(classes).toContain('backdrop:bg-surface-canvas/50')
+    expect(classes).toContain('backdrop:bg-bg-canvas/50')
   })
 
   // The glass palette's stand-in where AppKit has no glass: the panel is the
@@ -83,7 +83,7 @@ describe('Dialog', () => {
     expect(classes).toContain('frosted-sheet')
     expect(classes).toContain('rounded-3xl')
     expect(classes).not.toContain('rounded-lg')
-    expect(classes).not.toContain('bg-surface-sheet')
+    expect(classes).not.toContain('bg-bg-sheet')
     expect(classes).not.toContain('rounded-md')
     expect(dialog().getAttribute('data-dialog-backdrop')).toBe('clear')
     expect(classes).toContain('backdrop:bg-black/15')
@@ -114,10 +114,10 @@ describe('Dialog', () => {
       const classes = dialog().className.split(/\s+/)
       expect(setGlass).toHaveBeenLastCalledWith(true)
       expect(dialog().hasAttribute('data-on-glass')).toBe(true)
-      expect(classes).toContain('surface-level-1')
+      expect(classes).toContain('bg-level-1')
       expect(classes).toContain('bg-transparent')
       expect(classes).toContain('backdrop:bg-transparent')
-      expect(classes).not.toContain('bg-surface-sheet')
+      expect(classes).not.toContain('bg-bg-sheet')
       expect(classes).not.toContain('border')
       expect(dialog().getAttribute('data-dialog-backdrop')).toBe('clear')
 
@@ -151,7 +151,7 @@ describe('Dialog', () => {
         </Dialog>
       )
       const classes = dialog().className.split(/\s+/)
-      expect(classes).toContain('bg-surface-sheet')
+      expect(classes).toContain('bg-bg-sheet')
       expect(dialog().hasAttribute('data-on-glass')).toBe(false)
       expect(dialog().getAttribute('data-dialog-backdrop')).toBe('')
     })

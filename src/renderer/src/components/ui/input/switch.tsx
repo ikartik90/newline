@@ -85,14 +85,14 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
       onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
       aria-describedby={hasHint ? hintId : undefined}
       className={cx(
-        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-surface-field-default',
+        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-bg-field-default',
         // An inset shadow, NOT a border: a real border is subtracted from the
         // interior, so the thumb would sit half a pixel off centre.
         'shadow-[inset_0_0_0_0.5px_var(--border-field-default)] transition-[background-color,box-shadow] duration-150',
-        'checked:bg-surface-field-active checked:shadow-[inset_0_0_0_0.5px_var(--border-field-active)]',
+        'checked:bg-bg-field-selected checked:shadow-[inset_0_0_0_0.5px_var(--border-field-selected)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        'before:absolute before:rounded-full before:bg-glyph-field-default before:transition-[transform,background-color] before:duration-150',
-        'checked:before:bg-glyph-field-active',
+        'before:absolute before:rounded-full before:bg-ink-field-default before:transition-[transform,background-color] before:duration-150',
+        'checked:before:bg-ink-field-selected',
         geometry.track,
         geometry.thumb,
         toggleControlClass(field),

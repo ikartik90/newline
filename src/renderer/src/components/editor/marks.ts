@@ -15,6 +15,15 @@ function marksEqual(a: Mark[] | undefined, b: Mark[] | undefined): boolean {
   return sa.every((v, i) => v === sb[i])
 }
 
+/**
+ * A link is only a link: text it covers carries no style. A sidenote is an
+ * annotation on the text, not a style, so it stays.
+ */
+export function linkMarksOnly(marks: Mark[]): Mark[] {
+  if (!marks.some((m) => m.type === 'link')) return marks
+  return marks.filter((m) => m.type === 'link' || m.type === 'sidenote')
+}
+
 /** Merge consecutive text nodes that carry identical marks. */
 export function mergeAdjacentInlineNodes(nodes: InlineNode[]): InlineNode[] {
   const out: InlineNode[] = []
@@ -88,7 +97,7 @@ export function transformMarksInRange(
         ...(marks.length ? { marks } : {})
       })
     }
-    const nextMarks = transform(marks)
+    const nextMarks = linkMarksOnly(transform(marks))
     result.push({
       type: 'text',
       text: node.text.slice(covStart, covEnd),

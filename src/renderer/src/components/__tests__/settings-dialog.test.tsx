@@ -6,7 +6,7 @@ import { onWindowGlass } from '@/test-support'
 
 // ---------------------------------------------------------------------------
 // The application's settings — not a note's. For now that is the theme, as
-// a choice of three, the one in force marked.
+// a choice of three icons, the one in force pressed.
 // ---------------------------------------------------------------------------
 
 function renderDialog(theme: 'light' | 'dark' | 'system' = 'system') {
@@ -31,19 +31,44 @@ describe('SettingsDialog', () => {
     restore()
   })
 
-  it('offers the theme as System, Light or Dark, marking the one chosen', () => {
+  it('offers the theme as System, Light or Dark icons in a toolbar, pressing the one chosen', () => {
     renderDialog('dark')
-    const theme = screen.getByRole('listbox', { name: 'Theme' })
-    const options = within(theme).getAllByRole('option')
-    expect(options.map((option) => option.textContent)).toEqual(['System', 'Light', 'Dark'])
-    expect(within(theme).getByRole('option', { name: 'Dark' }).getAttribute('aria-selected')).toBe(
+    const theme = screen.getByRole('toolbar', { name: 'Theme' })
+    const buttons = within(theme).getAllByRole('button')
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'System',
+      'Light',
+      'Dark'
+    ])
+    for (const button of buttons) {
+      expect(button.querySelector('svg')).toBeTruthy()
+      expect(button.textContent).toBe('')
+    }
+    expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'false',
       'true'
-    )
+    ])
+    expect(screen.queryByRole('listbox')).toBeNull()
   })
 
-  it('reports a new theme as it is picked', async () => {
+  // The label stands on the toolbar's row, before it, not over it.
+  it('labels the theme inline, beside its toolbar', () => {
+    renderDialog()
+    const toolbar = screen.getByRole('toolbar', { name: 'Theme' })
+    const label = screen.getByText('Theme')
+    const row = label.parentElement!
+    expect(row.contains(toolbar)).toBe(true)
+    expect(row.className.split(' ')).toEqual(
+      expect.arrayContaining(['flex', 'items-center', 'justify-between'])
+    )
+    expect(row.className).not.toMatch(/flex-col/)
+    expect(label.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('reports a new theme as it is pressed', async () => {
     const props = renderDialog('system')
-    await userEvent.click(screen.getByRole('option', { name: 'Light' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Light' }))
     expect(props.onThemeChange).toHaveBeenCalledWith('light')
   })
 

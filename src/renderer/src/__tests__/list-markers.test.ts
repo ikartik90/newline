@@ -16,43 +16,68 @@ describe('list markers', () => {
   })
 
   it('inks the number, the bullet, the check and the cross in ink 2', async () => {
-    expect(css).toMatch(/--glyph-list-marker: var\(--ink-2\);/)
+    expect(css).toMatch(/--ink-list-marker: var\(--ink-2\);/)
     // Declared once: the ink scale flips with the theme.
-    expect(css.match(/--glyph-list-marker:/g)).toHaveLength(1)
+    expect(css.match(/--ink-list-marker:/g)).toHaveLength(1)
     const built = await buildMainCss(['list-marker', 'list-bullet', 'list-bullet-circle'])
     for (const name of ['list-marker', 'list-bullet', 'list-bullet-circle']) {
       const rule = declarationsOf(built, name)
-      expect(rule).toMatch(/var\(--glyph-list-marker\)/)
-      expect(rule).not.toMatch(/surface-branded/)
+      expect(rule).toMatch(/var\(--ink-list-marker\)/)
+      expect(rule).not.toMatch(/highlight/)
     }
   })
 
   it('has no surface of its own', () => {
-    expect(css).not.toMatch(/surface-list-marker/)
+    expect(css).not.toMatch(/bg-list-marker/)
   })
 
   it('dots a plain bullet at 4px', () => {
     expect(css).toMatch(/--size-list-bullet:\s*4px;/)
   })
 
-  // Every column of markers is set as the list's text is, figures tabular,
-  // so a digit's width is `1ch` there and the columns line up on it.
-  it('numbers in tabular figures, at the size of the text they number', async () => {
+  // Every column of markers is set as the list's text is, in its font, size and
+  // weight, figures tabular, so a digit's width is `1ch` there and the columns
+  // line up on it.
+  it('numbers in tabular figures, in the font, size and weight of the text they number', async () => {
     const built = await buildMainCss([
-      'text-style-body-sm',
+      'text-style-prose',
       'list-marker-box',
       'list-bullet',
       'list-bullet-icon'
     ])
-    const textSize = /font-size: ([^;]+);/.exec(declarationsOf(built, 'text-style-body-sm'))![1]
+    const prose = declarationsOf(built, 'text-style-prose')
+    const of = (property: string, rule: string) =>
+      new RegExp(`${property}: ([^;]+);`).exec(rule)![1]
     for (const name of ['list-marker-box', 'list-bullet', 'list-bullet-icon']) {
       const own = declarationsOf(built, name).split(/&|\{/)[0]
-      expect(own).toContain(`font-size: ${textSize};`)
+      expect(of('font-family', own)).toBe(of('font-family', prose))
+      expect(of('font-size', own)).toBe(of('font-size', prose))
       expect(own).toContain('font-variant-numeric: tabular-nums;')
-      expect(own).toContain('font-family: var(--font-sans);')
     }
-    // The ordinal itself takes the column's size rather than a smaller one.
-    expect(declarationsOf(built, 'list-marker')).not.toMatch(/font-size/)
+    // The ordinal itself takes the column's size rather than a smaller one, and
+    // the text's weight.
+    const ordinal = declarationsOf(await buildMainCss(['list-marker']), 'list-marker')
+    expect(ordinal).not.toMatch(/font-size/)
+    expect(of('font-weight', ordinal)).toBe(of('font-weight', prose))
+  })
+
+  // A check, a cross or a bullet has no baseline: it centres on a box as tall
+  // as its item's first line, the prose's line.
+  it('stands every marker in a box as tall as the prose line', async () => {
+    const built = await buildMainCss([
+      'text-style-prose',
+      'list-marker-box',
+      'list-bullet',
+      'list-bullet-icon'
+    ])
+    const prose = declarationsOf(built, 'text-style-prose')
+    const line = /line-height: ([^;]+);/.exec(prose)![1]
+    expect(css).toContain(`--size-list-marker-line: ${line};`)
+    for (const name of ['list-marker-box', 'list-bullet', 'list-bullet-icon']) {
+      expect(declarationsOf(built, name).split(/&|\{/)[0]).toContain(
+        'height: var(--size-list-marker-line);'
+      )
+    }
   })
 
   // The period hangs in a fixed slot at the column's end, so every number,

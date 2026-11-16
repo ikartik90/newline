@@ -16,10 +16,10 @@ export interface AccountMenuProps {
 // not the button, takes up the rest of the foot. The avatar is a head glyph's
 // size, so it is centred under the red window button as they are.
 const triggerStyle =
-  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-glyph-body hover:bg-surface-field-hover data-[popup-open]:bg-surface-field-hover transition-colors outline-none'
+  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-ink-body hover:bg-bg-field-hover data-[popup-open]:bg-bg-field-hover transition-colors outline-none'
 const avatarStyle =
-  'flex items-center justify-center shrink-0 size-5 rounded-full overflow-hidden bg-surface-button-secondary-default text-glyph-body text-style-caption font-medium'
-const addressStyle = 'px-2 pb-1 text-style-caption text-glyph-body/50 truncate'
+  'flex items-center justify-center shrink-0 size-5 rounded-full overflow-hidden bg-bg-avatar-default text-ink-body text-style-caption font-medium'
+const addressStyle = 'px-2 pb-1 text-style-caption text-ink-body/50 truncate'
 
 /** The name to show: Google's when it gave one, else the address before the @. */
 function shortName(user: AccountMenuProps['user']): string {
@@ -42,7 +42,7 @@ export function AccountMenu({ user, onSignOut }: AccountMenuProps) {
             )}
           </span>
           <span className="truncate">{name}</span>
-          <ChevronDownIcon className="shrink-0 size-4 text-glyph-body" aria-hidden />
+          <ChevronDownIcon className="shrink-0 size-4 text-ink-body" aria-hidden />
         </button>
       }
     >

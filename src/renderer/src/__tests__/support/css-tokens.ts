@@ -92,3 +92,10 @@ export function utilityRules(source: string): UtilityRule[] {
     return { name: match[1], declarations }
   })
 }
+
+/** What the glass declares, as a frosted sheet's children read it: its own fills and its steps. */
+export function glassRule(source: string): Map<string, string> {
+  const css = stripComments(source)
+  const [body = ''] = blocks(css, /\s*html\[data-frosted\] \[data-on-glass\]\.bg-level-1/)
+  return new Map(declarations(body).map((d) => [d.name, d.value]))
+}

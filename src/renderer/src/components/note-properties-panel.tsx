@@ -42,13 +42,13 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
           {note.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-surface-raised text-style-caption text-glyph-body leading-none"
+              className="inline-flex items-center gap-0.5 h-5 pl-2 pr-1 rounded-full bg-bg-shell-default text-style-caption text-ink-body leading-none"
             >
               {tag}
               <button
                 type="button"
                 aria-label={`Remove tag ${tag}`}
-                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-glyph-body hover:bg-surface-field-hover"
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-ink-body hover:bg-bg-field-hover"
                 onClick={() => removeTag(tag)}
               >
                 <CrossSmallIcon className="w-3 h-3" aria-hidden />
@@ -75,7 +75,7 @@ export function NotePropertiesPanel({ note, onTagsChange, onDismiss }: NotePrope
                 removeTag(note.tags[note.tags.length - 1])
               }
             }}
-            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-surface-field-default text-glyph-field-default placeholder:text-glyph-field-placeholder border-[0.5px] border-solid border-border-field-default outline-none focus:border-border-field-active focus:bg-surface-field-active"
+            className="flex-1 min-w-[96px] h-7 px-2 text-style-body-sm rounded-sm bg-bg-field-default text-ink-field-default placeholder:text-ink-field-placeholder border-[0.5px] border-solid border-border-field-default outline-none focus:border-border-field-focus focus:bg-bg-field-focus"
           />
         </div>
       </PropertiesPanel.Group>

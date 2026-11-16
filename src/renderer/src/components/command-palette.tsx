@@ -17,7 +17,7 @@ import { commandMenuActions } from '@/components/command-menu-actions'
 
 // No taller than main allows (`maxHeight`): past that the list scrolls under
 // the field, which stays.
-const groundStyle = 'flex flex-col overflow-hidden surface-level-1 text-glyph-body'
+const groundStyle = 'flex flex-col overflow-hidden bg-level-1 text-ink-body'
 
 export function CommandPalette() {
   // Each showing is its own mount, so the field and the search start empty.
