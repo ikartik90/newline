@@ -1,14 +1,13 @@
 import { Fragment, useEffect, useRef, useState, type FC, type SVGProps } from 'react'
-import { Popover, type PopoverRect } from '@/components/ui/popover'
+import { Popover, POPOVER_TOOLBAR, type PopoverRect } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
-import { TextInput } from '@/components/ui/input/text-input'
 import type { Mark } from '@shared/domain/nodes'
 import LinkIcon from '@/assets/icons/link.svg'
 import BoldIcon from '@/assets/icons/bold.svg'
 import ItalicIcon from '@/assets/icons/italic.svg'
 import CodeIcon from '@/assets/icons/code.svg'
-import UnderlineSolidIcon from '@/assets/icons/underline-solid.svg'
-import StrikethroughIcon from '@/assets/icons/strikethrough.svg'
+import UnderlineSolidIcon from '@/assets/icons/text-underline-solid.svg'
+import StrikethroughIcon from '@/assets/icons/text-strikethrough.svg'
 import HighlightIcon from '@/assets/icons/highlight.svg'
 import SidenoteIcon from '@/assets/icons/sidenote.svg'
 import EditIcon from '@/assets/icons/edit.svg'
@@ -71,17 +70,18 @@ const FORMAT_GROUPS: FormatButton[][] = [
 // Styles
 // ---------------------------------------------------------------------------
 
-// The shared `toolbar` rail at its default size: a 40px row with a 6px inset
-// and 4px gap, hugging its contents. The hairline, elevation and clip that
-// floating costs (`selectionPopover`) come from the Popover shell.
-const railStyle = 'flex items-center gap-1 h-10 px-1.5 w-max'
-// The link editor: the same rail, holding one field at the width a URL needs.
-const editRailStyle = 'flex items-center gap-2 h-10 px-1.5 w-80'
+// The link editor: a button's height, as every toolbar is, at the width a URL needs. Its
+// field is the command palette's search field: an icon and a bare input on the row, with
+// no fill, border or ring of its own, standing on the toolbar's.
+const editRailStyle = 'flex items-center gap-2 h-(--size-toolbar-button) px-2 w-80 text-ink-body'
+const linkIconStyle = 'shrink-0 size-5'
+const linkInputStyle =
+  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-sidebar text-ink-body placeholder:text-ink-body/50'
 // "Esc to exit" — a key-cap and a muted label (the `inlineEditRow` hint).
 const hintStyle = 'flex items-center gap-1 shrink-0 select-none'
 const hintKeyStyle =
-  'flex items-center h-5 px-1 rounded-sm border-[0.5px] border-divider bg-item-hover text-fg text-style-caption whitespace-nowrap'
-const hintLabelStyle = 'text-fg/50 text-style-caption whitespace-nowrap'
+  'flex items-center h-5 px-1 rounded-sm border border-border-divider bg-bg-field-hover text-ink-body text-style-caption whitespace-nowrap'
+const hintLabelStyle = 'text-ink-body/50 text-style-caption whitespace-nowrap'
 // Pairs with a stylesheet that positions against the same target.
 const selectionAnchor = '--selection-popover'
 
@@ -132,15 +132,14 @@ export function SelectionToolbar({
         ariaLabel="Edit link"
         onDismiss={onDismiss}
       >
-        <TextInput
+        <LinkIcon className={linkIconStyle} aria-hidden />
+        <input
           ref={inputRef}
-          size="sm"
           type="url"
           inputMode="url"
           placeholder="https://..."
           aria-label="Link URL"
-          iconBefore={<LinkIcon aria-hidden />}
-          className="flex-1 min-w-0"
+          className={linkInputStyle}
           value={href}
           onChange={(e) => setHref(e.target.value)}
           onKeyDown={(e) => {
@@ -163,7 +162,12 @@ export function SelectionToolbar({
 
   if (mode === 'link-view') {
     return (
-      <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+      <Popover
+        rect={rect}
+        anchorName={selectionAnchor}
+        className={POPOVER_TOOLBAR}
+        onDismiss={onDismiss}
+      >
         <OptionList direction="inline">
           <OptionList.Toolbar aria-label="Link actions">
             <OptionList.Option aria-label="Edit link" onClick={onEditLink}>
@@ -183,7 +187,12 @@ export function SelectionToolbar({
 
   if (mode === 'sidenote-view') {
     return (
-      <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+      <Popover
+        rect={rect}
+        anchorName={selectionAnchor}
+        className={POPOVER_TOOLBAR}
+        onDismiss={onDismiss}
+      >
         <OptionList direction="inline">
           <OptionList.Toolbar aria-label="Sidenote actions">
             <OptionList.Option aria-label="Edit sidenote" onClick={onEditSidenote}>
@@ -199,7 +208,12 @@ export function SelectionToolbar({
   }
 
   return (
-    <Popover rect={rect} anchorName={selectionAnchor} className={railStyle} onDismiss={onDismiss}>
+    <Popover
+      rect={rect}
+      anchorName={selectionAnchor}
+      className={POPOVER_TOOLBAR}
+      onDismiss={onDismiss}
+    >
       <OptionList direction="inline">
         <OptionList.Toolbar aria-label="Format selection">
           <OptionList.Option
@@ -216,7 +230,8 @@ export function SelectionToolbar({
           >
             <SidenoteIcon aria-hidden />
           </OptionList.Option>
-          {FORMAT_GROUPS.map((group, groupIdx) => (
+          {/* A link carries no style, so over one there is none to offer. */}
+          {(activeMarks.has('link') ? [] : FORMAT_GROUPS).map((group, groupIdx) => (
             <Fragment key={groupIdx}>
               <OptionList.Divider />
               {group.map(({ mark, label, Icon }) => (

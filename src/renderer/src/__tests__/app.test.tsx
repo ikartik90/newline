@@ -46,6 +46,7 @@ function installApi(notes: Note[]) {
   const fullScreenListeners = new Set<(fullScreen: boolean) => void>()
   const api = {
     platform: 'darwin',
+    frosted: true,
     notes: {
       // Copies, as IPC would hand over: the same array again would not re-render.
       list: vi.fn(async () => [...notes]),
@@ -78,6 +79,7 @@ function installApi(notes: Note[]) {
     theme: { setSource: vi.fn(async () => {}) },
     window: {
       isFullScreen: vi.fn(async () => false),
+      setSidebarWidth: vi.fn(),
       onFullScreenChange: vi.fn((listener: (fullScreen: boolean) => void) => {
         fullScreenListeners.add(listener)
         return () => {
@@ -250,9 +252,75 @@ describe('App chrome', () => {
     render(<App />)
     for (const name of ['Collapse sidebar', 'Settings']) {
       const button = await screen.findByRole('button', { name })
-      expect(classesOf(button)).toContain('text-fg')
-      expect(classesOf(button)).not.toContain('text-fg-body')
+      expect(classesOf(button)).toContain('text-ink-body')
+      // Both stand where the sidebar's own grey is the ink.
+      expect(button.closest('[class~="[--ink-body:var(--ink-sidebar)]"]')).not.toBeNull()
     }
+  })
+
+  it('stands the toggle on the open sidebar as the settings gear does, and on the canvas once it collapses', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const level = (button: Element) => button.closest('.bg-level-1')
+    const gear = await screen.findByRole('button', { name: 'Settings' })
+    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
+    // On the glass and on the sheet's level, so its hover steps as the gear's does.
+    expect(level(gear)?.hasAttribute('data-on-glass')).toBe(true)
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(true)
+    await userEvent.click(toggle)
+    expect(level(screen.getByRole('button', { name: 'Expand sidebar' }))).toBeNull()
+  })
+
+  it('peeks at the collapsed sidebar from the toggle, and pins it open with a click', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const level = (button: Element) => button.closest('.bg-level-1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Collapse sidebar' }))
+    const toggle = screen.getByRole('button', { name: 'Expand sidebar' })
+    // Still under the pointer that collapsed it: no peek until a fresh reach.
+    expect(screen.queryByRole('button', { name: /^First note/ })).toBeNull()
+
+    await userEvent.unhover(toggle)
+    await userEvent.hover(toggle)
+    expect(screen.getByRole('button', { name: /^First note/ })).toBeTruthy()
+    // Over the solid sheet, not the glass.
+    expect(level(toggle)).not.toBeNull()
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(false)
+    expect(screen.queryByRole('separator', { name: 'Resize sidebar' })).toBeNull()
+
+    await userEvent.click(toggle)
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBe(toggle)
+    expect(level(toggle)?.hasAttribute('data-on-glass')).toBe(true)
+    expect(screen.getByRole('separator', { name: 'Resize sidebar' })).toBeTruthy()
+  })
+
+  // The bar is the window's drag handle, where the page never sees the pointer.
+  // Over a peek, as much of it as the sidebar is wide is the page's instead,
+  // so the pointer going along it past the sidebar is seen to go.
+  it('takes the bar over a peeked sidebar off the drag handle, as wide as the sidebar', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const bar = await screen.findByRole('banner')
+    const span = () => bar.querySelector('[data-sidebar-span]')
+    expect(span()).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    const toggle = screen.getByRole('button', { name: 'Expand sidebar' })
+    await userEvent.unhover(toggle)
+    expect(span()).toBeNull()
+
+    await userEvent.hover(toggle)
+    expect(classesOf(span()!)).toEqual(
+      expect.arrayContaining([
+        'absolute',
+        '-z-10',
+        'inset-y-0',
+        'left-0',
+        'w-(--size-sidebar)',
+        '[-webkit-app-region:no-drag]'
+      ])
+    )
+    await userEvent.click(toggle)
+    expect(span()).toBeNull()
   })
 
   it('fixes the bar over the top of the window, so what scrolls passes under it', async () => {
@@ -275,7 +343,7 @@ describe('App chrome', () => {
     const edge = document.querySelector('[data-note-edge]') as HTMLElement
     // It stands on the pane's top, the bar's foot, beside the note and not in it.
     expect(main.contains(edge)).toBe(false)
-    expect(classesOf(edge)).toEqual(expect.arrayContaining(['top-0', 'border-divider']))
+    expect(classesOf(edge)).toEqual(expect.arrayContaining(['top-0', 'border-border-divider']))
     expect(classesOf(edge)).toContain('opacity-0')
 
     main.scrollTop = 60
@@ -382,11 +450,11 @@ describe('App chrome', () => {
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     await userEvent.click(within(sidebar).getByRole('button', { name: 'Settings' }))
     const dialog = await screen.findByRole('dialog', { name: 'Settings' })
-    await userEvent.click(within(dialog).getByRole('option', { name: 'Dark' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Dark' }))
     expect(api.theme.setSource).toHaveBeenLastCalledWith('dark')
   })
 
-  it('rounds the icon buttons as the sidebar’s rows are, a 12px squircle', async () => {
+  it('rounds the shell’s icon buttons as an icon button is, a 16px squircle', async () => {
     installApi([makeNote()])
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
@@ -396,8 +464,8 @@ describe('App chrome', () => {
     ]
     for (const button of buttons) {
       const classes = button.className.split(/\s+/)
-      expect(classes).toContain('rounded-lg')
-      expect(classes).toContain('squircle')
+      expect(classes).toContain('rounded-xl')
+      expect(classes).not.toContain('rounded-lg')
     }
   })
 
@@ -405,12 +473,15 @@ describe('App chrome', () => {
     installApi([makeNote()])
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    // Past the divider's handle, which stands on the pane's edge.
+    // Past the divider's handle, which stands on the rail's edge.
     const handle = screen.getByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
-    expect(classesOf(pane)).toContain('border-divider')
+    // The line between them is the rail's, on the rail's own fill as its
+    // footer's rule is, so the two lines are one weight.
+    expect(classesOf(pane).some((c) => c.startsWith('border'))).toBe(false)
+    expect(sidebar.querySelector('[data-rail-edge]')).not.toBeNull()
     expect(hasMargin(pane)).toBe(false)
-    expect(classesOf(pane)).toContain('bg-canvas')
+    expect(classesOf(pane)).toContain('bg-bg-canvas')
     expect(classesOf(pane).some((c) => c.startsWith('rounded'))).toBe(false)
     // Its own first 48px are under the bar.
     expect(classesOf(pane)).toContain('pt-12')
@@ -420,16 +491,13 @@ describe('App chrome', () => {
     expect(hasMargin(pane)).toBe(false)
   })
 
-  it('grounds the note pane in the canvas, #f5f5f5 in the light theme and #191919 in the dark', async () => {
+  it('grounds the note pane in the canvas, surface 0', async () => {
     installApi([makeNote()])
     render(<App />)
     const handle = await screen.findByRole('separator', { name: 'Resize sidebar' })
     const pane = handle.parentElement!.nextElementSibling as HTMLElement
-    expect(classesOf(pane)).toContain('bg-canvas')
-    const dark = css.match(/\n\.dark \{([^}]*)\}/)![1]
-    expect(dark).toMatch(/--bg-canvas: #191919;/)
-    const light = css.match(/\n:root \{([^}]*)\}/)![1]
-    expect(light).toMatch(/--bg-canvas: #f5f5f5;/)
+    expect(classesOf(pane)).toContain('bg-bg-canvas')
+    expect(css).toMatch(/\n {2}--bg-canvas: var\(--bg-0\);/)
   })
 
   it('makes the divider between the rail and the note pane a handle that resizes the rail', async () => {
@@ -441,7 +509,7 @@ describe('App chrome', () => {
     // lights in the brand's ink when the pointer is over it.
     expect(sidebar.nextElementSibling).toBe(handle.parentElement)
     expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'inset-y-0']))
-    expect(handle.querySelector('.group-hover\\:bg-fg-highlight')).not.toBeNull()
+    expect(handle.querySelector('.group-hover\\:bg-border-resize-handle-hover')).not.toBeNull()
 
     const shell = screen.getByRole('banner').parentElement!
     expect(shell.style.getPropertyValue('--size-sidebar')).toBe('256px')
@@ -449,7 +517,7 @@ describe('App chrome', () => {
 
     fireEvent.pointerDown(handle, { clientX: 256, pointerId: 1, button: 0 })
     fireEvent.pointerMove(handle, { clientX: 300, pointerId: 1 })
-    // The rail follows the pointer at once, not on its 200ms width transition.
+    // The rail follows the pointer at once, not on its 150ms width transition.
     expect(shell.style.getPropertyValue('--size-sidebar')).toBe('300px')
     expect(classesOf(sidebar)).not.toContain('transition-[width,filter]')
     fireEvent.pointerUp(handle, { clientX: 300, pointerId: 1 })
@@ -465,16 +533,34 @@ describe('App chrome', () => {
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
     const shell = sidebar.parentElement!
-    expect(classesOf(shell)).not.toContain('bg-surface')
-    expect(sidebar.className).not.toMatch(/bg-surface/)
+    expect(classesOf(shell)).not.toContain('bg-bg-sheet')
+    expect(sidebar.className).not.toMatch(/bg-bg-sheet/)
+  })
+
+  it('tells main how wide the sidebar is, for AppKit’s glass under it', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    sidebar.getBoundingClientRect = () => ({ width: 256 }) as DOMRect
+    window.dispatchEvent(new Event('resize'))
+    expect(api.window.setSidebarWidth).toHaveBeenLastCalledWith(256)
   })
 
   it('paints its own shell where the window has no glass', async () => {
     const { api } = installApi([makeNote()])
+    ;(api as { platform: string }).platform = 'linux'
+    ;(api as { frosted: boolean }).frosted = false
+    render(<App />)
+    const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
+    expect(classesOf(sidebar.parentElement!)).toContain('bg-bg-sheet')
+  })
+
+  it('is clear over the window’s own blur wherever main made one, Windows’ acrylic too', async () => {
+    const { api } = installApi([makeNote()])
     ;(api as { platform: string }).platform = 'win32'
     render(<App />)
     const sidebar = await screen.findByRole('complementary', { name: 'Notes' })
-    expect(classesOf(sidebar.parentElement!)).toContain('bg-surface')
+    expect(classesOf(sidebar.parentElement!)).not.toContain('bg-bg-sheet')
   })
 
   it('tells main the theme, so the window’s own materials follow it', async () => {
@@ -491,8 +577,8 @@ describe('App chrome', () => {
     const buttons = await screen.findAllByRole('button', { name: 'New note' })
     const classes = buttons[buttons.length - 1].className.split(/\s+/)
     expect(classes).toContain('rounded-full')
-    expect(classes).toContain('bg-button-secondary')
-    expect(classes).toContain('hover:bg-button-secondary-hover')
+    expect(classes).toContain('bg-bg-button-secondary-default')
+    expect(classes).toContain('hover:bg-bg-button-secondary-hover')
     // The 40px chip on a 12px inset, floored at 80px — the `md` text action.
     expect(classes).toContain('h-10')
     expect(classes).toContain('px-3')
@@ -624,5 +710,157 @@ describe('App delete confirmation', () => {
     const confirm = await screen.findByRole('dialog', { name: 'Delete Note' })
     await userEvent.click(within(confirm).getByRole('option', { name: /Delete/ }))
     await waitFor(() => expect(api.notes.delete).toHaveBeenCalledWith('n1'))
+  })
+})
+
+describe('App glass command palette', () => {
+  /** The bridge where main has made the glass palette: the menu is its window, not a dialog. */
+  function installPalette(api: ReturnType<typeof installApi>['api']) {
+    let command: ((id: string) => void) | null = null
+    let pickNote: ((note: Note) => void) | null = null
+    let visible: ((shown: boolean) => void) | null = null
+    const palette = {
+      native: true,
+      open: vi.fn(),
+      close: vi.fn(),
+      onCommand: vi.fn((listener: (id: string) => void) => {
+        command = listener
+        return () => {
+          command = null
+        }
+      }),
+      onOpenNote: vi.fn((listener: (note: Note) => void) => {
+        pickNote = listener
+        return () => {
+          pickNote = null
+        }
+      }),
+      onVisible: vi.fn((listener: (shown: boolean) => void) => {
+        visible = listener
+        return () => {
+          visible = null
+        }
+      })
+    }
+    Object.assign(api, { palette })
+    return {
+      palette,
+      run: (id: string) => act(() => command!(id)),
+      openNote: (note: Note) => act(() => pickNote!(note)),
+      setVisible: (shown: boolean) => act(() => visible!(shown))
+    }
+  }
+
+  it('opens the palette on ⌘K, ⌘F and Search with what the window holds, drawing no dialog', async () => {
+    const { api } = installApi([makeNote()])
+    const { palette } = installPalette(api)
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    await screen.findByRole('heading', { name: 'Title' })
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    expect(palette.open).toHaveBeenLastCalledWith({
+      sidebarCollapsed: false,
+      noteOpen: true,
+      theme: 'light'
+    })
+    fireEvent.keyDown(window, { key: 'f', metaKey: true })
+    const sidebar = screen.getByRole('complementary', { name: 'Notes' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Search' }))
+    expect(palette.open).toHaveBeenCalledTimes(3)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('does what is picked in the palette', async () => {
+    const { api } = installApi([makeNote()])
+    const { run } = installPalette(api)
+    render(<App />)
+    await screen.findByText('First note')
+
+    run('new-note')
+    await waitFor(() => expect(api.notes.create).toHaveBeenCalled())
+
+    run('sidebar')
+    expect(
+      (await screen.findByRole('complementary', { name: 'Notes' })).querySelector('[inert]')
+    ).toBeTruthy()
+  })
+
+  it('opens a note picked in the palette', async () => {
+    const second = makeNote({ id: 'n2', title: 'Second note', tags: [] })
+    const { api } = installApi([makeNote(), second])
+    const { openNote } = installPalette(api)
+    render(<App />)
+    await screen.findByText('First note')
+
+    openNote(second)
+
+    const title = await screen.findByRole('heading', { name: 'Title' })
+    expect(title.textContent).toBe('Second note')
+  })
+
+  // Main lays glass under the whole window; the page fades all it holds, so
+  // only the palette shows, over the glass.
+  it('fades the window to its glass while the palette shows over it', async () => {
+    const { api } = installApi([makeNote()])
+    const { setVisible } = installPalette(api)
+    const { container } = render(<App />)
+    await screen.findByText('First note')
+    const root = container.firstElementChild as HTMLElement
+    const backdrop = () => document.querySelector('[data-palette-backdrop]')
+    expect(backdrop()).toBeNull()
+    expect(root.className.split(/\s+/)).toContain('opacity-100')
+
+    setVisible(true)
+    expect(root.className.split(/\s+/)).toContain('opacity-0')
+    expect(backdrop()?.className).not.toContain('bg-black')
+
+    setVisible(false)
+    expect(root.className.split(/\s+/)).toContain('opacity-100')
+    expect(backdrop()).toBeNull()
+  })
+
+  // A dialog stands on the same glass: the page fades all it holds under it,
+  // and comes back as it goes.
+  it('fades the window to its glass while a dialog stands on it', async () => {
+    const { api } = installApi([makeNote()])
+    installPalette(api)
+    const setGlass = vi.fn()
+    Object.assign(api.window, { setGlass })
+    const { container } = render(<App />)
+    await screen.findByText('First note')
+    const root = container.firstElementChild as HTMLElement
+
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(setGlass).toHaveBeenLastCalledWith(true)
+    expect(root.className.split(/\s+/)).toContain('opacity-0')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close settings' }))
+    expect(setGlass).toHaveBeenLastCalledWith(false)
+    expect(root.className.split(/\s+/)).toContain('opacity-100')
+  })
+
+  // Main hides the palette as the press begins, when the keys leave it; the
+  // dim stays until the press is over, so the click lands on it, not on the
+  // note under it.
+  it('only closes the palette on a press on the dim, opening nothing under it', async () => {
+    const second = makeNote({ id: 'n2', title: 'Second note', tags: [] })
+    const { api } = installApi([makeNote(), second])
+    const { palette, setVisible } = installPalette(api)
+    render(<App />)
+    await screen.findByText('Second note')
+    const backdrop = () => document.querySelector('[data-palette-backdrop]')
+
+    setVisible(true)
+    const dim = backdrop()!
+    fireEvent.pointerDown(dim)
+    expect(palette.close).toHaveBeenCalled()
+    setVisible(false)
+    expect(backdrop()).toBe(dim)
+    fireEvent.pointerUp(dim)
+    fireEvent.click(dim)
+
+    await waitFor(() => expect(backdrop()).toBeNull())
+    expect(screen.queryByRole('heading', { name: 'Title' })).toBeNull()
   })
 })

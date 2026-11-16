@@ -83,6 +83,7 @@ const live = () => notes.filter((note) => !note.isDeleted)
 Object.defineProperty(window, 'api', {
   value: {
     platform: 'darwin',
+    frosted: true,
     notes: {
       list: async () => live().map((note) => ({ ...note })),
       search: async (query: string) => {
@@ -120,6 +121,7 @@ Object.defineProperty(window, 'api', {
     // The page's own full screen stands in for the window's.
     window: {
       isFullScreen: async () => document.fullscreenElement !== null,
+      setSidebarWidth: () => {},
       onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
         const handler = () => listener(document.fullscreenElement !== null)
         document.addEventListener('fullscreenchange', handler)
@@ -178,7 +180,7 @@ preview.textContent = `
     background-attachment: fixed;
   }
   html[data-frost-preview] #root > div {
-    background: color-mix(in srgb, var(--bg-surface) 55%, transparent);
+    background: color-mix(in srgb, var(--bg-sheet) 55%, transparent);
     backdrop-filter: blur(48px) saturate(1.6);
     -webkit-backdrop-filter: blur(48px) saturate(1.6);
   }

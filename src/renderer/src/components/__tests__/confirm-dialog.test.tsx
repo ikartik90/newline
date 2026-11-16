@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConfirmDialog, type ConfirmDialogProps } from '../confirm-dialog'
 import { HAS_CURSOR_QUERY } from '@/hooks/use-has-cursor'
+import { onWindowGlass } from '@/test-support'
 
 // ---------------------------------------------------------------------------
 // The question is asked in the command palette's shape: the answers are its
@@ -82,6 +83,14 @@ describe('ConfirmDialog', () => {
   it('lists the answers as rows: the affirmative, the alternate, then Cancel', () => {
     renderExit()
     expect(answers()).toEqual(['Save changes and exit', 'Discard changes', 'Cancel'])
+  })
+
+  // Where AppKit glasses the window, it stands on that glass, as the palette does.
+  it('stands on the window glass', () => {
+    const { restore } = onWindowGlass()
+    renderDelete()
+    expect(dialog().hasAttribute('data-on-glass')).toBe(true)
+    restore()
   })
 
   it('lists only the affirmative and Cancel when there is no alternate', () => {

@@ -9,8 +9,20 @@ interface MediaUploadInput {
   height?: number
 }
 
+/** Hear one channel from main, its event object kept from the renderer. */
+function listen<T>(channel: string, listener: (value: T) => void): () => void {
+  const handler = (_event: unknown, value: T): void => listener(value)
+  ipcRenderer.on(channel, handler)
+  return () => {
+    ipcRenderer.removeListener(channel, handler)
+  }
+}
+
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  // Main says, as the window is made, whether it is the OS's own blur under a
+  // clear page (main/sidebar-glass.ts's isFrostedWindow).
+  frosted: process.argv.includes('--frosted-window'),
   notes: {
     create: (title?: string, body?: string) => ipcRenderer.invoke('notes:create', title, body),
     update: (id: string, fields: { title?: string; body?: string; tags?: string[] }) =>
@@ -38,13 +50,39 @@ contextBridge.exposeInMainWorld('api', {
   },
   window: {
     isFullScreen: () => ipcRenderer.invoke('window:isFullScreen'),
+    setSidebarWidth: (width: number) => ipcRenderer.send('window:sidebarWidth', width),
     onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
       const handler = (_event: unknown, fullScreen: boolean): void => listener(fullScreen)
       ipcRenderer.on('window:fullScreen', handler)
       return () => {
         ipcRenderer.removeListener('window:fullScreen', handler)
       }
-    }
+    },
+    // Only where AppKit glasses the window: a dialog stands on that glass.
+    ...(process.argv.includes('--glass-command-palette')
+      ? { setGlass: (on: boolean) => ipcRenderer.send('window:glass', on) }
+      : {})
+  },
+  // Main says, as the window is made, whether the menu is the glass palette.
+  palette: {
+    native: process.argv.includes('--glass-command-palette'),
+    open: (state: unknown) => ipcRenderer.send('palette:open', state),
+    onCommand: (listener: (id: string) => void) => listen('palette:command', listener),
+    onOpenNote: (listener: (note: unknown) => void) => listen('palette:openNote', listener),
+    onShow: (listener: (state: unknown, maxHeight: number) => void) => {
+      const handler = (_event: unknown, state: unknown, maxHeight: number): void =>
+        listener(state, maxHeight)
+      ipcRenderer.on('palette:show', handler)
+      return () => {
+        ipcRenderer.removeListener('palette:show', handler)
+      }
+    },
+    onFit: (listener: (maxHeight: number) => void) => listen('palette:fit', listener),
+    onVisible: (listener: (visible: boolean) => void) => listen('palette:visible', listener),
+    run: (id: string) => ipcRenderer.send('palette:run', id),
+    openNote: (note: unknown) => ipcRenderer.send('palette:pickNote', note),
+    close: () => ipcRenderer.send('palette:close'),
+    setHeight: (height: number) => ipcRenderer.send('palette:height', height)
   },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),

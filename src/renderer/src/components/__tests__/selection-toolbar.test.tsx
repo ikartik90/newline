@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SelectionToolbar } from '../selection-toolbar'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
+
+// The Popover shell a toolbar floats in.
+const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-bg-sheet')!
+
 import type { Mark } from '@shared/domain/nodes'
 
 function noopHandlers() {
@@ -22,6 +27,21 @@ function noopHandlers() {
 const empty: ReadonlySet<Mark['type']> = new Set()
 
 describe('SelectionToolbar — format mode', () => {
+  it('floats every mode at a button’s 28px height', () => {
+    for (const mode of ['format', 'link-view', 'sidenote-view'] as const) {
+      const { unmount } = render(
+        <SelectionToolbar mode={mode} activeMarks={empty} {...noopHandlers()} />
+      )
+      const shell = shellOf(screen.getAllByRole('toolbar')[0])
+      for (const c of POPOVER_TOOLBAR.split(' ')) expect(shell.classList).toContain(c)
+      unmount()
+    }
+    render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...noopHandlers()} />)
+    const edit = screen.getByRole('toolbar', { name: 'Edit link' }).classList
+    expect(edit).toContain('h-(--size-toolbar-button)')
+    expect(edit).not.toContain('h-10')
+  })
+
   it('renders the formatting buttons', () => {
     render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
     expect(screen.getByRole('toolbar', { name: 'Format selection' })).toBeDefined()
@@ -50,13 +70,30 @@ describe('SelectionToolbar — format mode', () => {
     render(
       <SelectionToolbar
         mode="format"
-        activeMarks={new Set<Mark['type']>(['italic', 'link'])}
+        activeMarks={new Set<Mark['type']>(['italic', 'sidenote'])}
         {...noopHandlers()}
       />
     )
     expect(screen.getByLabelText('Italic').getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByLabelText('Add link').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Add sidenote').getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByLabelText('Bold').getAttribute('aria-pressed')).toBe('false')
+  })
+
+  // A link carries no style, so over one the toolbar offers none.
+  it('offers only the link and the sidenote over a link', () => {
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={new Set<Mark['type']>(['link'])}
+        {...noopHandlers()}
+      />
+    )
+    expect(screen.getByLabelText('Add link').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Add sidenote')).toBeTruthy()
+    for (const label of ['Bold', 'Italic', 'Underline', 'Strikethrough', 'Highlight', 'Code'])
+      expect(screen.queryByLabelText(label)).toBeNull()
+    // Its two buttons alone, with no divider after them.
+    expect(screen.getByRole('toolbar').children).toHaveLength(2)
   })
 
   it('starts link editing and adds a sidenote from their buttons', () => {
@@ -100,6 +137,18 @@ describe('SelectionToolbar — format mode', () => {
 })
 
 describe('SelectionToolbar — link-edit mode', () => {
+  // As the command palette's search field is: a bare input on the row, with no
+  // field frame, fill, border or ring of its own.
+  it("sets the link field straight on the toolbar, as the palette's search field is", () => {
+    render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...noopHandlers()} />)
+    const input = screen.getByLabelText('Link URL')
+    expect(input.closest('[data-field]')).toBeNull()
+    expect(input.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['bg-transparent', 'border-none', 'outline-none'])
+    )
+    expect(input.parentElement!.getAttribute('role')).toBe('toolbar')
+  })
+
   it('prefills the href and applies on Enter', () => {
     const h = noopHandlers()
     render(

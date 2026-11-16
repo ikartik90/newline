@@ -6,7 +6,8 @@ import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
 import AuthScreen from '@/components/auth/AuthScreen'
 import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
 import { NotePropertiesPanel } from '@/components/note-properties-panel'
-import { CommandMenu, type CommandMenuAction } from '@/components/command-menu'
+import { CommandMenu } from '@/components/command-menu'
+import { commandMenuActions, type CommandId } from '@/components/command-menu-actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
 import { useNotes } from '@/hooks/useNotes'
@@ -17,20 +18,19 @@ import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
+import { useSidebarGlass } from '@/hooks/use-sidebar-glass'
+import { useSidebarPeek } from '@/hooks/use-sidebar-peek'
+import { useWindowGlassHeld } from '@/hooks/use-window-glass'
 import { useScrolled } from '@/hooks/use-scrolled'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
 import SettingsIcon from '@/assets/icons/settings.svg'
 import LeftSidebarIcon from '@/assets/icons/left-sidebar.svg'
-import AddIcon from '@/assets/icons/add.svg'
 import TrashIcon from '@/assets/icons/trash.svg'
-import MetadataIcon from '@/assets/icons/metadata.svg'
-import DarkIcon from '@/assets/icons/dark.svg'
-import LightIcon from '@/assets/icons/light.svg'
 
-// Cornered and inked as the sidebar's rows are.
+// Cornered as an icon button and the sidebar's rows are, and inked as the rows are.
 const iconButton =
-  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-lg squircle text-fg hover:bg-field-hover transition-colors'
+  'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-xl text-ink-body hover:bg-bg-field-hover transition-colors'
 
 // One bar is fixed across the top of the window, over the rail and the note
 // pane alike, and holds only the sidebar toggle. It stays put whether the rail
@@ -38,8 +38,13 @@ const iconButton =
 // draws over that corner (main/index.ts centres them in these 48px), or at the
 // edge elsewhere. The bar is the window's drag handle; what scrolls does so in
 // the pane below it.
+// Its toggle is inked in the sidebar's grey, as the sidebar's own glyphs are.
+// While the sidebar is open the toggle stands on it, so it takes the sidebar's
+// level, as the settings gear does; collapsed, it stands on the canvas, and
+// peeked at it stands on the sidebar's solid sheet, off the glass.
 const topBar =
-  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out'
+  'absolute top-0 inset-x-0 z-10 h-12 flex items-center transition-[filter] duration-200 ease-in-out [--ink-body:var(--ink-sidebar)]'
+const topBarOverSidebar = `${topBar} bg-level-1`
 // The traffic lights start 16px in (main/index.ts) and are three 14px buttons
 // 9px apart, so the last ends at 76px; the toggle keeps the same 9px after it.
 // Where there are no lights (full screen, other platforms) it takes the first
@@ -47,17 +52,33 @@ const topBar =
 const toggleSlotPastWindowControls = 'flex items-center h-full pl-[85px]'
 const toggleSlotAtEdge = 'flex items-center h-full pl-[9px]'
 const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
+// The page never sees the pointer on the drag handle, so over a peek the bar is
+// the page's as far as the sidebar reaches: going along it past the sidebar's
+// edge is then seen as leaving, and lets the peek go. It lies under the
+// toggle, which it would otherwise cover.
+const barOverPeek =
+  'absolute -z-10 inset-y-0 left-0 w-(--size-sidebar) [-webkit-app-region:no-drag]'
 
+// While the glass palette or a dialog stands on it, main lays glass under the
+// whole window and everything the page holds fades, so only that stands over
+// the glass.
+const shellStyle =
+  'relative h-screen flex text-ink-body opacity-100 transition-opacity duration-150'
+const shellFadedStyle =
+  'relative h-screen flex text-ink-body opacity-0 transition-opacity duration-150'
+const solidShellStyle = 'relative h-screen flex bg-bg-sheet text-ink-body'
+// Under the palette, a press anywhere in the window only closes it; it
+// outlasts the palette to the end of the press.
+const paletteBackdropStyle = 'fixed inset-0 z-50'
 // The note pane runs to the window's edges with no margin of its own; its
-// spacing is inside it. Its first 48px are under the bar. Beside the rail a
-// hairline is the only line between the two; alone it needs none.
-const notePane = 'flex-1 flex min-w-0 pt-12 bg-canvas'
-const notePaneBesideRail = `${notePane} border-l-[0.5px] border-divider`
+// spacing is inside it. Its first 48px are under the bar. The line between
+// it and the rail is the rail's own edge.
+const notePane = 'flex-1 flex min-w-0 pt-12 bg-bg-canvas'
 
 // Once the note has scrolled under the bar, a hairline rules the bar off from
 // it. It stands on the note column's top, which is the bar's foot.
 const noteEdge =
-  'absolute top-0 inset-x-0 border-t-[0.5px] border-divider pointer-events-none transition-opacity duration-150'
+  'absolute top-0 inset-x-0 border-t border-border-divider pointer-events-none transition-opacity duration-150'
 const noteEdgeHidden = `${noteEdge} opacity-0`
 const noteEdgeShown = `${noteEdge} opacity-100`
 
@@ -79,6 +100,12 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
+  const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null)
+  useSidebarGlass(sidebarElement, sidebarCollapsed ? 0 : sidebarResize.width)
+  const sidebarPeek = useSidebarPeek({
+    collapsed: sidebarCollapsed,
+    width: sidebarResize.width
+  })
   const noteScroll = useScrolled()
   // Only macOS hides its title bar into the content, and only out of full
   // screen; elsewhere the window's controls are in a frame of their own.
@@ -96,12 +123,22 @@ function App() {
   useKeyboardFocus()
   useInputModality()
 
+  // Where main has made the glass palette, the menu is its window over this
+  // one, and ⌘K there closes it; otherwise it is the dialog in the page.
+  const palette = window.api.palette?.native ? window.api.palette : null
+  const menuState: CommandMenuState = {
+    sidebarCollapsed,
+    noteOpen: activeNote !== null,
+    theme: effectiveTheme === 'dark' ? 'dark' : 'light'
+  }
+  const openCommandMenu = () => (palette ? palette.open(menuState) : setCommandMenuOpen(true))
+
   // Search IS the command menu, so ⌘F opens it as ⌘K does.
   useKeyboard({
     onNewNote: createNote,
-    onSearch: () => setCommandMenuOpen(true),
+    onSearch: openCommandMenu,
     onToggleSidebar: () => setSidebarCollapsed((c) => !c),
-    onCommandMenu: () => setCommandMenuOpen((open) => !open)
+    onCommandMenu: () => (palette ? palette.open(menuState) : setCommandMenuOpen((open) => !open))
   })
 
   // Sync runs in main. Signed in, the renderer asks for a cycle once (and
@@ -188,51 +225,55 @@ function App() {
     [notes]
   )
 
-  const commands: CommandMenuAction[] = [
-    {
-      id: 'new-note',
-      label: 'New note',
-      icon: AddIcon,
-      shortcut: 'N',
-      run: () => void createNote()
-    },
-    {
-      id: 'sidebar',
-      label: sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar',
-      icon: LeftSidebarIcon,
-      shortcut: '\\',
-      run: () => setSidebarCollapsed((c) => !c)
-    },
-    ...(activeNote
-      ? [
-          {
-            id: 'properties',
-            label: 'Note properties',
-            icon: MetadataIcon,
-            run: () => setPropertiesOpen((open) => !open)
-          },
-          {
-            id: 'delete',
-            label: 'Delete note',
-            icon: TrashIcon,
-            run: () => askDelete(activeNote.id)
-          }
-        ]
-      : []),
-    // Last, so the bottom of the menu is never Delete note.
-    {
-      id: 'theme',
-      label: effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme',
-      icon: effectiveTheme === 'dark' ? LightIcon : DarkIcon,
-      group: 'Settings',
-      run: () => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
+  const runCommand = (id: CommandId) => {
+    if (id === 'new-note') void createNote()
+    else if (id === 'sidebar') setSidebarCollapsed((c) => !c)
+    else if (id === 'properties' && activeNote) setPropertiesOpen((open) => !open)
+    else if (id === 'delete' && activeNote) askDelete(activeNote.id)
+    else if (id === 'theme') setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
+  }
+  const commands = commandMenuActions(menuState, runCommand)
+
+  // What is picked in the glass palette arrives from main, and is done with
+  // the window as it stands then.
+  const runCommandRef = useRef(runCommand)
+  useEffect(() => {
+    runCommandRef.current = runCommand
+  })
+  useEffect(() => {
+    if (!palette) return
+    const offCommand = palette.onCommand((id) => runCommandRef.current(id as CommandId))
+    const offNote = palette.onOpenNote(openNote)
+    return () => {
+      offCommand()
+      offNote()
     }
-  ]
+  }, [palette, openNote])
+  // The window dims under the palette while it shows, as under a dialog.
+  const [paletteShown, setPaletteShown] = useState(false)
+  useEffect(() => palette?.onVisible(setPaletteShown), [palette])
+  const onWindowGlass = useWindowGlassHeld()
+  // A press on the dim only closes the palette. The dim stays, clear, to the
+  // end of the press, or the click would land on whatever is under it once
+  // main has hidden the palette.
+  const [dimPressed, setDimPressed] = useState(false)
+  const pressDim = () => {
+    setDimPressed(true)
+    palette?.close()
+    const release = () => {
+      window.removeEventListener('pointerup', release, true)
+      window.removeEventListener('pointercancel', release, true)
+      // After the click this press makes, which lands on the dim.
+      setTimeout(() => setDimPressed(false))
+    }
+    window.addEventListener('pointerup', release, true)
+    window.addEventListener('pointercancel', release, true)
+  }
 
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-canvas">
-        <div className="text-fg-body text-style-body-sm">Loading…</div>
+      <div className="h-screen flex items-center justify-center bg-bg-canvas">
+        <div className="text-ink-body text-style-body-sm">Loading…</div>
       </div>
     )
   }
@@ -242,27 +283,30 @@ function App() {
   }
 
   const modifier = window.api.platform === 'darwin' ? '⌘' : 'Ctrl+'
-  // On macOS the shell behind everything is the window's own frosted glass
-  // and the page is clear there; elsewhere the shell paints its own surface.
-  const frosted = window.api.platform === 'darwin'
+  // Where the window is the OS's own blur (macOS, Windows 11's acrylic) the
+  // shell behind everything is that and the page is clear there; elsewhere
+  // the shell paints its own surface.
+  const frosted = window.api.frosted
 
   return (
     <div
       ref={shellRef}
       style={sidebarResize.shellStyle}
       className={
-        frosted ? 'relative h-screen flex text-fg' : 'relative h-screen flex bg-surface text-fg'
+        !frosted ? solidShellStyle : paletteShown || onWindowGlass ? shellFadedStyle : shellStyle
       }
     >
       <header
-        data-on-glass=""
-        className={topBar}
+        data-on-glass={sidebarCollapsed ? undefined : ''}
+        className={sidebarCollapsed && !sidebarPeek.peeking ? topBar : topBarOverSidebar}
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
+        {sidebarPeek.peeking && <div data-sidebar-span className={barOverPeek} />}
         <div className={windowControlsGutter ? toggleSlotPastWindowControls : toggleSlotAtEdge}>
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onPointerEnter={sidebarPeek.onToggleEnter}
             className={iconButton}
             style={noDrag}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -274,13 +318,15 @@ function App() {
       </header>
 
       <Sidebar
+        ref={setSidebarElement}
         notes={notes}
         activeId={activeId}
         onSelect={setActiveId}
         onDelete={askDelete}
         onNewNote={createNote}
-        onSearch={() => setCommandMenuOpen(true)}
+        onSearch={openCommandMenu}
         collapsed={sidebarCollapsed}
+        peeking={sidebarPeek.peeking}
         resizing={sidebarResize.resizing}
         footer={
           <>
@@ -306,7 +352,7 @@ function App() {
         />
       )}
 
-      <div className={sidebarCollapsed ? notePane : notePaneBesideRail}>
+      <div className={notePane}>
         <div className="relative flex-1 flex flex-col min-w-0">
           {activeNote && initialDocument ? (
             <main
@@ -327,11 +373,11 @@ function App() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <h2 className="text-style-subheading text-fg-body">Newline</h2>
-                <p className="mt-2 text-style-body-sm text-fg-body/50">
+                <h2 className="text-style-subheading text-ink-body">Newline</h2>
+                <p className="mt-2 text-style-body-sm text-ink-body/50">
                   Select a note or create a new one
                 </p>
-                <p className="mt-1 text-style-caption text-fg-body/50">
+                <p className="mt-1 text-style-caption text-ink-body/50">
                   {modifier}N to create, {modifier}K to search
                 </p>
                 {/* The standalone CTA, in the pill the site's own wears: the
@@ -339,7 +385,7 @@ function App() {
                 <button
                   type="button"
                   onClick={createNote}
-                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-button-secondary text-fg-body hover:bg-button-secondary-hover transition-colors"
+                  className="mt-4 inline-flex items-center justify-center min-w-20 h-10 px-3 rounded-full text-style-body-lg bg-bg-button-secondary-default text-ink-body hover:bg-bg-button-secondary-hover transition-colors"
                 >
                   New note
                 </button>
@@ -370,12 +416,18 @@ function App() {
         onThemeChange={setTheme}
       />
 
-      <CommandMenu
-        open={commandMenuOpen}
-        onClose={() => setCommandMenuOpen(false)}
-        actions={commands}
-        onOpenNote={openNote}
-      />
+      {(paletteShown || dimPressed) && (
+        <div data-palette-backdrop="" className={paletteBackdropStyle} onPointerDown={pressDim} />
+      )}
+
+      {!palette && (
+        <CommandMenu
+          open={commandMenuOpen}
+          onClose={() => setCommandMenuOpen(false)}
+          actions={commands}
+          onOpenNote={openNote}
+        />
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

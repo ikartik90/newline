@@ -1,13 +1,34 @@
-import { app, BrowserWindow, shell, protocol, net, dialog, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, protocol, net, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
+import { release } from 'os'
 import { autoUpdater } from 'electron-updater'
 import { initDatabase, closeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc'
 import { getMediaPath } from './services/media'
 import { onSyncChanged, startSyncScheduler, stopSyncScheduler } from './services/sync'
 import { pathToFileURL } from 'url'
+import {
+  FROSTED_WINDOW_ARG,
+  glassWindowOptions,
+  isFrostedWindow,
+  loadSidebarGlass,
+  requireSidebarGlass
+} from './sidebar-glass'
+import {
+  createCommandPalette,
+  GLASS_PALETTE_ARG,
+  paletteWindowOptions,
+  type CommandPalette,
+  type PaletteState
+} from './command-palette'
+import { createWindowGlass, type WindowGlass } from './window-glass'
 
 let mainWindow: BrowserWindow | null = null
+// The note window's glass command palette, where AppKit has the glass.
+let commandPalette: CommandPalette | null = null
+
+// AppKit's sidebar glass, laid under the page's sidebar; null where there is none.
+const sidebarGlass = loadSidebarGlass(process.platform, requireSidebarGlass)
 
 // The About panel reads the RUNNING bundle's strings, which from source are
 // Electron's own; `productName` in package.json only reaches `app.name`.
@@ -55,6 +76,61 @@ function notifyRendererOfSyncChange(): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('sync:changed')
 }
 
+/** A page of the renderer's: the dev server's in development, the build's otherwise. */
+function loadPage(window: BrowserWindow, page: string): Promise<void> {
+  const devServer = process.env['ELECTRON_RENDERER_URL']
+  return devServer
+    ? window.loadURL(`${devServer}/${page}`)
+    : window.loadFile(join(__dirname, `../renderer/${page}`))
+}
+
+/** The page's fade of its note as the palette comes and goes (App.tsx's shell). */
+const NOTE_FADE_MS = 150
+
+/** Each window's glass over the whole of it, where AppKit has the glass. */
+const windowGlasses = new WeakMap<BrowserWindow, WindowGlass>()
+
+function windowGlassOf(window: BrowserWindow): WindowGlass | null {
+  if (!sidebarGlass) return null
+  const glass = sidebarGlass
+  let held = windowGlasses.get(window)
+  if (!held) {
+    held = createWindowGlass((on) => {
+      if (!window.isDestroyed()) glass.windowGlass(window.getNativeWindowHandle(), on)
+    }, NOTE_FADE_MS + 100)
+    windowGlasses.set(window, held)
+  }
+  return held
+}
+
+/** The glass palette over `parent`, made hidden so ⌘K finds it drawn. */
+function createCommandPaletteFor(parent: BrowserWindow): CommandPalette | null {
+  if (!sidebarGlass) return null
+  const panel = new BrowserWindow({
+    ...paletteWindowOptions(join(__dirname, '../preload/index.js')),
+    parent
+  })
+  sidebarGlass.floatPanel(panel.getNativeWindowHandle())
+  // The window is all glass while the palette shows.
+  const glass = windowGlassOf(parent)
+  void loadPage(panel, 'command-palette.html')
+  return createCommandPalette(parent, panel, (on) => glass?.hold('palette', on))
+}
+
+/** The palette's messages, each answered by the palette of the window it is about. */
+function registerCommandPaletteIpc(): void {
+  ipcMain.on('palette:open', (_event, state: PaletteState) => commandPalette?.open(state))
+  ipcMain.on('palette:height', (_event, height: number) => commandPalette?.setHeight(height))
+  ipcMain.on('palette:run', (_event, id: string) => commandPalette?.run(id))
+  ipcMain.on('palette:pickNote', (_event, note: unknown) => commandPalette?.openNote(note))
+  ipcMain.on('palette:close', () => commandPalette?.close())
+  // A dialog in the page stands on the same glass while it is open.
+  ipcMain.on('window:glass', (event, on: boolean) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) windowGlassOf(window)?.hold('page', on === true)
+  })
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -62,24 +138,35 @@ function createWindow(): void {
     minWidth: 680,
     minHeight: 400,
     show: false,
-    // On macOS the window itself is the frosted sidebar material, and the page
-    // is clear over it except where it paints (the note panel) — see
-    // `html[data-frosted]` in main.css. Electron leaves the web contents
-    // transparent for a vibrant window, so no colour is set there. Elsewhere
-    // Electron's default is white, which flashes on launch and shows through
-    // while resizing in dark mode; these are the two `--bg-canvas` values.
-    ...(process.platform === 'darwin'
-      ? { vibrancy: 'sidebar' as const }
-      : { backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f2123' : '#eef2f6' }),
+    ...glassWindowOptions(
+      process.platform,
+      sidebarGlass,
+      nativeTheme.shouldUseDarkColors,
+      release()
+    ),
     // The OS's own close/minimise/zoom buttons, drawn over the content and
     // centred in the renderer's 48px top bar: 14px tall from y 17, a centre of 24,
     // level with the sidebar toggle that sits past them.
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 16, y: 17 } } : {}),
+    // The click that brings the window forward also reaches the page, so the
+    // toggle under a sidebar peeked at from another app pins it at once.
+    acceptFirstMouse: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      // Where AppKit has the glass, the command menu is the glass palette;
+      // where the window is any blur of the OS's, the page is clear over it.
+      additionalArguments: [
+        ...(sidebarGlass ? [GLASS_PALETTE_ARG] : []),
+        ...(isFrostedWindow(process.platform, release()) ? [FROSTED_WINDOW_ARG] : [])
+      ]
     }
+  })
+  commandPalette = createCommandPaletteFor(mainWindow)
+  mainWindow.on('closed', () => {
+    commandPalette = null
+    mainWindow = null
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -98,17 +185,14 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  if (process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  void loadPage(mainWindow, 'index.html')
 }
 
 app.whenReady().then(() => {
   registerLocalProtocol()
   initDatabase()
-  registerIpcHandlers()
+  registerIpcHandlers(sidebarGlass)
+  registerCommandPaletteIpc()
 
   createWindow()
   // The first cycle pushes whatever was saved while the app was closed and

@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { Dialog } from '@/components/ui/dialog'
 import { useHasCursor } from '@/hooks/use-has-cursor'
-import CrossIcon from '@/assets/icons/cross.svg'
+import CrossIcon from '@/assets/icons/close.svg'
 
 // ---------------------------------------------------------------------------
 // A question before something that cannot be undone with one click — deleting
@@ -67,12 +67,12 @@ interface Answer {
 // Its 12px inset lands the title on the line the row icons sit on (group 4px +
 // row 8px).
 const headerStyle =
-  'flex items-center gap-2 h-10 px-3 border-b-[0.5px] border-divider shrink-0 text-fg-body'
-const titleStyle = 'm-0 p-0 text-style-body-sm text-fg-body [font-weight:inherit] text-balance'
+  'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-ink-body'
+const titleStyle = 'm-0 p-0 text-style-body-sm text-ink-body [font-weight:inherit] text-balance'
 
 // Inset to the header's 12px, so the title, the question and the row icons
 // stand on one line; the list's own padding spaces it from the rows.
-const messageStyle = 'px-3 pt-2 text-style-body-sm text-fg-body/50 text-pretty'
+const messageStyle = 'px-3 pt-2 text-style-body-sm text-ink-body/50 text-pretty'
 
 // `commandList` + `commandGroup`: the column of rows, inset 4px from the panel.
 // The listbox holds the focus — there is no field to hold it — and the rows
@@ -81,13 +81,13 @@ const listStyle = 'flex flex-col gap-1 py-2 px-1 outline-none'
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 const itemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-fg-body aria-selected:bg-field-hover'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-sm cursor-default text-style-body-sm text-ink-body aria-selected:bg-bg-field-hover'
 const iconStyle = 'shrink-0 size-5'
 
 // The row's key, held against the far end of it — the palette's chip, on the
 // wash a hovered row wears so the hint sits at the depth of the thing it hints.
 const hotkeyStyle =
-  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border-[0.5px] border-divider bg-field-hover text-fg-body text-style-caption whitespace-nowrap'
+  'ml-auto flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-bg-field-hover text-ink-body text-style-caption whitespace-nowrap'
 
 export function ConfirmDialog({
   open,
@@ -195,6 +195,7 @@ export function ConfirmDialog({
       align="top-center"
       justify="center"
       size="sm"
+      material="glass"
       aria-label={title}
       aria-describedby={messageId}
       // Into the rows, where the arrows, Enter and the digits are read.

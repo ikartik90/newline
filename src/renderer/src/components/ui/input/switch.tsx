@@ -1,10 +1,9 @@
-import { forwardRef, useEffect, type ButtonHTMLAttributes } from 'react'
-import { Switch as BaseSwitch } from '@base-ui/react/switch'
+import { forwardRef, useEffect, type InputHTMLAttributes } from 'react'
 import { cx, toggleControlClass, useField } from './field'
 
 export interface SwitchProps extends Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  'onChange' | 'type' | 'role' | 'aria-checked' | 'children' | 'value'
+  InputHTMLAttributes<HTMLInputElement>,
+  'onChange' | 'type' | 'role' | 'checked' | 'defaultChecked' | 'children' | 'size'
 > {
   /** Controlled on/off state. */
   checked?: boolean
@@ -23,16 +22,26 @@ export interface SwitchProps extends Omit<
 }
 
 // Track height = thumb + 2·inset, travel = width − 2·inset − thumb, so nothing
-// is arbitrary: lg 48×24 on a 16px thumb, md 40×20 on 12, sm 20×12 on 8.
+// is arbitrary: lg 40×24 on a 16px thumb, md 32×20 on 12, sm 20×12 on 8. The
+// thumb is the track's ::before.
 const GEOMETRY = {
-  lg: { track: 'w-12 h-6', thumb: 'size-4 top-1 left-1 data-[checked]:translate-x-4' },
-  md: { track: 'w-10 h-5', thumb: 'size-3 top-1 left-1 data-[checked]:translate-x-3' },
-  sm: { track: 'w-5 h-3', thumb: 'size-2 top-0.5 left-0.5 data-[checked]:translate-x-2' }
+  lg: {
+    track: 'w-10 h-6',
+    thumb: 'before:size-4 before:top-1 before:left-1 checked:before:translate-x-4'
+  },
+  md: {
+    track: 'w-8 h-5',
+    thumb: 'before:size-3 before:top-1 before:left-1 checked:before:translate-x-3'
+  },
+  sm: {
+    track: 'w-5 h-3',
+    thumb: 'before:size-2 before:top-0.5 before:left-0.5 checked:before:translate-x-2'
+  }
 } as const
 
 /**
- * Toggle switch — the control slot of a `<Field>`. Base UI's Switch.Root drawn
- * as a native button, reading the field context for its id, label association
+ * Toggle switch — the control slot of a `<Field>`. A native checkbox in the
+ * `switch` role, reading the field context for its id, label association
  * and `aria-describedby` wiring; it contributes only what is switch-specific:
  * the on/off state and the track + thumb visuals. Size comes from the field
  * root, so the label typography and the track geometry scale together.
@@ -43,8 +52,8 @@ const GEOMETRY = {
  *   <Field.Label>Wi-Fi</Field.Label>
  * </Field>
  */
-export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
-  { checked, defaultChecked, onCheckedChange, size: sizeProp, className, disabled, ...rest },
+export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
+  { checked, defaultChecked, onCheckedChange, size: sizeProp, className, ...rest },
   ref
 ) {
   const field = useField('Switch')
@@ -62,43 +71,34 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
   const geometry = GEOMETRY[resolved]
 
   return (
-    <BaseSwitch.Root
+    <input
       ref={ref}
+      type="checkbox"
+      role="switch"
       id={controlId}
-      nativeButton
-      render={<button type="button" />}
       // In the tab order explicitly, because WebKit's default one skips a
-      // bare <button> — see `Button`.
+      // checkbox — see `Button`.
       tabIndex={0}
       data-size={resolved}
       checked={checked}
       defaultChecked={defaultChecked}
-      disabled={disabled}
-      onCheckedChange={(next) => onCheckedChange?.(next)}
+      onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
       aria-describedby={hasHint ? hintId : undefined}
       className={cx(
-        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-field',
+        'relative shrink-0 inline-block p-0 m-0 appearance-none cursor-pointer rounded-lg bg-bg-field-default',
         // An inset shadow, NOT a border: a real border is subtracted from the
         // interior, so the thumb would sit half a pixel off centre.
-        'shadow-[inset_0_0_0_0.5px_var(--field-border)] transition-[background-color,box-shadow] duration-150',
-        'aria-checked:bg-field-active aria-checked:shadow-[inset_0_0_0_0.5px_var(--field-border-active)]',
+        'shadow-[inset_0_0_0_0.5px_var(--border-field-default)] transition-[background-color,box-shadow] duration-150',
+        'checked:bg-bg-field-selected checked:shadow-[inset_0_0_0_0.5px_var(--border-field-selected)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
+        'before:absolute before:rounded-full before:bg-ink-field-default before:transition-[transform,background-color] before:duration-150',
+        'checked:before:bg-ink-field-selected',
         geometry.track,
+        geometry.thumb,
         toggleControlClass(field),
         className
       )}
-      // Button attributes onto a part typed for its default <span>; the
-      // element IS a button (see `render`), so the handlers line up at runtime.
-      {...(rest as Omit<BaseSwitch.Root.Props, 'ref'>)}
-    >
-      <BaseSwitch.Thumb
-        aria-hidden
-        className={cx(
-          'absolute rounded-full bg-field-fg transition-[transform,background-color] duration-150',
-          'data-[checked]:bg-field-fg-active',
-          geometry.thumb
-        )}
-      />
-    </BaseSwitch.Root>
+      {...rest}
+    />
   )
 })

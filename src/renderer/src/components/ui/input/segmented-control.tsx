@@ -11,11 +11,12 @@ import { OptionList, type OptionItem } from './option-list'
 //   </Field>
 //
 // Composed rather than drawn. The BOX is the shared toolbar rail at its small
-// size — 28px, no inset, no gap, items squared and the rail clipping the row's
-// ends to its own 4px corner — on the field tone, so it lines up with the text
-// inputs and sliders stacked above it. The OPTIONS are `OptionList`'s, which
-// already paint the active chip for `aria-selected`. The only thing left to
-// say is that the segments stretch.
+// size — 28px, no inset, no gap, no seams, items squared and the rail
+// clipping the row's ends to its own 12px corner, a button's height and corner
+// — on the field tone and rimmed as a field is, so it lines up with the text
+// inputs and sliders stacked above it. The OPTIONS are `OptionList`'s, which already paint the
+// active chip for `aria-selected`. The only thing left to say is that the
+// segments stretch.
 //
 // A LISTBOX, not a toolbar: exactly one option is on and picking a second
 // releases the first, which is `aria-selected` on a `role="listbox"` and gets
@@ -23,30 +24,29 @@ import { OptionList, type OptionItem } from './option-list'
 // ---------------------------------------------------------------------------
 
 /**
- * The 28px rail a segmented row sits in, on the field tone and filling its
- * slot. A gap of none has to mean none wherever the row is actually laid out —
- * the `OptionList` a level down owns the 2px between its options — and the
- * items go square: the rail owns the only corner in the box, and clips to it.
+ * The 28px rail a segmented row sits in, cornered as a button is, on the field
+ * tone, rimmed as a field is and filling its slot; a selected segment keeps the
+ * edge the option list gives its chip, and no seam parts the rest. A gap of none
+ * has to mean none wherever the row is actually laid out — the `OptionList` a
+ * level down owns the 2px between its options — and the items go square: the
+ * rail owns the only corner in the box, and clips to it.
  */
 export const SEGMENTED_RAIL =
-  'flex items-center flex-1 min-w-0 h-(--size-toolbar-button) gap-0 px-0 rounded-sm overflow-hidden ' +
-  'bg-field shadow-[inset_0_0_0_0.5px_var(--field-border)] ' +
+  'flex items-center flex-1 min-w-0 h-(--size-toolbar-button) gap-0 px-0 rounded-lg overflow-hidden ' +
+  'bg-bg-field-default shadow-[inset_0_0_0_0.5px_var(--border-field-default)] ' +
   '[&_:is([role=toolbar],[role=listbox])]:gap-0 [&_:is(button,[role=button])]:rounded-none'
 
 /** The row fills the rail; stretched as well as grown, so the segments inherit a real box. */
 export const SEGMENTED_LIST = 'grow basis-0 min-w-0 self-stretch'
 
 /**
- * A segment takes an equal share of the rail, centres its label and stands
- * the rail's full height. The SEAM between two segments is drawn by the right
- * one of each pair on its leading edge — only where both agree (two off get
- * the resting hairline); where they differ the chip's own fill already divides
- * them, and a line would be a second answer to a question already answered.
+ * A segment takes an equal share of the rail, centres its label and stands the
+ * rail's full height; one neither picked nor pressed (the ToggleBar's toggles
+ * are pressed, not selected) is in the segment ink, and a disabled one keeps
+ * its muted ink.
  */
 export const SEGMENTED_OPTION =
-  'grow basis-0 min-w-0 justify-center self-stretch relative ' +
-  'before:content-[""] before:absolute before:inset-y-0 before:left-0 before:w-[0.5px] before:bg-transparent ' +
-  '[[aria-selected=false]+&[aria-selected=false]]:before:bg-field-border [[aria-pressed=false]+&[aria-pressed=false]]:before:bg-field-border'
+  'grow basis-0 min-w-0 justify-center self-stretch relative not-aria-selected:not-aria-pressed:not-disabled:text-ink-segment-default'
 
 export interface SegmentedControlProps {
   /** The segments, left to right. Two or three — beyond that use a Combobox. */

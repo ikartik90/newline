@@ -1,14 +1,20 @@
 import {
   Children,
+  cloneElement,
   isValidElement,
   useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
   type ReactElement,
-  type ReactNode
+  type ReactNode,
+  type Ref
 } from 'react'
-import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
-import { Tooltip } from './tooltip'
+import { Tooltip, TooltipHostContext, type TooltipHost } from './tooltip'
 
 // ---------------------------------------------------------------------------
 // The parts shared by the two actionable primitives — Button (a <button> that
@@ -23,77 +29,81 @@ export type ActionVariant = 'text' | 'icon' | 'link'
 /**
  * The fill prominence a Button/Link takes, orthogonal to `variant` (the shape).
  * `secondary` is the filled chip; `tertiary` has no resting fill and its own
- * subtler hover wash; `glass` is the translucent, blurred chip for an icon
- * button that floats ON a picture, where there is no surface behind the glyph
- * to hold it down; `primary` is the branded chip for the one action a surface
- * is for.
+ * subtler hover wash; `glass` is the secondary chip at 60%, blurred, for an
+ * icon button that floats ON a picture, where there is no surface behind the
+ * glyph to hold it down; `primary` is the secondary flipped, for the one action
+ * a surface is for.
  */
 export type ActionEmphasis = 'primary' | 'secondary' | 'tertiary' | 'glass'
-
-/**
- * The scale a Button/Link takes, orthogonal to both axes above. `md` is the
- * 40px chip; `sm` the 32px one. Only the `text` shape has two sizes: an icon
- * button has one inset (a smaller icon is a smaller glyph in the same chip),
- * and a link is inline text.
- */
-export type ActionSize = 'md' | 'sm'
 
 export interface ActionStyleOptions {
   variant: ActionVariant
   emphasis: ActionEmphasis
-  size: ActionSize
 }
 
 // Composed icons track the resolved text colour and hold a 20px box.
 const baseStyle =
   'cursor-pointer appearance-none border-none no-underline w-fit transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none [&_svg]:block [&_svg]:size-5 [&_svg]:shrink-0'
 
-// The standalone CTA: a chip that hugs its label with an 80px floor so a short
-// one (Cancel / OK) is still substantial. `md` is the 40px/body-lg chip on a
-// 12px inset; `sm` is 32px/body-sm on 8px — at that height the wider inset
-// reads as a stretched pill rather than a smaller button.
-const textStyle = 'inline-flex items-center justify-center gap-2 min-w-20 rounded-md'
-const textSize: Record<ActionSize, string> = {
-  md: 'h-10 px-3 text-style-body-lg',
-  sm: 'h-8 px-2 text-style-body-sm'
-}
+// The standalone CTA: a 28px/body-sm chip, as tall as an icon button, on an 8px
+// inset that hugs its label, with an 80px floor so a short one (Cancel / OK) is
+// still substantial.
+const textStyle =
+  'inline-flex items-center justify-center gap-2 min-w-20 h-7 px-2 rounded-lg text-style-body-sm'
 const textEmphasis: Record<ActionEmphasis, string> = {
-  primary: 'bg-branded text-fg-branded',
-  secondary: 'bg-button-secondary text-fg-body hover:bg-button-secondary-hover',
-  tertiary: 'bg-transparent text-fg-body hover:bg-field-hover',
-  glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
+  primary:
+    'bg-bg-button-primary-default text-ink-button-primary-default hover:bg-bg-button-primary-hover',
+  // Each emphasis rests in its own ink; an icon beside the label follows it.
+  secondary:
+    'bg-bg-button-secondary-default text-ink-button-secondary-default hover:bg-bg-button-secondary-hover active:bg-bg-button-secondary-pressed',
+  tertiary:
+    'bg-transparent text-ink-button-tertiary-default hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed',
+  glass:
+    'bg-bg-button-secondary-default/60 backdrop-frost text-ink-button-secondary-default hover:bg-bg-button-secondary-hover/60'
 }
 
-// The compact toolbar chip: a 20px glyph on a 4px inset, `color: inherit` so
-// the surface owns the glyph hue. The hover wash is for buttons that are NOT
-// on: an on toggle (`aria-pressed`) wears the brand chip every pressed toggle
+// The compact toolbar chip: a 20px glyph on a 4px inset, cornered as the
+// shell's own sidebar toggle and settings button are, its glyph in its
+// emphasis's ink. The hover wash is for buttons that are NOT
+// on: an on toggle (`aria-pressed`) wears the selected chip every pressed toggle
 // in the system wears, and hover cannot reach past it — the press still can,
 // as a fill rather than the base's scale, since scaling drags a lone glyph off
 // the pixel grid.
 const iconStyle =
-  'relative inline-flex items-center justify-center gap-1 p-1 rounded-sm text-inherit text-style-body-sm active:transform-none active:bg-field-pressed aria-pressed:bg-field-active aria-pressed:text-field-fg-active [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-focus-ring)]'
-const iconEmphasis: Record<ActionEmphasis, string> = {
-  primary: 'bg-branded text-fg-branded',
-  // Tertiary by nature: transparent at rest, the neutral wash on hover.
-  secondary: 'bg-transparent not-aria-pressed:hover:bg-field-hover',
-  tertiary: 'bg-transparent not-aria-pressed:hover:bg-field-hover',
-  // The one chip that floats ON a picture: the surface at 75% and the app's
-  // one blur keep the glyph legible over whatever moves underneath; opaque on
-  // hover, the chip comes forward as you reach for it.
-  glass: 'bg-surface-glass backdrop-frost text-fg-body hover:bg-surface'
+  'relative inline-flex items-center justify-center gap-1 p-1 rounded-xl text-style-body-sm active:transform-none aria-pressed:bg-bg-field-selected aria-pressed:text-ink-field-selected [html[data-keyboard-focus]_&]:focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-outline-focus)]'
+// An icon button is tertiary or glass — never a filled chip.
+type IconEmphasis = Extract<ActionEmphasis, 'tertiary' | 'glass'>
+const iconEmphasis: Record<IconEmphasis, string> = {
+  // Its glyph takes the tertiary ink, as a tertiary text button's label does.
+  tertiary:
+    'bg-transparent not-aria-pressed:hover:bg-bg-button-tertiary-hover active:bg-bg-button-tertiary-pressed not-aria-pressed:text-ink-button-tertiary-default',
+  // The one chip that floats ON a picture, a secondary button at 60% in the
+  // secondary's ink: the app's one blur keeps the glyph legible over whatever
+  // moves underneath.
+  glass:
+    'bg-bg-button-secondary-default/60 backdrop-frost text-ink-button-secondary-default hover:bg-bg-button-secondary-hover/60 active:bg-bg-field-pressed'
 }
 
-// The inline underlined affordance, in the brand ink.
+/**
+ * The emphasis an action wears: `secondary` for text, `tertiary` for an icon. An icon
+ * asked for `primary` or `secondary` gets `tertiary`, since it has only that and glass.
+ */
+export function resolveEmphasis(variant: ActionVariant, emphasis?: ActionEmphasis): ActionEmphasis {
+  if (variant !== 'icon') return emphasis ?? (variant === 'text' ? 'secondary' : 'tertiary')
+  return emphasis === 'glass' ? 'glass' : 'tertiary'
+}
+
+// The inline underlined affordance, in the link's ink.
 const linkStyle =
-  'inline p-0 bg-transparent text-fg-highlight text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
+  'inline p-0 bg-transparent text-ink-link-default text-style-body-sm underline underline-offset-[3px] align-baseline active:transform-none'
 
 /** The Tailwind classes for an action's look — shared by Button and Link. */
-export function actionStyles({ variant, emphasis, size }: ActionStyleOptions): string {
+export function actionStyles({ variant, emphasis }: ActionStyleOptions): string {
   switch (variant) {
     case 'text':
-      return `${baseStyle} ${textStyle} ${textSize[size]} ${textEmphasis[emphasis]}`
+      return `${baseStyle} ${textStyle} ${textEmphasis[emphasis]}`
     case 'icon':
-      return `${baseStyle} ${iconStyle} ${iconEmphasis[emphasis]}`
+      return `${baseStyle} ${iconStyle} ${iconEmphasis[emphasis === 'glass' ? 'glass' : 'tertiary']}`
     case 'link':
       return `${baseStyle} ${linkStyle}`
   }
@@ -172,33 +182,116 @@ export function useActionTooltip(children: ReactNode) {
 }
 
 export interface ActionTooltipHostProps {
-  /** Whether the label is up — the host's own hover state, never Base UI's. */
+  /** Whether the label is up — the host's own hover state. */
   open: boolean
   onClose: () => void
   /** The rendered trigger — the `<button>` or `<a>` itself, ref and all. */
-  trigger: ReactElement
+  trigger: ReactElement<TriggerProps>
   /** The `Tooltip` element found among the children. */
   children: ReactNode
+  /**
+   * Held open beside others (a specimen): a manual popover, since showing a hint
+   * hides every other hint.
+   */
+  held?: boolean
+}
+
+interface TriggerProps {
+  ref?: Ref<HTMLElement>
+  onPointerEnter?: (event: ReactPointerEvent<HTMLElement>) => void
+  onPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void
+  onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void
+}
+
+function setRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === 'function') ref(value)
+  else if (ref) ref.current = value
 }
 
 /**
- * Wraps a trigger and its `Tooltip` in Base UI's tooltip root, which supplies
- * the portal, the positioning and the cursor tracking. The OPEN state stays the
- * host's: Base UI's own hover/focus opening is ignored (it would open on a tap's
- * synthesised mouse events and on keyboard focus, neither of which has a cursor
- * to trail); only its requests to close — Escape — are honoured.
+ * Pairs a trigger with its `Tooltip`: the trigger names the box with
+ * `interestfor`, and the box, a `popover="hint"`, hangs from a point kept at
+ * the cursor. The OPEN state stays the host's: the browser's own interest is
+ * refused (it would open on keyboard focus, which has no cursor to trail);
+ * only its dismissals — Escape, a press outside — are honoured, and a press on
+ * the trigger closes it too.
  */
-export function ActionTooltipHost({ open, onClose, trigger, children }: ActionTooltipHostProps) {
+export function ActionTooltipHost({
+  open,
+  onClose,
+  trigger,
+  children,
+  held = false
+}: ActionTooltipHostProps) {
+  const id = `tooltip-${useId().replace(/[^\w-]/g, '')}`
+  const anchorName = `--${id}`
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const cursorRef = useRef<HTMLDivElement | null>(null)
+  const shown = useRef(false)
+
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box || open === shown.current) return
+    // The trigger as the source: the box hangs from it until a pointer places the cursor point.
+    if (open) box.showPopover({ source: triggerRef.current ?? undefined })
+    else box.hidePopover()
+    shown.current = open
+  }, [open])
+
+  useEffect(() => {
+    const box = boxRef.current
+    if (!box) return
+    const onToggle = (event: Event) => {
+      if ((event as ToggleEvent).newState !== 'closed') return
+      shown.current = false
+      onClose()
+    }
+    const refuse = (event: Event) => event.preventDefault()
+    box.addEventListener('toggle', onToggle)
+    box.addEventListener('interest', refuse)
+    return () => {
+      box.removeEventListener('toggle', onToggle)
+      box.removeEventListener('interest', refuse)
+    }
+  }, [onClose])
+
+  // Written straight to the elements, so trailing the pointer never re-renders.
+  const place = (event: ReactPointerEvent) => {
+    const cursor = cursorRef.current
+    if (!cursor) return
+    cursor.style.left = `${event.clientX}px`
+    cursor.style.top = `${event.clientY}px`
+    boxRef.current?.style.setProperty('position-anchor', anchorName)
+  }
+
+  const { ref, onPointerEnter, onPointerMove, onPointerDown } = trigger.props
+  const host = useMemo<TooltipHost>(
+    () => ({ id, open, anchorName, held, boxRef, cursorRef }),
+    [id, open, anchorName, held]
+  )
   return (
-    <BaseTooltip.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) onClose()
-      }}
-      trackCursorAxis="both"
-    >
-      <BaseTooltip.Trigger render={trigger} />
+    <TooltipHostContext value={host}>
+      {cloneElement(trigger, {
+        interestfor: id,
+        ref: (node: HTMLElement | null) => {
+          triggerRef.current = node
+          setRef(ref, node)
+        },
+        onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => {
+          if (event.pointerType !== 'touch') place(event)
+          onPointerEnter?.(event)
+        },
+        onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+          if (event.pointerType !== 'touch') place(event)
+          onPointerMove?.(event)
+        },
+        onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+          onPointerDown?.(event)
+          onClose()
+        }
+      } as TriggerProps & { interestfor: string })}
       {children}
-    </BaseTooltip.Root>
+    </TooltipHostContext>
   )
 }

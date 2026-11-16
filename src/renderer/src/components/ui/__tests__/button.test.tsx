@@ -1,6 +1,7 @@
 import { createRef } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { actionStyles } from '../action'
 import { Button } from '../button'
 import { Tooltip } from '../tooltip'
 
@@ -100,36 +101,58 @@ describe('Button', () => {
       expect(screen.getByRole('button', { name: 'Close' }).dataset.emphasis).toBe('tertiary')
     })
 
-    it('lets an explicit emphasis override the inferred default', () => {
+    it('lets an icon button be glass, the one other emphasis it has', () => {
       render(
-        <Button variant="icon" emphasis="secondary" aria-label="Close">
+        <Button emphasis="glass" aria-label="Play">
           <svg />
         </Button>
       )
-      expect(screen.getByRole('button', { name: 'Close' }).dataset.emphasis).toBe('secondary')
+      expect(screen.getByRole('button', { name: 'Play' }).dataset.emphasis).toBe('glass')
+    })
+
+    it('never gives an icon button a primary or secondary chip', () => {
+      for (const emphasis of ['primary', 'secondary'] as const) {
+        const { unmount } = render(
+          <Button emphasis={emphasis} aria-label="Close">
+            <svg />
+          </Button>
+        )
+        const button = screen.getByRole('button', { name: 'Close' })
+        expect(button.dataset.emphasis).toBe('tertiary')
+        expect(button.className).not.toContain('bg-bg-button-primary-default')
+        unmount()
+      }
     })
   })
 
-  describe('size', () => {
-    it('defaults a text button to md (the 40px chip)', () => {
+  describe('shape', () => {
+    // As tall as an icon button: a 20px glyph on a 4px inset.
+    it('makes every text button the one 28px body-sm chip', () => {
       render(<Button>Save</Button>)
-      expect(screen.getByRole('button', { name: 'Save' }).dataset.size).toBe('md')
+      const button = screen.getByRole('button', { name: 'Save' })
+      expect(button.className.split(' ')).toContain('h-7')
+      expect(button.className).toContain('text-style-body-sm')
+      expect(button.className).not.toMatch(/\bh-(8|10)\b/)
+      expect(button.dataset.size).toBeUndefined()
     })
 
-    it('takes the 32px chip at size=sm', () => {
-      render(<Button size="sm">Save</Button>)
-      expect(screen.getByRole('button', { name: 'Save' }).dataset.size).toBe('sm')
-    })
-
-    it('keeps the size independent of emphasis', () => {
+    it('corners an icon button as the shell does: 16px, eased into a squircle', () => {
       render(
-        <Button size="sm" emphasis="tertiary">
-          Save
+        <Button aria-label="Close">
+          <svg />
         </Button>
       )
-      const button = screen.getByRole('button', { name: 'Save' })
-      expect(button.dataset.size).toBe('sm')
-      expect(button.dataset.emphasis).toBe('tertiary')
+      const button = screen.getByRole('button', { name: 'Close' })
+      const classes = button.className.split(/\s+/)
+      expect(classes).toContain('rounded-xl')
+      expect(classes).not.toContain('rounded-lg')
+    })
+
+    it('corners a text button at 12px', () => {
+      render(<Button>Save</Button>)
+      const classes = screen.getByRole('button', { name: 'Save' }).className.split(/\s+/)
+      expect(classes).toContain('rounded-lg')
+      expect(classes).not.toContain('rounded-md')
     })
   })
 
@@ -198,5 +221,38 @@ describe('Button', () => {
       fireEvent.pointerEnter(ref.current!, { pointerType: 'mouse' })
       expect(onPointerEnter).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+// An icon button's glyph takes its button's ink, as a text button's label
+// does; pressed, it takes the selected chip's.
+describe('an icon button’s glyph', () => {
+  it('takes the tertiary ink while not pressed, and the secondary’s on a picture', () => {
+    const tertiary = actionStyles({ variant: 'icon', emphasis: 'tertiary' }).split(/\s+/)
+    expect(tertiary).toContain('not-aria-pressed:text-ink-button-tertiary-default')
+    expect(tertiary).toContain('aria-pressed:text-ink-field-selected')
+    expect(tertiary.filter((c) => c.includes('[&_svg]:text-'))).toEqual([])
+    expect(tertiary).not.toContain('text-inherit')
+    const glass = actionStyles({ variant: 'icon', emphasis: 'glass' }).split(/\s+/)
+    expect(glass).toContain('text-ink-button-secondary-default')
+    expect(glass.filter((c) => c.includes('ink-button-glass'))).toEqual([])
+  })
+})
+
+// A text button rests in its own emphasis's ink, its icon with it; the chip on
+// a picture is a secondary button, so it takes the secondary's.
+describe('a text button at rest', () => {
+  it('takes the ink of its own emphasis', () => {
+    const inks = {
+      primary: 'text-ink-button-primary-default',
+      secondary: 'text-ink-button-secondary-default',
+      tertiary: 'text-ink-button-tertiary-default',
+      glass: 'text-ink-button-secondary-default'
+    } as const
+    for (const [emphasis, ink] of Object.entries(inks)) {
+      const classes = actionStyles({ variant: 'text', emphasis: emphasis as keyof typeof inks })
+      expect(classes.split(/\s+/)).toContain(ink)
+      expect(classes).not.toMatch(/ink-(body|control|icon)\b/)
+    }
   })
 })

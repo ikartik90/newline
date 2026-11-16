@@ -54,10 +54,44 @@ if (typeof window !== 'undefined' && typeof window.localStorage?.clear !== 'func
 // touches `window.api.platform` from throwing.
 if (typeof window !== 'undefined' && !('api' in window)) {
   Object.defineProperty(window, 'api', {
-    value: { platform: 'darwin', theme: { setSource: async () => {} } },
+    value: { platform: 'darwin', frosted: true, theme: { setSource: async () => {} } },
     writable: true,
     configurable: true
   })
+}
+
+// jsdom has no top layer. These stand-ins keep the state a test can read — a shown
+// popover matches `[data-test-popover-open]`, a modal dialog is `open` — and leave the
+// placement, the dim and the focus trap to the browser checks.
+if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.showPopover) {
+  HTMLElement.prototype.showPopover = function (this: HTMLElement) {
+    this.setAttribute('data-test-popover-open', '')
+  }
+  HTMLElement.prototype.hidePopover = function (this: HTMLElement) {
+    this.removeAttribute('data-test-popover-open')
+  }
+  HTMLElement.prototype.togglePopover = function (this: HTMLElement) {
+    return this.toggleAttribute('data-test-popover-open')
+  }
+  // jsdom's own sheet hides every `[popover]`: it never matches `:popover-open`.
+  const shown = document.createElement('style')
+  shown.textContent = '[popover][data-test-popover-open] { display: block !important; }'
+  document.head.append(shown)
+}
+
+if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true
+  }
+  HTMLDialogElement.prototype.show = function (this: HTMLDialogElement) {
+    this.open = true
+  }
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement, value?: string) {
+    if (!this.open) return
+    this.open = false
+    if (value !== undefined) this.returnValue = value
+    this.dispatchEvent(new Event('close'))
+  }
 }
 
 beforeEach(() => {

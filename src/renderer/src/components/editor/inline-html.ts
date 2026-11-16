@@ -1,5 +1,6 @@
 import type { InlineNode, Mark } from '@shared/domain/nodes'
 import { sidenoteAnchorName } from '@/utils/sidenotes'
+import { linkMarksOnly } from './marks'
 
 // ---------------------------------------------------------------------------
 // DOM ↔ AST serialisation — the editor's contentEditable blocks hold this HTML
@@ -100,7 +101,11 @@ function inlineRunToHtml(nodes: InlineNode[]): string {
  * add/remove — a CSS counter cannot, because Chromium does not re-resolve
  * `counter()` when a preceding counter element is removed.
  */
-export function inlineNodesToHtml(nodes: InlineNode[], base = 0): string {
+export function inlineNodesToHtml(stored: InlineNode[], base = 0): string {
+  // A note stored before links stood alone may still carry a style on one.
+  const nodes = stored.map((node) =>
+    node.marks ? { ...node, marks: linkMarksOnly(node.marks) } : node
+  )
   let out = ''
   let i = 0
   let noteIndex = 0
@@ -140,7 +145,8 @@ export function domToInlineNodes(el: Node): InlineNode[] {
   function walk(node: Node, marks: Mark[]) {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent ?? ''
-      if (text) nodes.push({ type: 'text', text, ...(marks.length > 0 ? { marks } : {}) })
+      const own = linkMarksOnly(marks)
+      if (text) nodes.push({ type: 'text', text, ...(own.length > 0 ? { marks: own } : {}) })
       return
     }
 

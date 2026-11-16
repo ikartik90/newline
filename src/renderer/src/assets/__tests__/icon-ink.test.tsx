@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import SettingsIcon from '@/assets/icons/settings.svg'
 import TrashIcon from '@/assets/icons/trash.svg'
-import InfoIcon from '@/assets/icons/info.svg'
+import CloseIcon from '@/assets/icons/close.svg'
 
 // ---------------------------------------------------------------------------
 // Icons are authored white and must reach the DOM as `currentColor`, so each
@@ -24,7 +24,7 @@ describe('icon ink', () => {
   it.each([
     ['settings', SettingsIcon],
     ['trash', TrashIcon],
-    ['info', InfoIcon]
+    ['close', CloseIcon]
   ])('%s paints with currentColor, never a literal colour', (_name, Icon) => {
     const { container } = render(<Icon />)
     const svg = container.querySelector('svg')

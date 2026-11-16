@@ -4,7 +4,7 @@ import { isSyntheticPointer } from '@/utils/synthetic-pointer'
 
 // ---------------------------------------------------------------------------
 // The cursor-following positioning engine for a label that trails the pointer
-// — an imperative twin of the Base UI-backed `Tooltip`, for a surface that
+// — an imperative twin of `Tooltip`, for a surface that
 // positions its own box (a hint over a demo, a label hung under a selected
 // tile). Owns POSITIONING only: the consumer owns the `visible` boolean and
 // toggles `data-visible` on the element for the show transition.

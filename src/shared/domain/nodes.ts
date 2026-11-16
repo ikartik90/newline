@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { MediaNodeSchema, type MediaNode } from './media-node'
-import { LinkCardConfigSchema } from './link-card'
 
 export * from './media-node'
 
@@ -134,14 +133,6 @@ export const MetricNodeSchema = z.object({
   indent: z.boolean().optional()
 })
 
-// A link card — a picture, some words and a destination, authored in the
-// properties rail. In kartik.to this is a published component; here it is a
-// block of its own.
-export const LinkCardNodeSchema = z.object({
-  type: z.literal('link_card'),
-  config: LinkCardConfigSchema
-})
-
 // ---------------------------------------------------------------------------
 // BlockNode union — the single source of truth for all valid block types.
 // ---------------------------------------------------------------------------
@@ -155,7 +146,6 @@ export type BulletListItemNode = z.infer<typeof BulletListItemNodeSchema>
 export type CodeBlockNode = z.infer<typeof CodeBlockNodeSchema>
 export type HorizontalRuleNode = z.infer<typeof HorizontalRuleNodeSchema>
 export type MetricNode = z.infer<typeof MetricNodeSchema>
-export type LinkCardNode = z.infer<typeof LinkCardNodeSchema>
 
 export type BlockNode =
   | ParagraphNode
@@ -168,7 +158,6 @@ export type BlockNode =
   | HorizontalRuleNode
   | MediaNode
   | MetricNode
-  | LinkCardNode
 
 export const BlockNodeSchema: z.ZodType<BlockNode> = z.union([
   ParagraphNodeSchema,
@@ -180,8 +169,7 @@ export const BlockNodeSchema: z.ZodType<BlockNode> = z.union([
   CodeBlockNodeSchema,
   HorizontalRuleNodeSchema,
   MediaNodeSchema,
-  MetricNodeSchema,
-  LinkCardNodeSchema
+  MetricNodeSchema
 ])
 
 /** The block types whose `children` are inline text the caret can sit in. */

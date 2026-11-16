@@ -1,16 +1,30 @@
-import { useMemo, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { Popover as BasePopover } from '@base-ui/react/popover'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject
+} from 'react'
+import { createPortal } from 'react-dom'
 import { useDismiss } from '@/hooks/use-dismiss'
 import { scrollBoundary } from '@/hooks/use-scroll-handoff'
+import { choosePlacement } from '@/utils/popover-placement'
 
 // ---------------------------------------------------------------------------
 // Popover — the positioned, dismissable shell behind every floating menu.
 //
-// Base UI supplies the portal and the positioning (flip when there's no room,
-// track the anchor through scroll and resize); the shell supplies the chrome
-// every floating surface shares and the dismiss behaviour (`useDismiss`, so
-// Escape closes one layer at a time across every surface in the app). Mount it
-// to open, unmount it to close — there is no `open` prop, exactly as before.
+// The platform supplies the layering and the positioning: a `popover="manual"`
+// element in the top layer, shown with its anchor as the `source`, so CSS anchor
+// positioning places it (`[data-popover]` in main.css: the side, the 4px gap)
+// and keeps it on the anchor through scroll and resize. Which side and end have
+// room is ours to say (`useAnchoredPlacement`), checked again as it scrolls.
+// The shell supplies the chrome every floating surface shares and the dismiss
+// behaviour (`useDismiss`, so Escape closes one layer at a time across every
+// surface in the app). Mount it to open, unmount it to close — there is no
+// `open` prop.
 //
 // Two anchor modes:
 //   • rect-anchored — pass `rect` (+ optionally `anchorName`); Popover renders
@@ -21,8 +35,9 @@ import { scrollBoundary } from '@/hooks/use-scroll-handoff'
 //     in ARTICLE-relative coordinates (the callers convert). Used by the
 //     selection/link/bullet/number toolbars.
 //   • element-anchored — pass `anchor`: an element, a ref, a function, or a CSS
-//     selector resolved when the popover positions (e.g. the editor's
-//     `[data-slash-anchor]`). Used by the slash menu.
+//     selector, resolved again on every render so the popover follows it to
+//     another element (e.g. the editor's `[data-slash-anchor]`). Used by the
+//     slash menu.
 //
 // The container's `role`/`aria-label` are the caller's, since the shell carries
 // no domain identity.
@@ -93,14 +108,137 @@ export interface PopoverProps {
   children: ReactNode
 }
 
-// The `selectionPopover` recipe: the hairline, the elevation and a clip, on the
-// surface. Fields inside take the on-surface fill. Layout is the caller's — a
-// rail and a column list want different things from the same shell.
+// The `selectionPopover` recipe: the elevation and a clip, on the surface: a sheet, so its
+// fields stand a step up, on surface 2. No edge of its own; cornered as a text button is. Layout
+// is the caller's — a rail and a column list want different things from the same shell.
 const chromeStyle =
-  'bg-surface [--field-bg:var(--field-bg-on-surface)] rounded-md border-[0.5px] border-divider overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)] outline-none'
+  'bg-bg-sheet bg-level-1 rounded-lg overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_var(--shadow-sheet)] outline-none'
 
-/** Base UI's own open/close requests are ignored: `useDismiss` owns dismissal. */
-const keepOpen = () => {}
+/**
+ * A toolbar floating in the shell, as tall as a button: no inset and no gap, its options
+ * cornered as an icon button is, the shell clipping the row's ends. A pressed option is its
+ * chip alone, with no edge.
+ */
+export const POPOVER_TOOLBAR =
+  'flex items-center w-max h-(--size-toolbar-button) gap-0 px-0 ' +
+  '[&_[role=toolbar]]:gap-0 [&_button[aria-pressed=true]]:after:border-0'
+
+/** The space between a popover and its anchor (`[data-popover]`'s margin in main.css). */
+const POPOVER_GAP = 4
+
+function resolveAnchor(anchor: PopoverAnchor | undefined): Element | null {
+  if (anchor === undefined) return null
+  if (typeof anchor === 'string') return document.querySelector(anchor)
+  if (typeof anchor === 'function') return anchor()
+  if (anchor instanceof Element) return anchor
+  return anchor.current
+}
+
+/**
+ * Stands a `[data-popover]` on the side and at the end of its anchor that have
+ * room (`data-placed-side`, `data-placed-align`, which main.css places by), out
+ * of the `data-side` and `data-align` it asks for. Returns `place`, to call as
+ * the popover shows; while `active`, it is placed again within the frame the
+ * anchor scrolls, the window resizes or either of them changes size, so a
+ * popover flipped for want of room comes back as soon as there is room again.
+ * A popover that moves is shown again in that frame.
+ */
+export function useAnchoredPlacement(
+  ref: RefObject<HTMLElement | null>,
+  anchor: () => Element | null | undefined,
+  active: boolean
+): () => void {
+  const anchorOf = useRef(anchor)
+  anchorOf.current = anchor
+
+  const place = useCallback(() => {
+    const el = ref.current
+    const target = anchorOf.current()
+    if (!el || !target) return
+    const { side, align } = el.dataset
+    if (side !== 'top' && side !== 'bottom') return
+    const { side: placedSide, align: placedAlign } = choosePlacement({
+      anchor: target.getBoundingClientRect(),
+      // Untransformed: a menu scales in as it opens.
+      size: { width: el.offsetWidth, height: el.offsetHeight },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      side,
+      align: align === 'start' || align === 'end' ? align : 'center',
+      edge: parseFloat(getComputedStyle(el).getPropertyValue('--popover-edge')) || 4,
+      gap: POPOVER_GAP
+    })
+    if (el.dataset.placedSide === placedSide && el.dataset.placedAlign === placedAlign) return
+    const moved = el.dataset.placedSide !== undefined
+    el.dataset.placedSide = placedSide
+    el.dataset.placedAlign = placedAlign
+    if (!moved) return
+    // Shown again, or the browser lays it out from the scroll as it stood when
+    // it was shown, off its anchor. Hidden and shown in one go, it keeps the focus.
+    const focused = document.activeElement
+    el.hidePopover()
+    el.showPopover({ source: target })
+    if (
+      focused instanceof HTMLElement &&
+      el.contains(focused) &&
+      document.activeElement !== focused
+    )
+      focused.focus({ preventScroll: true })
+  }, [ref])
+
+  useEffect(() => {
+    if (!active) return
+    let frame = 0
+    function schedule(): void {
+      if (!frame)
+        frame = requestAnimationFrame(() => {
+          frame = 0
+          place()
+        })
+    }
+    window.addEventListener('scroll', schedule, { capture: true, passive: true })
+    window.addEventListener('resize', schedule)
+    const resized = new ResizeObserver(schedule)
+    if (ref.current) resized.observe(ref.current)
+    const target = anchorOf.current()
+    if (target) resized.observe(target)
+    return () => {
+      window.removeEventListener('scroll', schedule, { capture: true })
+      window.removeEventListener('resize', schedule)
+      resized.disconnect()
+      cancelAnimationFrame(frame)
+    }
+  }, [active, place, ref])
+
+  return place
+}
+
+/**
+ * Keeps `ref`'s popover shown in the top layer while it is mounted, its implicit
+ * anchor the element `source` finds, and stood where it has room
+ * (`useAnchoredPlacement`). The anchor is fixed when the popover is shown, so a
+ * different one shows it again. Unmounting takes it out of the top layer; it is
+ * never hidden by hand, which would hand the focus back to where it was when the
+ * popover opened.
+ */
+export function useTopLayerPopover(
+  ref: RefObject<HTMLElement | null>,
+  source: () => Element | null
+): void {
+  const shownWith = useRef<Element | null | undefined>(undefined)
+  const [anchor, setAnchor] = useState<Element | null>(null)
+  const place = useAnchoredPlacement(ref, () => shownWith.current, anchor !== null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const next = source()
+    if (shownWith.current === next) return
+    if (shownWith.current !== undefined) el.hidePopover()
+    el.showPopover(next ? { source: next } : undefined)
+    shownWith.current = next
+    place()
+    setAnchor(next)
+  })
+}
 
 export function Popover({
   rect,
@@ -129,14 +267,9 @@ export function Popover({
     dismissOnOutsidePointer
   })
 
-  // A rect positions against the synthesized anchor below; a selector is
-  // resolved lazily so the target need not exist before the popover does.
-  const hasRect = rect !== undefined
-  const resolvedAnchor = useMemo(() => {
-    if (hasRect) return anchorRef
-    if (typeof anchor === 'string') return () => document.querySelector(anchor)
-    return anchor ?? null
-  }, [hasRect, anchor])
+  useTopLayerPopover(containerRef, () =>
+    rect !== undefined ? anchorRef.current : resolveAnchor(anchor)
+  )
 
   return (
     <>
@@ -159,42 +292,31 @@ export function Popover({
           }}
         />
       )}
-      <BasePopover.Root open onOpenChange={keepOpen} modal={false}>
-        <BasePopover.Portal>
-          <BasePopover.Positioner
-            anchor={resolvedAnchor}
-            side={side}
-            align={align}
-            // The 4px the recipe keeps between the rail and its target.
-            sideOffset={4}
-            collisionPadding={4}
-            collisionAvoidance={{ side: 'flip', align: 'shift' }}
-            className="z-50"
-          >
-            {/*
-              A floating menu never takes the focus from what it edits: the
-              selection toolbar acts on a selection that has to stay live in
-              the editor. Where a wheel stops: the surface CLIPS rather than
-              scrolls, and the attribute marks that edge for `useScrollHandoff`.
-            */}
-            <BasePopover.Popup
-              ref={(node) => {
-                containerRef.current = node
-                onContainer?.(node)
-              }}
-              initialFocus={false}
-              finalFocus={false}
-              className={className ? `${chromeStyle} ${className}` : chromeStyle}
-              style={style}
-              role={role}
-              aria-label={ariaLabel}
-              {...scrollBoundary}
-            >
-              {children}
-            </BasePopover.Popup>
-          </BasePopover.Positioner>
-        </BasePopover.Portal>
-      </BasePopover.Root>
+      {createPortal(
+        // A floating menu never takes the focus from what it edits: the
+        // selection toolbar acts on a selection that has to stay live in the
+        // editor, and a manual popover is shown without moving the focus.
+        // Where a wheel stops: the surface CLIPS rather than scrolls, and the
+        // attribute marks that edge for `useScrollHandoff`.
+        <div
+          ref={(node) => {
+            containerRef.current = node
+            onContainer?.(node)
+          }}
+          popover="manual"
+          data-popover=""
+          data-side={side}
+          data-align={align}
+          className={className ? `${chromeStyle} ${className}` : chromeStyle}
+          style={style}
+          role={role}
+          aria-label={ariaLabel}
+          {...scrollBoundary}
+        >
+          {children}
+        </div>,
+        document.body
+      )}
     </>
   )
 }

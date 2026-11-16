@@ -37,9 +37,7 @@ export interface Box {
 const RESTING_SPEED = 0.02
 
 function isInside(point: PointerSample, box: Box): boolean {
-  return (
-    point.x >= box.left && point.x <= box.right && point.y >= box.top && point.y <= box.bottom
-  )
+  return point.x >= box.left && point.x <= box.right && point.y >= box.top && point.y <= box.bottom
 }
 
 /**

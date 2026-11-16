@@ -3,9 +3,9 @@ import {
   ActionText,
   ActionTooltipHost,
   actionStyles,
+  resolveEmphasis,
   useActionTooltip,
   type ActionEmphasis,
-  type ActionSize,
   type ActionVariant
 } from './action'
 import { Tooltip } from './tooltip'
@@ -34,11 +34,10 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   variant?: ActionVariant
   /**
    * Fill prominence, independent of `variant` (the shape). Left unset it
-   * defaults to `secondary` for text links and `tertiary` for icon links.
+   * defaults to `secondary` for text links and `tertiary` for icon links,
+   * which take only `tertiary` or `glass`.
    */
   emphasis?: ActionEmphasis
-  /** The chip's scale — see `Button`. */
-  size?: ActionSize
 }
 
 function LinkRoot(
@@ -46,7 +45,6 @@ function LinkRoot(
     href,
     variant,
     emphasis,
-    size = 'md',
     className,
     children,
     target,
@@ -59,10 +57,10 @@ function LinkRoot(
 ) {
   const { content, hasText, tooltip, hasTooltip, visible, show, hide } = useActionTooltip(children)
   const resolvedVariant = variant ?? (hasText ? 'text' : 'icon')
-  const resolvedEmphasis = emphasis ?? (resolvedVariant === 'text' ? 'secondary' : 'tertiary')
+  const resolvedEmphasis = resolveEmphasis(resolvedVariant, emphasis)
   // Never ship a target="_blank" without the reverse-tabnabbing guard.
   const safeRel = rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)
-  const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis, size })
+  const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis })
 
   const anchor = (
     <a
@@ -73,7 +71,6 @@ function LinkRoot(
       className={className ? `${styles} ${className}` : styles}
       data-variant={resolvedVariant}
       data-emphasis={resolvedEmphasis}
-      data-size={size}
       data-tooltip-visible={visible || undefined}
       onPointerEnter={(event: PointerEvent<HTMLAnchorElement>) => {
         onPointerEnter?.(event)

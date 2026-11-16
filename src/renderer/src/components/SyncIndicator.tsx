@@ -14,8 +14,8 @@ const DOT = 'w-1.5 h-1.5 rounded-full'
 export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
   if (saveState === 'saving') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-fg-body animate-pulse`} />
+      <div className={`${ROW} text-ink-body`}>
+        <div className={`${DOT} bg-ink-body animate-pulse`} />
         Saving…
       </div>
     )
@@ -23,8 +23,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'syncing') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-info animate-pulse`} />
+      <div className={`${ROW} text-ink-body`}>
+        <div className={`${DOT} bg-ink-sync-syncing animate-pulse`} />
         Syncing…
       </div>
     )
@@ -32,8 +32,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'saved') {
     return (
-      <div className={`${ROW} text-fg-body`}>
-        <div className={`${DOT} bg-success`} />
+      <div className={`${ROW} text-ink-body`}>
+        <div className={`${DOT} bg-ink-sync-synced`} />
         Saved
       </div>
     )
@@ -41,8 +41,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'offline') {
     return (
-      <div className={`${ROW} text-warning`}>
-        <div className={`${DOT} bg-warning`} />
+      <div className={`${ROW} text-ink-sync-offline`}>
+        <div className={`${DOT} bg-ink-sync-offline`} />
         Offline
       </div>
     )
@@ -50,8 +50,8 @@ export default function SyncIndicator({ saveState }: SyncIndicatorProps) {
 
   if (saveState === 'error') {
     return (
-      <div className={`${ROW} text-danger`}>
-        <div className={`${DOT} bg-danger`} />
+      <div className={`${ROW} text-ink-sync-error`}>
+        <div className={`${DOT} bg-ink-sync-error`} />
         Sync failed
       </div>
     )

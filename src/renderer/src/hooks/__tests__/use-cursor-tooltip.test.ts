@@ -400,8 +400,10 @@ describe('getAnchoredTooltipPosition', () => {
 
   it('keeps clear of the far edge too', () => {
     expect(
-      getAnchoredTooltipPosition({ left: 0, width: 40, bottom: 300 }, { width: 120, viewportWidth: 1000 })
-        .left
+      getAnchoredTooltipPosition(
+        { left: 0, width: 40, bottom: 300 },
+        { width: 120, viewportWidth: 1000 }
+      ).left
     ).toBe('4px')
   })
 

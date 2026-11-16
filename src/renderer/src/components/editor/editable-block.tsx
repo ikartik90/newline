@@ -1,19 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BlockNode, CodeLanguage, InlineNode } from '@shared/domain/nodes'
 import { CodeLanguageSchema } from '@shared/domain/nodes'
-import type { LinkCardConfig } from '@shared/domain/link-card'
 import { Button } from '@/components/ui/button'
-import { OptionList } from '@/components/ui/input/option-list'
 import { typographyStyles } from '@/components/ui/typography'
-import { MediaObject, mediaObjectRailStyle } from '@/components/media-object'
+import { MediaObject } from '@/components/media-object'
 import { MediaPropertiesPanel } from '@/components/media-properties-panel'
-import { LinkCard } from '@/components/link-card'
-import { LinkCardPropertiesPanel } from '@/components/link-card-properties-panel'
 import { useMediaProperties } from '@/hooks/use-media-properties'
 import type { ToggleableMark } from '@/components/selection-toolbar'
 import { CODE_LANGUAGE_LABELS } from '@/utils/syntax-highlight'
 import TrashIcon from '@/assets/icons/trash.svg'
-import SettingsIcon from '@/assets/icons/settings.svg'
 import {
   domToInlineNodes,
   escapeHtml,
@@ -37,7 +32,6 @@ import {
 } from './caret'
 import { isBlockEmpty, isCaretlessBlock, isListItemType } from './blocks'
 import {
-  articleBlockquoteBodyStyle,
   articleBlockquoteShellStyle,
   articleBlockquoteStyle,
   articleEyebrowShellStyle,
@@ -49,7 +43,6 @@ import {
   editorCodeBlockStyle,
   editorCodeBlockWrapperStyle,
   editorCodeLanguageSelectStyle,
-  editorFurnitureWrapperStyle,
   editorHrShellStyle,
   editorHrStyle,
   editorHrWrapperStyle,
@@ -63,11 +56,11 @@ import {
   editorListItemContentStyle,
   editorListItemShellStyle,
   editorListMarkerButtonStyle,
+  editorListMarkerPeriodStyle,
   editorListMarkerPillStyle,
   editorMetricCaptionStyle,
   editorMetricLabelStyle,
   editorMetricValueStyle,
-  editorShowcaseMediaStyle,
   editorShowcaseStyle,
   editorEyebrowStyle,
   mediaBlockStyles,
@@ -210,9 +203,6 @@ export function EditableBlock({
     // Rides `onChange`'s history debounce like every caption in the editor.
     if (next) onChange(next)
   })
-
-  // The link card's rail, mirroring the media inspector.
-  const [cardPropertiesOpen, setCardPropertiesOpen] = useState(false)
 
   // Keyboard handler for caret-less blocks: arrow keys navigate between
   // blocks, Backspace/Delete removes the block, Enter inserts a paragraph above.
@@ -1072,34 +1062,31 @@ export function EditableBlock({
   if (block.type === 'blockquote') {
     return (
       <div className={articleBlockquoteShellStyle} data-indented={block.indent ? '' : undefined}>
-        <span className="article-blockquote-mark" aria-hidden />
-        <div className={articleBlockquoteBodyStyle}>
-          <blockquote
-            ref={combinedRef as React.RefCallback<HTMLElement>}
-            className={`${editableBaseStyle} ${articleBlockquoteStyle}`}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
-            onKeyUp={handleKeyUp}
-            onPaste={handlePaste}
-            data-placeholder={placeholder}
-            data-block-index={blockIndex}
-            data-empty={isBlockEmpty(block) ? '' : undefined}
-            {...slashAnchorProps}
-          />
-          <cite
-            ref={captionRef}
-            className={editorBlockquoteCaptionStyle}
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="Add citation..."
-            data-block-index={blockIndex}
-            data-empty={!block.caption?.trim() ? '' : undefined}
-            onInput={handleCaptionInput}
-            onKeyDown={handleCaptionKeyDown}
-          />
-        </div>
+        <blockquote
+          ref={combinedRef as React.RefCallback<HTMLElement>}
+          className={`${editableBaseStyle} ${articleBlockquoteStyle}`}
+          contentEditable
+          suppressContentEditableWarning
+          onKeyDown={handleKeyDown}
+          onInput={handleInput}
+          onKeyUp={handleKeyUp}
+          onPaste={handlePaste}
+          data-placeholder={placeholder}
+          data-block-index={blockIndex}
+          data-empty={isBlockEmpty(block) ? '' : undefined}
+          {...slashAnchorProps}
+        />
+        <cite
+          ref={captionRef}
+          className={editorBlockquoteCaptionStyle}
+          contentEditable
+          suppressContentEditableWarning
+          data-placeholder="Add citation..."
+          data-block-index={blockIndex}
+          data-empty={!block.caption?.trim() ? '' : undefined}
+          onInput={handleCaptionInput}
+          onKeyDown={handleCaptionKeyDown}
+        />
       </div>
     )
   }
@@ -1175,59 +1162,6 @@ export function EditableBlock({
   }
 
   // ---------------------------------------------------------------------------
-  // Link card — a picture, some words and a destination, authored in the rail
-  // ---------------------------------------------------------------------------
-
-  if (block.type === 'link_card') {
-    const onConfigChange = (config: LinkCardConfig) => onChange({ ...block, config })
-
-    return (
-      <figure
-        ref={combinedRef as React.RefCallback<HTMLElement>}
-        className={editorShowcaseStyle}
-        data-block-index={blockIndex}
-        data-showcase-block=""
-      >
-        <div className={`${mediaBlockStyles.root} group/cell`}>
-          <div
-            tabIndex={0}
-            data-showcase-media=""
-            data-media-cell=""
-            className={`${mediaBlockStyles.frame} ${editorShowcaseMediaStyle} ${editorFurnitureWrapperStyle}`}
-            ref={showcaseMediaCallbackRef as React.RefCallback<HTMLDivElement>}
-            onKeyDown={handleShowcaseMediaKeyDown}
-          >
-            <LinkCard config={block.config} interactive={false} />
-          </div>
-          <div className={mediaObjectRailStyle}>
-            <OptionList direction="inline">
-              <OptionList.Toolbar aria-label="Link card actions">
-                <OptionList.Option
-                  aria-label="Card properties"
-                  aria-pressed={cardPropertiesOpen}
-                  onClick={() => setCardPropertiesOpen((open) => !open)}
-                >
-                  <SettingsIcon aria-hidden />
-                </OptionList.Option>
-                <OptionList.Option aria-label="Delete card" onClick={onDelete}>
-                  <TrashIcon aria-hidden />
-                </OptionList.Option>
-              </OptionList.Toolbar>
-            </OptionList>
-          </div>
-        </div>
-        {cardPropertiesOpen && (
-          <LinkCardPropertiesPanel
-            config={block.config}
-            onChange={onConfigChange}
-            onDismiss={() => setCardPropertiesOpen(false)}
-          />
-        )}
-      </figure>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
   // List item (numbered or bulleted)
   // ---------------------------------------------------------------------------
 
@@ -1235,7 +1169,10 @@ export function EditableBlock({
     const markerLabel = listLabel ?? '1'
 
     return (
-      <div className={editorListItemShellStyle} data-list-item="">
+      <div
+        className={editorListItemShellStyle[block.type === 'list_item' ? 'numbered' : 'bulleted']}
+        data-list-item=""
+      >
         {block.type === 'list_item' ? (
           <button
             type="button"
@@ -1246,7 +1183,11 @@ export function EditableBlock({
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => onMarkerClick?.(e.currentTarget.getBoundingClientRect())}
           >
-            <span className={editorListMarkerPillStyle}>{markerLabel}</span>
+            {/* Read '1.' and 'a.'; the stored label stays bare. */}
+            <span className={editorListMarkerPillStyle}>
+              {markerLabel}
+              <span className={editorListMarkerPeriodStyle}>.</span>
+            </span>
           </button>
         ) : (
           <button
@@ -1338,7 +1279,7 @@ export function EditableBlock({
     <p
       ref={combinedRef as React.RefCallback<HTMLParagraphElement>}
       className={`${editableBaseStyle} ${typographyStyles({
-        type: 'bodySmall',
+        type: 'prose',
         wrap: align === 'center' ? 'balance' : undefined
       })}`}
       contentEditable

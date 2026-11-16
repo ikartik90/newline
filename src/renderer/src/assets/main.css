@@ -3,19 +3,29 @@
 /* Newline toggles `.dark` on <html> (see hooks/use-theme). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Inter (Rasmus Andersson) and JetBrains Mono, under the OFL beside them in fonts/. */
+/* Overused Grotesk (Bao Nguyen / RandomMaerks), EB Garamond (Georg Duffner, Octavio Pardo) and
+   JetBrains Mono, under the OFL beside them in fonts/. EB Garamond is upright and italic from 400
+   to 800; Overused Grotesk and JetBrains Mono have no italic, so the browser slants the upright. */
 @font-face {
-  font-family: 'Inter';
-  src: url('./fonts/Inter-Variable.woff2') format('woff2');
-  font-weight: 100 900;
+  font-family: 'Overused Grotesk';
+  src: url('./fonts/OverusedGrotesk-Variable.woff2') format('woff2');
+  font-weight: 200 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Inter';
-  src: url('./fonts/Inter-Variable-Italic.woff2') format('woff2');
-  font-weight: 100 900;
+  font-family: 'EB Garamond';
+  src: url('./fonts/EBGaramond-Variable.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('./fonts/EBGaramond-Italic-Variable.woff2') format('woff2');
+  font-weight: 400 800;
   font-style: italic;
   font-display: swap;
 }
@@ -24,6 +34,7 @@
   font-family: 'JetBrains Mono';
   src: url('./fonts/JetBrainsMono-Variable.woff2') format('woff2');
   font-weight: 100 800;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -33,27 +44,78 @@
    the same 8px it means in the source recipes.
 --------------------------------------------------------------------------- */
 @theme {
-  --font-sans: 'Inter', Helvetica, sans-serif;
+  --font-sans: 'Overused Grotesk', Helvetica, sans-serif;
+  /* A note's prose: its paragraphs, list items and quotes. */
+  --font-serif: 'EB Garamond', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --font-weight-medium: 500;
   --font-weight-bold: 550;
 
-  --color-neutral-100: #eef2f6;
-  --color-neutral-200: #d8dde3;
-  --color-neutral-300: #c3cdd7;
-  --color-neutral-400: #a9bfd6;
-  --color-neutral-500: #576675;
-  --color-neutral-600: #414244;
-  --color-neutral-700: #384047;
-  --color-neutral-800: #2e3338;
-  --color-neutral-900: #1f2123;
+  /* Every grey is base: Tailwind's own neutral is turned off. */
+  --color-neutral-*: initial;
 
-  --color-brand-orange: #ffab6f;
-  --color-brand-pink: #ff4d97;
-  /* The bright hue at 15% over its theme's canvas. */
-  --color-brand-rust: color-mix(in srgb, #ffab6f 15%, #1f2123);
-  --color-brand-rosemilk: color-mix(in srgb, #ff4d97 15%, #eef2f6);
+  /* Palettes from palettes.html: ten shades a hue, 50 lightest to 900 darkest,
+     all in oklch. */
+  /* base: hue 0, chroma peaking at 900, lightness 20–95%, min chroma 0.001 */
+  --color-base-50: oklch(95% 0.001 0);
+  --color-base-100: oklch(90.59% 0.001 0);
+  --color-base-200: oklch(81.76% 0.001 0);
+  --color-base-300: oklch(72.94% 0.001 0);
+  --color-base-400: oklch(64.12% 0.001 0);
+  --color-base-500: oklch(55.29% 0.001 0);
+  --color-base-600: oklch(46.47% 0.001 0);
+  --color-base-700: oklch(37.65% 0.001 0);
+  --color-base-800: oklch(28.82% 0.001 0);
+  --color-base-900: oklch(20% 0.001 0);
+
+  /* sky: hue 264, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-sky-50: oklch(95% 0.04 264);
+  --color-sky-100: oklch(90.59% 0.07 264);
+  --color-sky-200: oklch(81.76% 0.13 264);
+  --color-sky-300: oklch(72.94% 0.19 264);
+  --color-sky-400: oklch(64.12% 0.25 264);
+  --color-sky-500: oklch(55.29% 0.208 264);
+  --color-sky-600: oklch(46.47% 0.166 264);
+  --color-sky-700: oklch(37.65% 0.124 264);
+  --color-sky-800: oklch(28.82% 0.082 264);
+  --color-sky-900: oklch(20% 0.04 264);
+
+  /* mint: hue 164, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-mint-50: oklch(95% 0.04 164);
+  --color-mint-100: oklch(90.59% 0.0628 164);
+  --color-mint-200: oklch(81.76% 0.1086 164);
+  --color-mint-300: oklch(72.94% 0.1543 164);
+  --color-mint-400: oklch(64.12% 0.2 164);
+  --color-mint-500: oklch(55.29% 0.168 164);
+  --color-mint-600: oklch(46.47% 0.136 164);
+  --color-mint-700: oklch(37.65% 0.104 164);
+  --color-mint-800: oklch(28.82% 0.072 164);
+  --color-mint-900: oklch(20% 0.04 164);
+
+  /* honey: hue 79.28, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-honey-50: oklch(95% 0.04 79.28);
+  --color-honey-100: oklch(90.59% 0.0628 79.28);
+  --color-honey-200: oklch(81.76% 0.1086 79.28);
+  --color-honey-300: oklch(72.94% 0.1543 79.28);
+  --color-honey-400: oklch(64.12% 0.2 79.28);
+  --color-honey-500: oklch(55.29% 0.168 79.28);
+  --color-honey-600: oklch(46.47% 0.136 79.28);
+  --color-honey-700: oklch(37.65% 0.104 79.28);
+  --color-honey-800: oklch(28.82% 0.072 79.28);
+  --color-honey-900: oklch(20% 0.04 79.28);
+
+  /* candy: hue 11.26, chroma peaking at 400, lightness 20–95%, min chroma 0.04 */
+  --color-candy-50: oklch(95% 0.04 11.26);
+  --color-candy-100: oklch(90.59% 0.0628 11.26);
+  --color-candy-200: oklch(81.76% 0.1086 11.26);
+  --color-candy-300: oklch(72.94% 0.1543 11.26);
+  --color-candy-400: oklch(64.12% 0.2 11.26);
+  --color-candy-500: oklch(55.29% 0.168 11.26);
+  --color-candy-600: oklch(46.47% 0.136 11.26);
+  --color-candy-700: oklch(37.65% 0.104 11.26);
+  --color-candy-800: oklch(28.82% 0.072 11.26);
+  --color-candy-900: oklch(20% 0.04 11.26);
 
   --radius-xs: 2px;
   --radius-sm: 4px;
@@ -61,6 +123,24 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
+  /* AppKit's continuous 16pt corner, a macOS window's, traced as a squircle. */
+  --radius-3xl: 28px;
+
+  /* Named steps for p-md, gap-lg and the rest, beside Tailwind's numeric 4px
+     scale. md is newline's own 6px; from lg up each name holds the size
+     Panda's step below it does, so kartik.to's p-md is p-lg here. */
+  --spacing-3xs: 0.5px;
+  --spacing-2xs: 1px;
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 6px;
+  --spacing-lg: 8px;
+  --spacing-xl: 12px;
+  --spacing-2xl: 16px;
+  --spacing-3xl: 20px;
+  --spacing-4xl: 32px;
+  --spacing-5xl: 40px;
+  --spacing-6xl: 80px;
 
   --breakpoint-md: 820px;
   --breakpoint-lg: 1200px;
@@ -99,81 +179,216 @@
   }
 }
 
+/* Where corner-shape is unknown, a corner meets the straight in a circular
+   arc, which reads rounder than a squircle of the same radius: 0.6 of it
+   looks alike. */
+@supports not (corner-shape: squircle) {
+  :root {
+    --radius-xs: 1px;
+    --radius-sm: 2px;
+    --radius-md: 5px;
+    --radius-lg: 7px;
+    --radius-xl: 10px;
+    --radius-2xl: 12px;
+    --radius-3xl: 17px;
+  }
+}
+
 /* ---------------------------------------------------------------------------
-   Semantic tokens — light values on :root, dark values under .dark. Exposed
-   to utilities through `@theme inline` below so `bg-canvas` resolves at the
+   Primitives — the surface scale, a step apart, that the system tokens below
+   are built on. A shade in light mirrors its dark twin (900 is 50, 800 is
+   100). The inverse is each step in the other theme's shade, for what stands
+   out against the scale: a primary button. The ink scale is the surface
+   scale with its themes swapped, 0 the strongest, and its inverse is each
+   ink in the other theme's shade, for ink on the inverse. The divider scale
+   is solid, each step a shade past the surface step of its number (base 100
+   to 600 in light, mirrored as 800 to 300 in dark), for lines: a divider is
+   0 to 2 as it steps, a field's edge 2. No utility writes them: components write the
+   system tokens.
+--------------------------------------------------------------------------- */
+:root {
+  --bg-0: var(--color-base-50);
+  --bg-1: var(--color-base-100);
+  --bg-2: var(--color-base-200);
+  --bg-3: var(--color-base-300);
+  --bg-4: var(--color-base-400);
+  --bg-inverse-0: var(--color-base-900);
+  --bg-inverse-1: var(--color-base-800);
+  --bg-inverse-2: var(--color-base-700);
+  --bg-inverse-3: var(--color-base-600);
+  --bg-inverse-4: var(--color-base-500);
+  --bg-inverse-5: var(--color-base-400);
+  --bg-inverse-6: var(--color-base-300);
+  --bg-inverse-7: var(--color-base-200);
+  /* The statuses stand on no scale: each a primitive of its own on a palette
+     step, an ink 500 in light and 400 in dark, a fill 100 and 800. */
+  --bg-highlight: var(--color-sky-100);
+  --bg-danger: var(--color-candy-100);
+  --bg-warning: var(--color-honey-100);
+  --bg-success: var(--color-mint-100);
+  --ink-0: var(--color-base-900);
+  --ink-1: var(--color-base-800);
+  --ink-2: var(--color-base-700);
+  --ink-3: var(--color-base-600);
+  --ink-4: var(--color-base-500);
+  --ink-inverse-0: var(--color-base-50);
+  --ink-inverse-1: var(--color-base-100);
+  --ink-inverse-2: var(--color-base-200);
+  --ink-inverse-3: var(--color-base-300);
+  --ink-inverse-4: var(--color-base-400);
+  --ink-highlight: var(--color-sky-500);
+  --ink-danger: var(--color-candy-500);
+  --ink-warning: var(--color-honey-500);
+  --ink-success: var(--color-mint-500);
+  --divider-0: var(--color-base-100);
+  --divider-1: var(--color-base-200);
+  --divider-2: var(--color-base-300);
+  --divider-3: var(--color-base-400);
+  --divider-4: var(--color-base-500);
+  --divider-5: var(--color-base-600);
+  --divider-highlight: var(--color-sky-500);
+}
+
+.dark {
+  --bg-0: var(--color-base-900);
+  --bg-1: var(--color-base-800);
+  --bg-2: var(--color-base-700);
+  --bg-3: var(--color-base-600);
+  --bg-4: var(--color-base-500);
+  --bg-inverse-0: var(--color-base-50);
+  --bg-inverse-1: var(--color-base-100);
+  --bg-inverse-2: var(--color-base-200);
+  --bg-inverse-3: var(--color-base-300);
+  --bg-inverse-4: var(--color-base-400);
+  --bg-inverse-5: var(--color-base-500);
+  --bg-inverse-6: var(--color-base-600);
+  --bg-inverse-7: var(--color-base-700);
+  --bg-highlight: var(--color-sky-800);
+  --bg-danger: var(--color-candy-800);
+  --bg-warning: var(--color-honey-800);
+  --bg-success: var(--color-mint-800);
+  --ink-0: var(--color-base-50);
+  --ink-1: var(--color-base-100);
+  --ink-2: var(--color-base-200);
+  --ink-3: var(--color-base-300);
+  --ink-4: var(--color-base-400);
+  --ink-inverse-0: var(--color-base-900);
+  --ink-inverse-1: var(--color-base-800);
+  --ink-inverse-2: var(--color-base-700);
+  --ink-inverse-3: var(--color-base-600);
+  --ink-inverse-4: var(--color-base-500);
+  --ink-highlight: var(--color-sky-400);
+  --ink-danger: var(--color-candy-400);
+  --ink-warning: var(--color-honey-400);
+  --ink-success: var(--color-mint-400);
+  --divider-0: var(--color-base-800);
+  --divider-1: var(--color-base-700);
+  --divider-2: var(--color-base-600);
+  --divider-3: var(--color-base-500);
+  --divider-4: var(--color-base-400);
+  --divider-5: var(--color-base-300);
+  --divider-highlight: var(--color-sky-400);
+}
+
+/* ---------------------------------------------------------------------------
+   System tokens — light values on :root, dark values under .dark. Exposed
+   to utilities through `@theme inline` below so `bg-bg-canvas` resolves at the
    element and follows the theme.
 --------------------------------------------------------------------------- */
 :root {
   /* Native chrome — the pre-CSS canvas, form controls, scrollbars. */
   color-scheme: light;
 
-  /* The note pane and the notes rail are a plain neutral grey, without the
-     cool cast of the scale; the rail a step darker than the pane, as it is a
-     step lighter in the dark theme. Its ground is its own, apart from the
-     surfaces popovers and dialogs stand on. */
-  --bg-canvas: #f5f5f5;
-  --bg-surface: var(--color-neutral-200);
-  --bg-sidebar: #e8e8e8;
-  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-200) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 15%, var(--color-neutral-200));
-  --bg-item-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --bg-list-marker: var(--color-neutral-200);
-  --bg-selection: var(--color-brand-orange);
-  --bg-highlight: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
-  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  /* A gradient: use with `background`, never `background-color`. */
-  --bg-branded-emphasis: linear-gradient(
-    135deg,
-    var(--color-brand-orange) 0%,
-    var(--color-brand-pink) 60%
-  );
+  /* The canvas is surface 0 and every sheet — the sidebar, a dialog, a
+     popover, a toolbar — surface 1. Whatever stands on a surface takes the
+     next step up: a field on the canvas is surface 1, on a sheet surface 2
+     (`bg-level-*` below). The themes change only the scale, so the
+     names over it are written once, here. */
+  --bg-canvas: var(--bg-0);
+  --bg-sheet: var(--bg-1);
+  /* The prose's highlight mark, and a text selection, which reads like it. */
+  --bg-mark-default: var(--bg-highlight);
+  /* The swiped-open delete on a note's row. */
+  --bg-row-delete: var(--bg-danger);
+  /* A scrollbar's thumb: a step up under the pointer, two pressed. */
+  --bg-scrollbar-thumb-default: var(--bg-1);
+  --bg-scrollbar-thumb-hover: var(--bg-2);
+  --bg-scrollbar-thumb-pressed: var(--bg-3);
+  --bg-button-primary-default: var(--bg-inverse-1);
+  --bg-button-primary-hover: var(--bg-inverse-2);
+  --bg-button-secondary-default: var(--bg-1);
+  --bg-button-secondary-hover: var(--bg-2);
+  --bg-button-tertiary-hover: var(--bg-1);
+  --bg-button-tertiary-pressed: var(--bg-2);
 
-  --fg-default: var(--color-neutral-700);
-  --fg-title: var(--color-neutral-900);
-  --fg-body: var(--color-neutral-500);
-  --fg-branded: var(--color-neutral-900);
-  --fg-selection: var(--color-neutral-900);
-  --fg-highlight: var(--color-brand-pink);
+  --ink-body: var(--ink-1);
+  /* A note's paragraphs and list items (text-style-prose): one step softer than body ink. */
+  --ink-prose: var(--ink-2);
+  /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --ink-body. */
+  --ink-sidebar: var(--ink-3);
+  /* A list's numbers, letters, bullets and icons. */
+  --ink-list-marker: var(--ink-2);
+  --ink-title: var(--ink-0);
+  /* A component's ink, its icons' as well as its text's, on every surface. */
+  --ink-button-primary-default: var(--ink-inverse-1);
+  --ink-button-secondary-default: var(--ink-2);
+  --ink-button-tertiary-default: var(--ink-2);
+  /* A segment not picked, in a segmented control or a toggle bar. */
+  --ink-segment-default: var(--ink-2);
+  --ink-tooltip-default: var(--ink-2);
+  /* What is inked in the highlight: a link, a sidenote's number, code's
+     accent, an eyebrow, a metric and the highlight mark. */
+  --ink-link-default: var(--ink-highlight);
+  --ink-sidenote-marker: var(--ink-highlight);
+  --ink-code-accent: var(--ink-highlight);
+  --ink-eyebrow: var(--ink-highlight);
+  --ink-metric: var(--ink-highlight);
+  --ink-mark-default: var(--ink-highlight);
 
-  /* Status inks. kartik.to has no success/warning/danger family — it paints
-     every notice in the brand gradient — but sync state has to say WHICH state
-     it is, so these are newline's own. Each is chosen to clear 4.5:1 on its
-     own canvas, which no Tailwind default does: every stock hue is tuned for a
-     dark ground and lands between 1.5:1 and 3.4:1 on ours. Used as ink and as
-     the status dot's fill, so `text-*` and `bg-*` both resolve. */
-  --fg-danger: #b3123a;
-  --fg-warning: #8a5300;
-  --fg-success: #0d6b4f;
-  --fg-info: #1b4fd8;
+  /* An error said in words, a row's delete in its words, and the sync status in
+     its state, its dot and its words. kartik.to has no status family; sync has to say which state it is in. */
+  --ink-error: var(--ink-danger);
+  --ink-row-delete: var(--ink-danger);
+  --ink-sync-syncing: var(--ink-highlight);
+  --ink-sync-synced: var(--ink-success);
+  --ink-sync-offline: var(--ink-warning);
+  --ink-sync-error: var(--ink-danger);
 
-  /* Syntax highlighting needs TWO accents per theme; the brand has one. The
-     primary role takes `--fg-highlight`; this is the second, legible on
-     `--bg-surface` (the code block's ground) rather than on the canvas. */
-  --fg-syntax-secondary: #8a4b00;
+  /* A shade past the ground it is drawn on: divider 0 on the canvas, 1 on a
+     sheet, 2 on a shell. */
+  --border-divider: var(--divider-0);
+  --outline-focus: var(--divider-highlight);
 
-  --border-divider: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --border-image-outline: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
-  --border-focus-ring: var(--color-brand-pink);
+  /* What a floating sheet casts: the colour of the canvas it floats over. */
+  --shadow-sheet: var(--bg-0);
 
-  --field-bg: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
-  --field-bg-active: var(--color-brand-rosemilk);
-  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-pink) 15%, transparent);
-  --field-bg-popover: var(--color-brand-rosemilk);
-  --field-bg-selected: color-mix(in srgb, var(--color-neutral-600) 15%, transparent);
-  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
-  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-pink) 10%, transparent);
-  --field-border: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
-  --field-fg: var(--color-neutral-600);
-  --field-fg-muted: color-mix(in srgb, var(--color-neutral-600) 50%, var(--color-neutral-200));
-  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-600) 25%, transparent);
-  --field-fg-active: var(--color-brand-pink);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-pink) 25%, transparent);
+  --bg-field-default: var(--bg-1);
+  --bg-field-selected: var(--bg-highlight);
+  --bg-field-focus: var(--bg-highlight);
+  --bg-field-hover: var(--bg-1);
+  --bg-field-pressed: var(--bg-2);
+  /* A shell — a chip, a note's row — stands a step above its ground: its fill
+     and hover one step up, selected two. */
+  --bg-shell-default: var(--bg-1);
+  --bg-shell-hover: var(--bg-1);
+  --bg-shell-selected: var(--bg-2);
+  --border-field-default: var(--divider-2);
+  --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  /* A line in the highlight: a quote's rule, a link's underline as it grows,
+     the sidebar's resize line, an upload's progress sweep. */
+  --border-quote: var(--divider-highlight);
+  --border-link-hover: var(--divider-highlight);
+  --border-resize-handle-hover: var(--divider-highlight);
+  --border-progress: var(--divider-highlight);
+  /* A control's text is the secondary button's, ink 1; its softer shades follow it. */
+  --ink-field-default: var(--ink-1);
+  --ink-field-muted: var(--ink-4);
+  --ink-field-placeholder: color-mix(in srgb, var(--ink-1) 25%, transparent);
+  /* A picked option's ink and a focused field's: the highlight. */
+  --ink-field-selected: var(--ink-highlight);
+  --ink-field-focus: var(--ink-highlight);
+  --ink-field-placeholder-focus: color-mix(in srgb, var(--ink-highlight) 25%, transparent);
 
   --opacity-hairline: 0.25;
 
@@ -182,9 +397,15 @@
   --size-article-showcase: 960px;
   --size-toolbar-button: 28px;
   --size-list-marker: 24px;
-  --size-list-bullet: 8px;
+  /* An item's first line, text-style-prose's line: the marker box's height. */
+  --size-list-marker-line: 1.75rem;
+  --size-list-bullet: 4px;
+  /* The slot a numbered marker's period hangs in, at the marker column's end. */
+  --size-list-marker-period: 5px;
+  /* From the column's end to the middle of a number's ones digit, a digit
+     being 1ch in the column's tabular figures. Resolved where it is used. */
+  --size-list-marker-ones: calc(var(--size-list-marker-period) + 0.5ch);
   --size-list-bullet-glyph: 20px;
-  --size-quote-mark: 52px;
   --size-tooltip-icon: 14px;
   --size-sidenote-width: 320px;
   --size-sidenote-offset: 100px;
@@ -218,107 +439,139 @@
 .dark {
   color-scheme: dark;
 
-  /* Plain neutral greys, as in the light theme. */
-  --bg-canvas: #191919;
-  --bg-surface: var(--color-neutral-800);
-  --bg-sidebar: #262626;
-  --bg-surface-glass: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
-  --bg-surface-raised: color-mix(in srgb, var(--color-neutral-500) 25%, var(--color-neutral-800));
-  --bg-notice: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --bg-list-marker: var(--color-neutral-800);
-  --bg-selection: var(--color-brand-pink);
-  --bg-highlight: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
-  --bg-button-secondary: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --bg-button-secondary-hover: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --bg-branded-emphasis: linear-gradient(
-    135deg,
-    var(--color-brand-pink) 0%,
-    var(--color-brand-orange) 60%
-  );
-
-  --fg-default: var(--color-neutral-200);
-  --fg-title: var(--color-neutral-100);
-  --fg-body: var(--color-neutral-400);
-  --fg-highlight: var(--color-brand-orange);
-
-  --fg-danger: #ff9aa8;
-  --fg-warning: #ffc766;
-  --fg-success: #5fd6a8;
-  --fg-info: #8fb6ff;
-
-  --fg-syntax-secondary: var(--color-brand-orange);
-
-  --border-divider: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --border-image-outline: color-mix(in srgb, var(--color-neutral-100) 10%, transparent);
-  --border-focus-ring: var(--color-brand-orange);
-
-  --field-bg: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-on-surface: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
-  --field-bg-active: var(--color-brand-rust);
-  --field-bg-active-veil: color-mix(in srgb, var(--color-brand-orange) 15%, transparent);
-  --field-bg-popover: var(--color-brand-rust);
-  --field-bg-selected: color-mix(in srgb, var(--color-neutral-400) 15%, transparent);
-  --field-bg-hover: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
-  --field-bg-pressed: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
-  --field-bg-hover-brand: color-mix(in srgb, var(--color-brand-orange) 5%, transparent);
-  --field-border: color-mix(in srgb, var(--color-neutral-500) 50%, transparent);
-  --field-border-active: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
-  --field-fg: var(--color-neutral-400);
-  --field-fg-muted: color-mix(in srgb, var(--color-neutral-400) 50%, var(--color-neutral-800));
-  --field-fg-placeholder: color-mix(in srgb, var(--color-neutral-400) 25%, transparent);
-  --field-fg-active: var(--color-brand-orange);
-  --field-fg-active-muted: color-mix(in srgb, var(--color-brand-orange) 25%, transparent);
+  --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
+  --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
 
   --opacity-hairline: 0.5;
 }
 
 @theme inline {
-  --color-canvas: var(--bg-canvas);
-  --color-surface: var(--bg-surface);
-  --color-sidebar: var(--bg-sidebar);
-  --color-surface-glass: var(--bg-surface-glass);
-  --color-surface-raised: var(--bg-surface-raised);
-  --color-item-hover: var(--bg-item-hover);
-  --color-notice: var(--bg-notice);
-  --color-list-marker: var(--bg-list-marker);
-  --color-selection: var(--bg-selection);
-  --color-highlight: var(--bg-highlight);
-  --color-button-secondary: var(--bg-button-secondary);
-  --color-button-secondary-hover: var(--bg-button-secondary-hover);
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-sheet: var(--bg-sheet);
+  --color-bg-mark-default: var(--bg-mark-default);
+  --color-bg-row-delete: var(--bg-row-delete);
+  --color-bg-scrollbar-thumb-default: var(--bg-scrollbar-thumb-default);
+  --color-bg-scrollbar-thumb-hover: var(--bg-scrollbar-thumb-hover);
+  --color-bg-scrollbar-thumb-pressed: var(--bg-scrollbar-thumb-pressed);
+  --color-bg-button-primary-default: var(--bg-button-primary-default);
+  --color-bg-button-primary-hover: var(--bg-button-primary-hover);
+  --color-bg-button-secondary-default: var(--bg-button-secondary-default);
+  --color-bg-button-secondary-hover: var(--bg-button-secondary-hover);
+  /* Set on the glass alone; elsewhere a press keeps the hover. */
+  --color-bg-button-secondary-pressed: var(
+    --bg-button-secondary-pressed,
+    var(--bg-button-secondary-hover)
+  );
+  --color-bg-button-tertiary-hover: var(--bg-button-tertiary-hover);
+  --color-bg-button-tertiary-pressed: var(--bg-button-tertiary-pressed);
+  /* Set on the glass alone, the one ground the avatar stands on. */
+  --color-bg-avatar-default: var(--bg-avatar-default);
 
-  --color-fg: var(--fg-default);
-  --color-fg-title: var(--fg-title);
-  --color-fg-body: var(--fg-body);
-  --color-fg-branded: var(--fg-branded);
-  --color-fg-selection: var(--fg-selection);
-  --color-fg-highlight: var(--fg-highlight);
+  --color-ink-body: var(--ink-body);
+  --color-ink-prose: var(--ink-prose);
+  --color-ink-title: var(--ink-title);
+  --color-ink-button-primary-default: var(--ink-button-primary-default);
+  --color-ink-button-secondary-default: var(--ink-button-secondary-default);
+  --color-ink-button-tertiary-default: var(--ink-button-tertiary-default);
+  --color-ink-segment-default: var(--ink-segment-default);
+  --color-ink-tooltip-default: var(--ink-tooltip-default);
+  --color-ink-link-default: var(--ink-link-default);
+  --color-ink-sidenote-marker: var(--ink-sidenote-marker);
+  --color-ink-code-accent: var(--ink-code-accent);
+  --color-ink-eyebrow: var(--ink-eyebrow);
+  --color-ink-metric: var(--ink-metric);
+  --color-ink-mark-default: var(--ink-mark-default);
 
-  --color-danger: var(--fg-danger);
-  --color-warning: var(--fg-warning);
-  --color-success: var(--fg-success);
-  --color-info: var(--fg-info);
-  --color-syntax-secondary: var(--fg-syntax-secondary);
+  --color-ink-error: var(--ink-error);
+  --color-ink-row-delete: var(--ink-row-delete);
+  --color-ink-sync-syncing: var(--ink-sync-syncing);
+  --color-ink-sync-synced: var(--ink-sync-synced);
+  --color-ink-sync-offline: var(--ink-sync-offline);
+  --color-ink-sync-error: var(--ink-sync-error);
 
-  --color-divider: var(--border-divider);
-  --color-image-outline: var(--border-image-outline);
-  --color-focus-ring: var(--border-focus-ring);
+  --color-border-divider: var(--border-divider);
+  --color-outline-focus: var(--outline-focus);
 
-  --color-field: var(--field-bg);
-  --color-field-on-surface: var(--field-bg-on-surface);
-  --color-field-active: var(--field-bg-active);
-  --color-field-active-veil: var(--field-bg-active-veil);
-  --color-field-popover: var(--field-bg-popover);
-  --color-field-selected: var(--field-bg-selected);
-  --color-field-hover: var(--field-bg-hover);
-  --color-field-pressed: var(--field-bg-pressed);
-  --color-field-hover-brand: var(--field-bg-hover-brand);
-  --color-field-border: var(--field-border);
-  --color-field-border-active: var(--field-border-active);
-  --color-field-fg: var(--field-fg);
-  --color-field-fg-muted: var(--field-fg-muted);
-  --color-field-fg-placeholder: var(--field-fg-placeholder);
-  --color-field-fg-active: var(--field-fg-active);
-  --color-field-fg-active-muted: var(--field-fg-active-muted);
+  --color-bg-field-default: var(--bg-field-default);
+  --color-bg-field-selected: var(--bg-field-selected);
+  --color-bg-field-focus: var(--bg-field-focus);
+  --color-bg-shell-default: var(--bg-shell-default);
+  --color-bg-shell-hover: var(--bg-shell-hover);
+  --color-bg-shell-selected: var(--bg-shell-selected);
+  --color-bg-field-hover: var(--bg-field-hover);
+  --color-bg-field-pressed: var(--bg-field-pressed);
+  --color-border-field-default: var(--border-field-default);
+  --color-border-field-selected: var(--border-field-selected);
+  --color-border-field-focus: var(--border-field-focus);
+  --color-border-quote: var(--border-quote);
+  --color-border-link-hover: var(--border-link-hover);
+  --color-border-resize-handle-hover: var(--border-resize-handle-hover);
+  --color-border-progress: var(--border-progress);
+  --color-ink-field-default: var(--ink-field-default);
+  --color-ink-field-muted: var(--ink-field-muted);
+  --color-ink-field-placeholder: var(--ink-field-placeholder);
+  --color-ink-field-selected: var(--ink-field-selected);
+  --color-ink-field-focus: var(--ink-field-focus);
+  --color-ink-field-placeholder-focus: var(--ink-field-placeholder-focus);
+}
+
+/* A surface at level n stands what is on it — a secondary button, a field,
+   a hovered item — on surface n + 1, and a button's hover or a press on n + 2;
+   a primary button takes the same steps on the inverse. A sheet is
+   level 1, a shell on it level 2; each reassigns the variables the utilities
+   read, so its children pick the step up wherever they are. */
+@utility bg-level-1 {
+  --bg-button-primary-default: var(--bg-inverse-2);
+  --bg-button-primary-hover: var(--bg-inverse-3);
+  --bg-button-secondary-default: var(--bg-2);
+  --bg-button-secondary-hover: var(--bg-3);
+  --bg-button-tertiary-hover: var(--bg-2);
+  --bg-button-tertiary-pressed: var(--bg-3);
+  --bg-field-default: var(--bg-2);
+  --bg-field-hover: var(--bg-2);
+  --bg-field-pressed: var(--bg-3);
+  --bg-shell-default: var(--bg-2);
+  --bg-shell-hover: var(--bg-2);
+  --bg-shell-selected: var(--bg-3);
+  --border-divider: var(--divider-1);
+}
+@utility bg-level-2 {
+  --bg-button-primary-default: var(--bg-inverse-3);
+  --bg-button-primary-hover: var(--bg-inverse-4);
+  --bg-button-secondary-default: var(--bg-3);
+  --bg-button-secondary-hover: var(--bg-4);
+  --bg-button-tertiary-hover: var(--bg-3);
+  --bg-button-tertiary-pressed: var(--bg-4);
+  --bg-field-default: var(--bg-3);
+  --bg-field-hover: var(--bg-3);
+  --bg-field-pressed: var(--bg-4);
+  --border-divider: var(--divider-2);
+}
+
+/* On macOS a sheet's ground is AppKit's glass (`html[data-frosted]`). A
+   secondary button on it rests in inverse 7 at 15%, hovers in inverse 5 at
+   15% and presses in inverse 3 at 15%; a tertiary hovers and presses as the
+   secondary does; a primary keeps its solid fill, for its flipped ink. The
+   avatar's disc is the secondary's rest, and a divider is divider 3 at 15%. No field stands on the glass: what borrows a field's hover and
+   press steps as a shell does, and a picked option is a selected shell. In the
+   utilities layer, where it outranks the level by specificity. */
+@layer utilities {
+  html[data-frosted] [data-on-glass].bg-level-1 {
+    --bg-avatar-default: color-mix(in srgb, var(--bg-inverse-7) 15%, transparent);
+    --bg-button-secondary-default: color-mix(in srgb, var(--bg-inverse-7) 15%, transparent);
+    --bg-button-secondary-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-button-secondary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    --bg-button-tertiary-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-button-tertiary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    --bg-field-hover: var(--bg-shell-hover);
+    --bg-field-pressed: var(--bg-shell-selected);
+    --bg-field-selected: var(--bg-shell-selected);
+    /* A shell's hover and selected on the glass: the primary's scale at 15%. */
+    --bg-shell-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
+    --bg-shell-selected: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    /* A line on the glass lets it show through: divider 3 at 15%. */
+    --border-divider: color-mix(in srgb, var(--divider-3) 15%, transparent);
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -348,6 +601,13 @@
   font-size: 0.875rem;
   line-height: 1.72;
 }
+/* A note's paragraphs and list items, set in the serif. */
+@utility text-style-prose {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
 /* The sidebar's labels: a point smaller than body small, on its line. */
 @utility text-style-sidebar {
   font-family: var(--font-sans);
@@ -356,10 +616,10 @@
   line-height: calc(0.875rem * 1.72);
 }
 @utility text-style-quote {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-weight: 400;
-  font-size: 1.25rem;
-  line-height: 1.8;
+  font-size: 1.375rem;
+  line-height: 2rem;
 }
 @utility text-style-caption {
   font-family: var(--font-sans);
@@ -381,7 +641,8 @@
 }
 @utility text-style-inline-code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 @utility text-style-code {
   font-family: var(--font-mono);
@@ -389,23 +650,89 @@
   line-height: 1.72;
 }
 
-/* Brand gradient as ink — the sidenote ordinal, the metric value. */
-@utility text-branded {
-  background: var(--bg-branded-emphasis);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-@utility bg-branded {
-  background: var(--bg-branded-emphasis);
-}
-/* Corners that ease into the straight (a squircle) rather than a circular
-   arc; pair with a rounded-* radius. */
-@utility squircle {
+/* Every radius token eases into the straight, a squircle, rather than
+   meeting it in a circular arc. Each rounded-* below adds the shape beside
+   Tailwind's own rule, and only for a --radius-* step: rounded-full stays a
+   circle, and a radius written by hand stays as written. */
+@utility rounded-* {
+  border-radius: --value(--radius-*);
   corner-shape: squircle;
 }
-/* The app's one blur strength. */
+@utility rounded-s-* {
+  border-start-start-radius: --value(--radius-*);
+  border-end-start-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-e-* {
+  border-start-end-radius: --value(--radius-*);
+  border-end-end-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-t-* {
+  border-top-left-radius: --value(--radius-*);
+  border-top-right-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-r-* {
+  border-top-right-radius: --value(--radius-*);
+  border-bottom-right-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-b-* {
+  border-bottom-right-radius: --value(--radius-*);
+  border-bottom-left-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-l-* {
+  border-top-left-radius: --value(--radius-*);
+  border-bottom-left-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-ss-* {
+  border-start-start-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-se-* {
+  border-start-end-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-ee-* {
+  border-end-end-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-es-* {
+  border-end-start-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-tl-* {
+  border-top-left-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-tr-* {
+  border-top-right-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-br-* {
+  border-bottom-right-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+@utility rounded-bl-* {
+  border-bottom-left-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+/* The glass's stand-in where AppKit's is absent (the command menu, when it
+   cannot be the glass palette): the sheet, part let through, over a blur of
+   the page behind it, as strong as AppKit's glass. Solid where the
+   backdrop cannot be blurred. */
+@utility frosted-sheet {
+  background-color: color-mix(in srgb, var(--bg-sheet) 72%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--bg-sheet);
+  }
+}
+/* The blur of what veils the page: a dialog's backdrop, a chip on a picture. */
 @utility backdrop-frost {
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -418,24 +745,28 @@
 --------------------------------------------------------------------------- */
 @utility inline-code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
-  background: var(--bg-surface);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  background: var(--bg-sheet);
   padding-inline: 4px;
-  padding-block: 2px;
-  border-radius: var(--radius-sm);
+  /* An inline box fills the font's own height (JetBrains Mono's 1.32em), not its line:
+     the padding gives back the difference, so the fill is the 16px line and 2px either side. */
+  padding-block: calc(2px - (1.32em - 1rem) / 2);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
 }
 
 /* The underline is two stacked background bars, not text-decoration, so the
-   hover state can be the brand gradient. */
+   hover can grow the highlight bar over the muted one. */
 @utility article-link {
   text-decoration-line: none;
-  color: var(--fg-default);
+  color: var(--ink-body);
   padding-bottom: 2px;
   background-image:
-    var(--bg-branded-emphasis),
+    linear-gradient(var(--border-link-hover), var(--border-link-hover)),
     linear-gradient(
-      color-mix(in srgb, var(--fg-body) 50%, transparent),
-      color-mix(in srgb, var(--fg-body) 50%, transparent)
+      color-mix(in srgb, var(--ink-body) 50%, transparent),
+      color-mix(in srgb, var(--ink-body) 50%, transparent)
     );
   background-repeat: no-repeat;
   background-position: 0 100%;
@@ -448,7 +779,7 @@
     color 150ms ease,
     background-size 150ms ease;
   &:hover {
-    color: var(--fg-title);
+    color: var(--ink-title);
     background-size:
       100% 1px,
       100% 1px;
@@ -465,10 +796,10 @@
   text-decoration-line: line-through;
 }
 
-/* The brand accent at 15% behind the accent at full strength. */
+/* The highlight's fill behind its ink. */
 @utility article-highlight {
-  background-color: var(--bg-highlight);
-  color: var(--fg-highlight);
+  background-color: var(--bg-mark-default);
+  color: var(--ink-mark-default);
   padding-inline: 1px;
   padding-block: 1px;
   -webkit-box-decoration-break: clone;
@@ -490,7 +821,7 @@
 @utility article-sidenote-text {
   text-decoration-line: underline;
   text-decoration-style: dotted;
-  text-decoration-color: color-mix(in srgb, var(--fg-body) 50%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--ink-body) 50%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
@@ -506,28 +837,17 @@
   display: inline;
   &::after {
     content: attr(data-sidenote-number);
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
+    color: var(--ink-sidenote-marker);
   }
 }
 
-/* Only clip the gradient once there is text, or an empty editor field turns
-   its own placeholder transparent. */
 @utility article-eyebrow {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 2;
   width: fit-content;
   word-break: break-word;
-  &:not(:empty):not([data-empty]) {
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  color: var(--ink-eyebrow);
 }
 
 @utility article-metric-value {
@@ -537,98 +857,58 @@
   width: fit-content;
   max-width: 100%;
   word-break: break-word;
-  &:not(:empty):not([data-empty]) {
-    background: var(--bg-branded-emphasis);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  color: var(--ink-metric);
 }
 
-/* The 52px quote mark: the gradient body at 15% under a 1px full-strength
-   edge, both masked off the same glyph path. */
-@utility article-blockquote-mark {
-  position: relative;
-  width: var(--size-quote-mark);
-  height: var(--size-quote-mark);
-  flex-shrink: 0;
-  pointer-events: none;
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-  }
-  &::before {
-    background: var(--bg-branded-emphasis);
-    opacity: 0.15;
-    mask-image: var(--quote-glyph-fill);
-    -webkit-mask-image: var(--quote-glyph-fill);
-  }
-  &::after {
-    background: var(--bg-branded-emphasis);
-    mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
-    mask-composite: intersect;
-    -webkit-mask-image: var(--quote-glyph-stroke), var(--quote-glyph-fill);
-    -webkit-mask-composite: source-in;
-  }
-}
-
-/* The column every list marker occupies: a fixed 24px box, as tall as the
-   body's first line (14px at 1.72), so the ink centres on it unshifted. */
+/* The column every list marker occupies: 24px wide and as tall as the item's
+   first line (28px), so the ink centres on it unshifted. */
 @utility list-marker-box {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: var(--size-list-marker);
+  justify-content: flex-end;
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
   width: var(--size-list-marker);
+  /* The list text's font and size (text-style-prose), figures tabular. */
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
 }
 
-/* The ordinal pill: gradient clipped to the digits over a chip clipped to the
-   padding box — two background layers on one element. */
+/* The ordinal: digits in the marker ink, on nothing, ending where the
+   column's period slot begins. */
 @utility list-marker {
   flex-shrink: 0;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 16px;
-  min-width: 16px;
-  padding-inline: 2px;
-  /* Optical centring for digits, which have no descender. */
-  padding-block-end: 0.107em;
-  border-radius: var(--radius-lg);
-  background-image: var(--bg-branded-emphasis), linear-gradient(var(--bg-list-marker) 0 0);
-  background-clip: text, padding-box;
-  -webkit-background-clip: text, padding-box;
-  -webkit-text-fill-color: transparent;
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  line-height: 2;
-  font-weight: 500;
-  text-align: center;
+  align-items: baseline;
+  color: var(--ink-list-marker);
+  line-height: 1.72;
+  font-weight: 400;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
 }
 
-/* The 8px gradient dot. */
+@utility list-marker-period {
+  display: inline-block;
+  width: var(--size-list-marker-period);
+}
+
+/* The 4px dot, in the marker ink, over a numbered list's ones digit. */
 @utility list-bullet {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: var(--size-list-marker);
+  justify-content: flex-end;
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
+  /* The numbered column's font, so 1ch is its digit. */
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
   &::before {
@@ -636,8 +916,9 @@
     display: block;
     width: var(--size-list-bullet);
     height: var(--size-list-bullet);
+    margin-inline-end: calc(var(--size-list-marker-ones) - var(--size-list-bullet) / 2);
     border-radius: 50%;
-    background: var(--bg-branded-emphasis);
+    background: var(--ink-list-marker);
   }
 }
 
@@ -645,15 +926,20 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: var(--size-list-marker);
+  justify-content: flex-end;
+  height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
+  /* The numbered column's font, so 1ch is its digit. */
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   pointer-events: none;
 }
 
-/* The 16px chip holding a brand-gradient check or cross, masked from the
-   glyph's alpha because currentColor can only ever be a flat colour. */
+/* A check or cross in the marker ink, in a 16px box, on nothing, over a
+   numbered list's ones digit; masked from the glyph's alpha so the glyph files
+   need no fill of their own. */
 @utility list-bullet-circle {
   position: relative;
   flex-shrink: 0;
@@ -662,8 +948,7 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
-  background-color: var(--bg-list-marker);
+  margin-inline-end: calc(var(--size-list-marker-ones) - 8px);
   &::after {
     content: '';
     position: absolute;
@@ -672,7 +957,7 @@
     width: var(--size-list-bullet-glyph);
     height: var(--size-list-bullet-glyph);
     transform: translate(-50%, -50%);
-    background: var(--bg-branded-emphasis);
+    background: var(--ink-list-marker);
     mask-size: contain;
     mask-repeat: no-repeat;
     mask-position: center;
@@ -700,34 +985,28 @@
   &:empty::before,
   &[data-empty]::before {
     content: attr(data-placeholder);
-    color: color-mix(in srgb, var(--fg-default) 40%, transparent);
+    color: color-mix(in srgb, var(--ink-body) 40%, transparent);
     pointer-events: none;
   }
-}
-
-/* The sidebar's fill behind its menu and Notes heading, cleared where the
-   window's glass shows. Everything is measured up from the box's foot — the
-   heading's — so the glass grows with the menu. A wide, flat ellipse centred
-   106px below the foot leaves a gentle dome: whole 24px above the foot
-   mid-rail, where the heading's text starts, and only 10px lower at the
-   sides. From about 100px above the foot it thins to a 40% tint of the fill
-   and goes no clearer, so the glass shows through but text over it still
-   reads. The ellipse is solid down to the foot by itself. */
-@utility mask-rail-glass {
-  mask-image: radial-gradient(
-    ellipse 200% 200px at 50% calc(100% + 106px),
-    black 65%,
-    rgb(0 0 0 / 40%) 103%
-  );
 }
 
 :root {
   --check-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.05994 10.1813L9.14253 12.6249L12.9396 7.62488' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --cross-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.5 7.5L7.5 12.5M12.5 12.5L7.5 7.5' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  /* blockquote.svg as two masks off the same path: fill for the body, a 2px
-     stroke (intersected with the body) for the 1px inner edge. */
-  --quote-glyph-fill: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='white'/%3E%3C/svg%3E");
-  --quote-glyph-stroke: url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.9494 8.65295C11.8225 8.41923 12.7194 8.93811 12.9533 9.81116C13.0483 10.1658 13.0219 10.5421 12.8772 10.8795C11.447 14.2114 11.3904 18.3371 12.7082 23.2555C15.3871 22.5377 18.0665 21.82 20.7453 21.1022C21.8548 20.8051 22.9949 21.4635 23.2922 22.5729L27.5989 38.6461C27.8962 39.7557 27.2378 40.8957 26.1282 41.193L12.0647 44.9615C10.9551 45.2589 9.81415 44.6005 9.51683 43.4908C8.26072 38.803 7.00438 34.1152 5.74827 29.4274C3.05655 19.3817 8.94032 9.1913 10.9494 8.65295ZM33.053 9.151C33.7647 8.96045 34.496 9.38266 34.6867 10.0944C34.7642 10.3835 34.7422 10.6903 34.6242 10.9655C33.4584 13.6815 33.4122 17.0449 34.4866 21.0543C36.6703 20.4692 38.8546 19.8836 41.0383 19.2985C41.9427 19.0564 42.8721 19.5934 43.1145 20.4977L46.6252 33.6002C46.8675 34.5047 46.3305 35.434 45.426 35.6764L33.9621 38.7487C33.0576 38.991 32.1274 38.454 31.885 37.5494C30.8611 33.7282 29.8376 29.9068 28.8137 26.0856C26.6195 17.8966 31.4152 9.58985 33.053 9.151Z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* A `[data-tooltip]` slid in from the window's right edge, below the cursor or,
+   with no room there, above it. */
+@position-try --tooltip-slid-below {
+  position-area: bottom span-all;
+  justify-self: end;
+  margin: 17px 4px 4px 4px;
+}
+
+@position-try --tooltip-slid-above {
+  position-area: top span-all;
+  justify-self: end;
+  margin: 4px 4px 17px 4px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -741,16 +1020,15 @@
 
   body {
     margin: 0;
-    color: var(--fg-default);
+    color: var(--ink-body);
     background: var(--bg-canvas);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* On macOS the window behind the page is frosted glass (main/index.ts sets
-     the sidebar material), and it shows wherever the page paints nothing:
-     the top bar, and the top of the sidebar above its Notes heading. */
+  /* On macOS AppKit's own sidebar glass lies under the page's sidebar
+     (main/sidebar-glass.ts), and shows wherever the page paints nothing there. */
   html[data-frosted] body {
     background: transparent;
     overflow: hidden;
@@ -763,7 +1041,7 @@
      over the glass that blurred copy is translucent, and the sharp original
      shows through it in a halo. What stands on the glass blurs itself instead,
      at the backdrop's strength; the opaque note pane is left to the backdrop. */
-  html[data-frosted] body:has([data-dialog-backdrop]) [data-on-glass] {
+  html[data-frosted] body:has([data-dialog-backdrop='']) [data-on-glass] {
     filter: blur(8px);
   }
 
@@ -774,8 +1052,8 @@
 
   /* Selection reads like the prose highlight — same two tokens. */
   ::selection {
-    background-color: var(--bg-highlight);
-    color: var(--fg-highlight);
+    background-color: var(--bg-mark-default);
+    color: var(--ink-mark-default);
   }
 
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus {
@@ -793,7 +1071,7 @@
       summary,
       [tabindex]:not([tabindex='-1'])
     ):focus-visible {
-    box-shadow: 0 0 0 1.5px var(--border-focus-ring);
+    box-shadow: 0 0 0 1.5px var(--outline-focus);
     border-radius: var(--radius-xs);
   }
 
@@ -807,9 +1085,79 @@
     max-height: calc(100dvh - 16px * 2);
   }
 
-  dialog::backdrop {
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+  /* A floating surface (ui/popover.tsx) in the top layer, placed by CSS anchor
+     positioning on the anchor it was shown from: 4px off it on the side and at the
+     end `useAnchoredPlacement` found room for (`data-placed-side`,
+     `data-placed-align`), its edge in from the window's; `center` is centred on the
+     anchor and shifted to fit. The script chooses, not `position-try-fallbacks`,
+     which the browser tries only as a popover shows and then keeps. The edge is
+     4px, and 5px for a menu. */
+  [data-popover] {
+    --popover-edge: 4px;
+    inset: auto;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    position-anchor: auto;
+    position-visibility: always;
+  }
+
+  [data-popover][role='menu'] {
+    --popover-edge: 5px;
+  }
+
+  [data-popover][data-placed-side='top'] {
+    margin-bottom: 4px;
+  }
+
+  [data-popover][data-placed-side='bottom'] {
+    margin-top: 4px;
+  }
+
+  /* `center` stands on the anchor's middle, `start` on its left edge, `end` on its right. */
+  [data-popover][data-placed-side='top'][data-placed-align='center'] {
+    position-area: top;
+    inset: var(--popover-edge) var(--popover-edge) 0 var(--popover-edge);
+  }
+
+  [data-popover][data-placed-side='top'][data-placed-align='start'] {
+    position-area: top span-right;
+    inset: var(--popover-edge) var(--popover-edge) 0 0;
+  }
+
+  [data-popover][data-placed-side='top'][data-placed-align='end'] {
+    position-area: top span-left;
+    inset: var(--popover-edge) 0 0 var(--popover-edge);
+  }
+
+  [data-popover][data-placed-side='bottom'][data-placed-align='center'] {
+    position-area: bottom;
+    inset: 0 var(--popover-edge) var(--popover-edge) var(--popover-edge);
+  }
+
+  [data-popover][data-placed-side='bottom'][data-placed-align='start'] {
+    position-area: bottom span-right;
+    inset: 0 var(--popover-edge) var(--popover-edge) 0;
+  }
+
+  [data-popover][data-placed-side='bottom'][data-placed-align='end'] {
+    position-area: bottom span-left;
+    inset: 0 0 var(--popover-edge) var(--popover-edge);
+  }
+
+  /* The cursor tooltip (ui/tooltip.tsx): hung by its top-left corner 15px right
+     of and 17px under the point the host keeps at the cursor (the trigger itself
+     until a pointer places it), flipped above near the bottom and slid in from
+     the right edge, 4px clear of the window either way. */
+  [data-tooltip] {
+    inset: auto;
+    padding: 0;
+    position-anchor: auto;
+    position-visibility: always;
+    position-area: bottom span-right;
+    margin: 17px 4px 4px 15px;
+    position-try-fallbacks: flip-block, --tooltip-slid-below, --tooltip-slid-above;
   }
 
   /* The article: a centred column at the showcase width, whose prose children
@@ -835,6 +1183,11 @@
     margin-block-start: -12px;
   }
 
+  /* A list's items stand half a block's gap apart. */
+  article > [data-list-item] + [data-list-item] {
+    margin-block-start: -8px;
+  }
+
   /* One-level indent (Tab in the editor): a list marker plus its gap. */
   article [data-indented] {
     padding-inline-start: 32px;
@@ -846,7 +1199,7 @@
 
   article :is(strong, b) {
     font-weight: var(--font-weight-bold);
-    color: var(--fg-default);
+    color: var(--ink-body);
   }
 
   /* Slash menu anchor — the editor sets this on its own node. */
@@ -868,7 +1221,7 @@
 
   /* A media object with nothing to paint yet. */
   [data-media-pending] {
-    background-color: var(--bg-surface);
+    background-color: var(--bg-sheet);
     background-image: linear-gradient(
       90deg,
       transparent 0%,
@@ -886,9 +1239,9 @@
   [data-checkered] {
     background-color: var(--bg-canvas);
     background-image: conic-gradient(
-      var(--bg-surface) 25%,
+      var(--bg-sheet) 25%,
       transparent 0 50%,
-      var(--bg-surface) 0 75%,
+      var(--bg-sheet) 0 75%,
       transparent 0
     );
     background-size: 16px 16px;
@@ -919,8 +1272,10 @@
     cursor: col-resize !important;
   }
 
+  /* The track is the thumb at its widest, 6px, and a pixel either side; the
+     thumb's clear inline border insets it to 2px until the pointer is on it. */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -928,12 +1283,20 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-neutral-300);
-    border-radius: 3px;
+    background-color: var(--bg-scrollbar-thumb-default);
+    background-clip: padding-box;
+    border-inline: 3px solid transparent;
+    border-radius: 0;
   }
 
-  .dark ::-webkit-scrollbar-thumb {
-    background-color: var(--color-neutral-700);
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--bg-scrollbar-thumb-hover);
+    border-inline-width: 1px;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--bg-scrollbar-thumb-pressed);
+    border-inline-width: 1px;
   }
 
   @media (prefers-reduced-motion: reduce) {

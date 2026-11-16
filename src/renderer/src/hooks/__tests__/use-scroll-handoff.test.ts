@@ -104,7 +104,11 @@ describe('useScrollHandoff', () => {
   })
 
   it('still scrolls a sealed surface that has room of its own', () => {
-    const [page, popover, list] = nest(scroller(), scroller({ sealed: true }), scroller({ top: 200 }))
+    const [page, popover, list] = nest(
+      scroller(),
+      scroller({ sealed: true }),
+      scroller({ top: 200 })
+    )
     mount(list)
 
     wheel(list, { deltaY: 40 })

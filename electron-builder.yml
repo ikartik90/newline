@@ -9,6 +9,10 @@ files:
   - out/**/*
   - "!**/*.map"
 
+# A native add-on cannot be loaded from inside the asar archive.
+asarUnpack:
+  - out/native/*.node
+
 mac:
   target:
     - target: dmg
@@ -18,6 +22,9 @@ mac:
       arch:
         - universal
   artifactName: ${name}-${version}-${arch}.${ext}
+  # The sidebar-glass add-on is built universal already (scripts/build-native.mjs),
+  # so the x64 and arm64 apps carry the same file and it is taken as it is.
+  x64ArchFiles: "**/out/native/*.node"
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false

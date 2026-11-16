@@ -15,8 +15,7 @@ describe('AccountMenu', () => {
     expect(classes).toContain('h-8')
     expect(classes).not.toContain('flex-1')
     expect(classes).not.toContain('w-full')
-    expect(classes).toContain('rounded-lg')
-    expect(classes).toContain('squircle')
+    expect(classes).toContain('rounded-xl')
   })
 
   it('pads the avatar as the head rows pad their glyphs, and draws it at their size', () => {
@@ -29,10 +28,9 @@ describe('AccountMenu', () => {
   it('inks its chevron as its name is inked', () => {
     render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={vi.fn()} />)
     const trigger = screen.getByRole('button', { name: 'Account' })
-    expect(trigger.className.split(/\s+/)).toContain('text-fg')
+    expect(trigger.className.split(/\s+/)).toContain('text-ink-body')
     const chevron = (trigger.querySelector('svg')!.getAttribute('class') ?? '').split(/\s+/)
-    expect(chevron).toContain('text-fg')
-    expect(chevron.some((c) => c.startsWith('text-fg-body'))).toBe(false)
+    expect(chevron).toContain('text-ink-body')
   })
 
   it('sets its name in the sidebar’s type', () => {

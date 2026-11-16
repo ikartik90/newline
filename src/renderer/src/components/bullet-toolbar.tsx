@@ -1,5 +1,5 @@
 import type { FC, SVGProps } from 'react'
-import { Popover, type PopoverRect } from '@/components/ui/popover'
+import { Popover, POPOVER_TOOLBAR, type PopoverRect } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
 import ContinueBulletingIcon from '@/assets/icons/continue-bulleting.svg'
 import ResetBulletingIcon from '@/assets/icons/reset-bulleting.svg'
@@ -26,9 +26,6 @@ interface BulletToolbarProps {
   onDismiss: () => void
 }
 
-// The shared `toolbar` rail (40px, 6px inset, 4px gap); the Popover shell
-// supplies the hairline, elevation and clip.
-const railStyle = 'flex items-center gap-1 h-10 px-1.5 w-max'
 // Pairs with a stylesheet that positions against the same target.
 const selectionAnchor = '--selection-popover'
 
@@ -51,7 +48,7 @@ export function BulletToolbar({
       rect={rect}
       anchorName={selectionAnchor}
       align="start"
-      className={railStyle}
+      className={POPOVER_TOOLBAR}
       // The rect was captured at the click; a scroll or resize leaves it stale.
       dismissOnReflow
       onDismiss={onDismiss}

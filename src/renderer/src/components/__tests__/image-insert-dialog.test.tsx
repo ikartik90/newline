@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ImageInsertDialog } from '../image-insert-dialog'
+import { onWindowGlass } from '@/test-support'
 
 const mockDeleteSelectedAsset = vi.fn()
 const mockProcessFiles = vi.fn()
@@ -95,6 +96,14 @@ describe('ImageInsertDialog', () => {
   it('renders nothing while closed', () => {
     render(<ImageInsertDialog open={false} onClose={vi.fn()} onInsert={vi.fn()} />)
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  // Where AppKit glasses the window, it stands on that glass, as the palette does.
+  it('stands on the window glass', () => {
+    const { restore } = onWindowGlass()
+    render(<ImageInsertDialog open onClose={vi.fn()} onInsert={vi.fn()} />)
+    expect(screen.getByRole('dialog').hasAttribute('data-on-glass')).toBe(true)
+    restore()
   })
 
   it('renders library delete action when open', async () => {

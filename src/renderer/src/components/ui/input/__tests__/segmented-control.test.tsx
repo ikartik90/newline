@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Field } from '../field'
-import { SegmentedControl } from '../segmented-control'
+import { SEGMENTED_RAIL, SegmentedControl } from '../segmented-control'
 
 const FITS = [
   { value: 'cover', label: 'Cover' },
@@ -15,6 +15,40 @@ describe('SegmentedControl', () => {
     const list = screen.getByRole('listbox', { name: 'Object fit' })
     expect(list).toBeTruthy()
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Cover', 'Contain'])
+  })
+
+  // A text button's box: 28px tall, cornered at 12px.
+  it('stands as tall as a button and takes its corner', () => {
+    const rail = SEGMENTED_RAIL.split(/\s+/)
+    expect(rail).toContain('h-(--size-toolbar-button)')
+    expect(rail).toContain('rounded-lg')
+    expect(rail).not.toContain('rounded-md')
+  })
+
+  // Rimmed as a field is and the selected segment edged, but no seam between
+  // segments.
+  it('draws its rim and the selected edge, with no seam between segments', () => {
+    const { container } = render(
+      <SegmentedControl ariaLabel="Object fit" options={FITS} value="cover" />
+    )
+    const rail = container.firstElementChild!.className.split(/\s+/)
+    expect(rail).toContain('shadow-[inset_0_0_0_0.5px_var(--border-field-default)]')
+    // The option list edges a selected chip on its ::after; the rail keeps it.
+    expect(rail.some((c) => c.includes('after:hidden'))).toBe(false)
+    for (const option of screen.getAllByRole('option')) {
+      expect(option.className).not.toMatch(/before:/)
+    }
+  })
+
+  // A segment not picked takes the segment's ink; the picked one keeps the
+  // chip's, and a disabled one its muted ink.
+  it('inks the segments not picked in the segment ink', () => {
+    render(<SegmentedControl ariaLabel="Object fit" options={FITS} value="cover" />)
+    for (const option of screen.getAllByRole('option')) {
+      expect(option.className.split(/\s+/)).toContain(
+        'not-aria-selected:not-aria-pressed:not-disabled:text-ink-segment-default'
+      )
+    }
   })
 
   it('paints exactly one segment as selected — the one whose value it was given', () => {

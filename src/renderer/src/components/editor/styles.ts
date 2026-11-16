@@ -12,14 +12,14 @@ export const editableBaseStyle =
   'outline-none focus-visible:outline-none min-h-0 whitespace-pre-wrap break-words focus:min-h-[1.5em] editor-placeholder'
 
 export const editorCodeBlockStyle =
-  'text-style-code bg-surface rounded-md p-8 overflow-x-auto text-fg whitespace-pre outline-none focus-visible:outline-none'
+  'text-style-code bg-bg-sheet rounded-md p-8 overflow-x-auto text-ink-body whitespace-pre outline-none focus-visible:outline-none'
 
-export const editorCodeBlockWrapperStyle = 'relative group/code'
+export const editorCodeBlockWrapperStyle = 'relative group/code bg-level-1'
 
 export const editorCodeLanguageSelectStyle =
-  'absolute top-2 right-2 z-[1] text-style-caption text-fg-body bg-surface border-[0.5px] border-solid border-divider [--field-bg:var(--field-bg-on-surface)] rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
+  'absolute top-2 right-2 z-[1] text-style-caption text-ink-body bg-bg-shell-default bg-level-2 border border-solid border-border-divider rounded-sm px-1 py-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto'
 
-export const editorHrStyle = 'border-none h-[0.5px] bg-divider my-0'
+export const editorHrStyle = 'border-none h-px bg-border-divider my-0'
 
 export const editorHrShellStyle = 'relative w-full py-8'
 
@@ -36,7 +36,7 @@ export const mediaBlockStyles = {
   root: 'relative grid self-stretch w-full',
   /** The positioned box the ground fills and a clip's transport pins to. */
   frame: 'relative flex w-full min-w-0 rounded-xl',
-  image: 'w-full block border-[0.5px] border-solid border-divider relative z-[1]'
+  image: 'w-full block border border-solid border-border-divider relative z-[1]'
 }
 
 export const editorImgStyle = `${mediaBlockStyles.image} ${editorShowcaseMediaStyle}`
@@ -47,7 +47,7 @@ export const editorImageOverlayStyle =
   'absolute inset-0 flex items-center justify-center pointer-events-auto'
 
 export const editorImageOverlayTintStyle =
-  'absolute inset-0 bg-canvas border-[0.5px] border-solid border-divider rounded-xl pointer-events-none opacity-85'
+  'absolute inset-0 bg-bg-canvas border border-solid border-border-divider rounded-xl pointer-events-none opacity-85'
 
 export const editorImageOverlayActionsStyle =
   'relative z-[1] flex items-center justify-center gap-2'
@@ -57,10 +57,10 @@ export const menuIconStyle = 'shrink-0 w-5 h-5'
 
 const captionEditable = `${editableBaseStyle} min-h-[1.5em]`
 
-export const editorCaptionStyle = `${captionEditable} text-style-caption text-fg text-center [text-wrap:balance] w-full`
+export const editorCaptionStyle = `${captionEditable} text-style-caption text-ink-body text-center [text-wrap:balance] w-full`
 
 /** Blockquote citation — left-aligned beneath the quote text. */
-export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-fg-body/50 break-words`
+export const editorBlockquoteCaptionStyle = `${captionEditable} text-style-caption not-italic text-ink-body/50 break-words`
 
 /** The eyebrow line — the gradient reveals once populated. */
 export const editorEyebrowStyle = 'article-eyebrow'
@@ -68,29 +68,32 @@ export const editorEyebrowStyle = 'article-eyebrow'
 /** Metric value — the gradient display line, with a caret's width reserved while empty. */
 export const editorMetricValueStyle = `${editableBaseStyle} article-metric-value min-h-[1.5em] min-w-px`
 
-export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-fg text-left break-words`
+export const editorMetricCaptionStyle = `${captionEditable} text-style-caption text-ink-body text-left break-words`
 
-export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-fg break-words`
+export const editorMetricLabelStyle = `${captionEditable} text-style-body-lg text-ink-body break-words`
 
 export const articleMetricStyle = 'flex flex-col items-start gap-1 break-words'
 
 export const articleEyebrowShellStyle = 'flex flex-col items-start'
 
-export const articleBlockquoteShellStyle = 'flex flex-row items-start gap-1'
+// A 2px highlight rule down the quote and its citation, 12px from the text. The
+// padding takes the place of the indent's, so an indented quote steps in by its
+// margin instead, the rule with it.
+export const articleBlockquoteShellStyle =
+  'flex flex-col gap-1 border-l-2 border-border-quote pl-3 data-indented:ml-8'
 
-export const articleBlockquoteBodyStyle = 'flex-auto min-w-0 flex flex-col gap-1'
-
-export const articleBlockquoteStyle = 'text-style-quote text-fg break-words pt-3'
-
-/** A caret-less block's shell: focusable, with a ring that reads as "selected". */
-export const editorFurnitureWrapperStyle =
-  'relative outline-none rounded-lg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-field-border-active focus-visible:outline-offset-4'
+export const articleBlockquoteStyle = 'text-style-quote text-ink-body break-words'
 
 export const editorHrWrapperStyle = 'outline-none focus-visible:outline-none cursor-default'
 
-export const editorListItemShellStyle = 'flex flex-row items-start gap-2'
+// A number is text, so it stands on its item's first baseline; a bullet has
+// none, and keeps to the top of the row, centred on the first line's box.
+export const editorListItemShellStyle = {
+  numbered: 'flex flex-row items-baseline gap-2',
+  bulleted: 'flex flex-row items-start gap-2'
+} as const
 
-export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-body-sm text-fg-body break-words`
+export const editorListItemContentStyle = `${editableBaseStyle} flex-auto min-w-0 text-style-prose text-ink-prose break-words`
 
 /**
  * Every marker is a real button in the editor so it can open its popover —
@@ -102,6 +105,7 @@ const bulletButtonReset =
 
 export const editorListMarkerButtonStyle = `list-marker-box ${bulletButtonReset}`
 export const editorListMarkerPillStyle = 'list-marker'
+export const editorListMarkerPeriodStyle = 'list-marker-period'
 export const editorListBulletButtonStyle = `list-bullet ${bulletButtonReset}`
 export const editorListBulletIconButtonStyle = `list-bullet-icon ${bulletButtonReset}`
 export const editorBulletCircleClass = {

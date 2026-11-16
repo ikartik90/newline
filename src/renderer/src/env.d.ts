@@ -5,6 +5,15 @@ import type { MediaAsset } from '@shared/domain/media'
 import type { SyncResult } from '@shared/domain/sync'
 
 declare global {
+  /** `showPopover`'s options, which lib.dom does not know yet: `source` is the popover's implicit anchor. */
+  interface ShowPopoverOptions {
+    source?: Element
+  }
+
+  interface HTMLElement {
+    showPopover(options?: ShowPopoverOptions): void
+  }
+
   /**
    * A note as the renderer sees it. `body` is the JSON-serialised Document
    * (see `@shared/domain/document`); parse it with `parseDocument`. The main
@@ -37,9 +46,18 @@ declare global {
     height?: number
   }
 
+  /** What the command menu offers depends on: what the note window holds. */
+  interface CommandMenuState {
+    sidebarCollapsed: boolean
+    noteOpen: boolean
+    theme: 'light' | 'dark'
+  }
+
   interface Window {
     api: {
       platform: NodeJS.Platform
+      /** Whether the window is the OS's own blur under a clear page: macOS, or Windows 11's acrylic. */
+      frosted: boolean
       notes: {
         create: (title?: string, body?: string) => Promise<Note>
         update: (
@@ -76,8 +94,42 @@ declare global {
       /** The window itself: whether it fills the screen, where macOS hides its buttons. */
       window: {
         isFullScreen: () => Promise<boolean>
+        /** The sidebar's width in CSS pixels, for the macOS glass laid under it. */
+        setSidebarWidth: (width: number) => void
         /** Hear the window enter or leave full screen. Returns the unsubscribe. */
         onFullScreenChange: (listener: (fullScreen: boolean) => void) => () => void
+        /**
+         * Lays AppKit's glass over the whole window, or lifts it, for a dialog
+         * to stand on (macOS 27 and later). Absent where there is no such glass.
+         */
+        setGlass?: (on: boolean) => void
+      }
+      /**
+       * The glass command palette (macOS 27 and later): the command menu in a
+       * window of its own over the note window, on AppKit's glass. Absent, or
+       * not `native`, the menu is the in-page dialog.
+       */
+      palette?: {
+        native: boolean
+        /** The note window: show the palette for what it holds. */
+        open: (state: CommandMenuState) => void
+        /** The note window: hear an action picked in the palette, by its id. */
+        onCommand: (listener: (id: string) => void) => () => void
+        /** The note window: hear a note picked in the palette. */
+        onOpenNote: (listener: (note: Note) => void) => () => void
+        /** The note window: hear the palette show over it and go. */
+        onVisible: (listener: (visible: boolean) => void) => () => void
+        /** The palette: hear main show it, and the most it may stand, in CSS pixels. */
+        onShow: (listener: (state: CommandMenuState, maxHeight: number) => void) => () => void
+        /** The palette: hear the window under it resized, and the most it may now stand. */
+        onFit: (listener: (maxHeight: number) => void) => () => void
+        /** The palette: an action was picked; main closes it and tells the note window. */
+        run: (id: string) => void
+        /** The palette: a note was picked. */
+        openNote: (note: Note) => void
+        close: () => void
+        /** The palette: how tall it stands, in CSS pixels. */
+        setHeight: (height: number) => void
       }
       meta: {
         set: (key: string, value: string) => Promise<void>

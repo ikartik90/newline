@@ -1,4 +1,4 @@
-import { Popover, type PopoverRect } from '@/components/ui/popover'
+import { Popover, POPOVER_TOOLBAR, type PopoverRect } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
 import type { ListMarkerStyle } from '@/utils/list-numbering'
 import ContinueNumberingIcon from '@/assets/icons/continue-numbering.svg'
@@ -27,9 +27,6 @@ interface NumberToolbarProps {
 // Styles
 // ---------------------------------------------------------------------------
 
-// The shared `toolbar` rail (40px, 6px inset, 4px gap); the Popover shell
-// supplies the hairline, elevation and clip.
-const railStyle = 'flex items-center gap-1 h-10 px-1.5 w-max'
 // Pairs with a stylesheet that positions against the same target.
 const selectionAnchor = '--selection-popover'
 
@@ -55,7 +52,7 @@ export function NumberToolbar({
       rect={rect}
       anchorName={selectionAnchor}
       align="start"
-      className={railStyle}
+      className={POPOVER_TOOLBAR}
       // The rect was captured at the click; a scroll or resize leaves it stale.
       dismissOnReflow
       onDismiss={onDismiss}

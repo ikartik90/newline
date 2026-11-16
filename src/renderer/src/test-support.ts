@@ -60,3 +60,15 @@ export function scrollIntoView(): InViewControl {
   emit.away = () => emit(0.1)
   return emit
 }
+
+/**
+ * Stands in the bridge of a window that AppKit glasses over (macOS 27 and
+ * later), where a dialog stands on the window's own glass. Hands back the
+ * `setGlass` spy and a restore for the bridge as it was.
+ */
+export function onWindowGlass() {
+  const setGlass = vi.fn()
+  const saved = window.api
+  window.api = { ...saved, window: { ...saved.window, setGlass } }
+  return { setGlass, restore: () => (window.api = saved) }
+}

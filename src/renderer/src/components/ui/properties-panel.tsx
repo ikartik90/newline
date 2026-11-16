@@ -75,7 +75,11 @@ const TRIGGER_SELECTOR = '[data-properties-trigger]'
 const EXIT_MS = 200
 
 /** The strip's ink, stated once: the buttons in it paint in `currentColor`. */
-const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-fg-body'
+// A strip's or a section's foot, from past the panel's edge to its end.
+const RULE =
+  'after:content-[""] after:absolute after:bottom-0 after:left-px after:right-0 after:h-px after:bg-border-divider after:pointer-events-none'
+
+const STRIP = 'shrink-0 flex items-center justify-between gap-2 h-10 px-3 text-ink-body'
 
 /** A control that fills the panel stops where the FIELD column stops. */
 const BLOCK_WIDTH = 'w-[calc(100%-8px-var(--size-property-row-action))]'
@@ -217,9 +221,9 @@ function PropertiesPanelRoot({
           // Docked, not floating: no radius, and the hairline on the one edge
           // that meets the page — an inset SHADOW rather than a border, which
           // would push the rail's content box onto a half pixel.
-          'bg-surface shadow-[inset_0.5px_0_0_var(--border-divider),0_4px_16px_color-mix(in_srgb,var(--color-neutral-900)_12%,transparent)]',
-          // Fields on the panel's surface take the on-surface fill.
-          '[--field-bg:var(--field-bg-on-surface)]',
+          'bg-bg-sheet shadow-[inset_1px_0_0_var(--border-divider),0_4px_16px_var(--shadow-sheet)]',
+          // A sheet: its fields stand a step up, on surface 2.
+          'bg-level-1',
           // The panel IS the scroll container; the sticky header stays put.
           'overflow-auto overscroll-contain',
           exiting ? 'animate-panel-out' : 'animate-panel-in'
@@ -257,9 +261,10 @@ function PropertiesPanelHeader({
         STRIP,
         // Stays put over the sections travelling under it, with its own fill
         // and the panel's edge redrawn (the root's inset hairline paints under
-        // an opaque child).
-        'sticky top-0 z-1 bg-surface [--field-bg:var(--field-bg-on-surface)]',
-        'shadow-[inset_0.5px_0_0_var(--border-divider),inset_0_-0.5px_0_var(--border-divider)]'
+        // an opaque child). Its rule starts past that edge, as a section's does.
+        'sticky top-0 z-1 bg-bg-sheet bg-level-1',
+        'shadow-[inset_1px_0_0_var(--border-divider)]',
+        RULE
       )}
     >
       <Typography
@@ -337,11 +342,10 @@ function PropertiesPanelSection({
   )
 }
 
-// Sections are content-sized and the panel scrolls. The divider is a shadow,
-// for the reason the root's hairline is one — as a border each one pushed
-// every section below it another half pixel down.
-const SECTION =
-  'shrink-0 flex flex-col items-stretch shadow-[inset_0_-0.5px_0_var(--border-divider)]'
+// Sections are content-sized and the panel scrolls. The divider is drawn
+// over the section, taking no room, and starts a pixel in, past the panel's
+// edge: the two lines are glass, and laid over each other would draw darker.
+const SECTION = `relative shrink-0 flex flex-col items-stretch ${RULE}`
 
 const SECTION_TITLE =
   'flex items-center gap-1 min-w-0 [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:block'
@@ -395,7 +399,7 @@ function PropertiesPanelSectionHeader({ icon, children }: PropertiesPanelSection
  * third child and nothing here has to move.
  */
 const CONTROL_PANEL = cx(
-  'flex flex-col items-stretch gap-2 p-3 text-fg-body',
+  'flex flex-col items-stretch gap-2 p-3 text-ink-body',
   '[&_[data-property-block]]:w-[calc(100%-8px-var(--size-property-row-action))]',
   '[&_[data-property-control]]:grid [&_[data-property-control]]:items-center [&_[data-property-control]]:gap-x-2 [&_[data-property-control]]:w-max',
   '[&_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)_var(--size-property-row-action)]',
@@ -414,8 +418,8 @@ const CONTROL_PANEL = cx(
   '[&_[data-property-tie-rows]]:flex [&_[data-property-tie-rows]]:flex-col [&_[data-property-tie-rows]]:gap-2 [&_[data-property-tie-rows]]:flex-1 [&_[data-property-tie-rows]]:min-w-0',
   '[&_[data-property-tie]_[data-property-control]]:grid-cols-[var(--size-property-row-label)_var(--size-property-row-field)]',
   '[&_[data-property-tie-action]]:relative [&_[data-property-tie-action]]:flex [&_[data-property-tie-action]]:items-center [&_[data-property-tie-action]]:shrink-0',
-  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-field-border [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
-  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-field-border [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
+  '[&_[data-property-tie-action]]:before:content-[""] [&_[data-property-tie-action]]:before:absolute [&_[data-property-tie-action]]:before:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:before:h-1 [&_[data-property-tie-action]]:before:border-border-field-default [&_[data-property-tie-action]]:before:border-r [&_[data-property-tie-action]]:before:border-t [&_[data-property-tie-action]]:before:rounded-tr-xs [&_[data-property-tie-action]]:before:bottom-full',
+  '[&_[data-property-tie-action]]:after:content-[""] [&_[data-property-tie-action]]:after:absolute [&_[data-property-tie-action]]:after:right-[calc(var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:w-[calc(8px+var(--size-toolbar-button)/2)] [&_[data-property-tie-action]]:after:h-1 [&_[data-property-tie-action]]:after:border-border-field-default [&_[data-property-tie-action]]:after:border-r [&_[data-property-tie-action]]:after:border-b [&_[data-property-tie-action]]:after:rounded-br-xs [&_[data-property-tie-action]]:after:top-full'
 )
 
 export interface PropertiesPanelGroupProps {
@@ -564,7 +568,7 @@ function PropertiesPanelText({
       className={cx(
         BLOCK_WIDTH,
         'min-w-0 m-0 p-0 bg-transparent border-none resize-none field-sizing-content',
-        'text-style-sidenote text-fg-body caret-fg-body placeholder:text-fg-body/40',
+        'text-style-sidenote text-ink-body caret-ink-body placeholder:text-ink-body/40',
         '[html[data-keyboard-focus]_&]:focus-visible:shadow-none',
         className
       )}

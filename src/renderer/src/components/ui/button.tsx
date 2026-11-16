@@ -3,9 +3,9 @@ import {
   ActionText,
   ActionTooltipHost,
   actionStyles,
+  resolveEmphasis,
   useActionTooltip,
   type ActionEmphasis,
-  type ActionSize,
   type ActionVariant
 } from './action'
 import { Tooltip } from './tooltip'
@@ -29,11 +29,10 @@ import { Tooltip } from './tooltip'
 //   </Button>
 //
 // The look is the shared `action` style: a `Button.Text` (or bare string) child
-// ⇒ the 40px/8px `text` chip; an icon alone ⇒ the 28px `icon` chip that matches
-// a toolbar button. Pass `variant` only to override that inference — notably
-// `variant="link"` for the inline underlined affordance; `size="sm"` takes the
-// text chip down to 32px / body-sm. The resolved axes are stamped as
-// `data-variant` / `data-emphasis` / `data-size` for a stylesheet or a test.
+// ⇒ the 28px `text` chip; an icon alone ⇒ the 28px `icon` chip that matches
+// the shell's toolbar buttons. Pass `variant` only to override that inference —
+// notably `variant="link"` for the inline underlined affordance. The resolved
+// axes are stamped as `data-variant` / `data-emphasis` for a stylesheet or a test.
 // The accessible name stays on the button (`aria-label`); the tooltip is
 // decorative. Its sibling twin that navigates is `Link` (link.tsx).
 // ---------------------------------------------------------------------------
@@ -46,22 +45,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ActionVariant
   /**
    * Fill prominence, independent of `variant` (the shape). Left unset it
-   * defaults to `secondary` for text buttons and `tertiary` for icon buttons.
+   * defaults to `secondary` for text buttons and `tertiary` for icon buttons,
+   * which take only `tertiary` or `glass`.
    */
   emphasis?: ActionEmphasis
-  /**
-   * The chip's scale, independent of both axes above. `md` (default) is the
-   * 40px chip; `sm` is the 32px one. Applies to the `text` shape — an icon
-   * button is always the toolbar chip.
-   */
-  size?: ActionSize
 }
 
 function ButtonRoot(
   {
     variant,
     emphasis,
-    size = 'md',
     className,
     type = 'button',
     children,
@@ -73,8 +66,8 @@ function ButtonRoot(
 ) {
   const { content, hasText, tooltip, hasTooltip, visible, show, hide } = useActionTooltip(children)
   const resolvedVariant = variant ?? (hasText ? 'text' : 'icon')
-  const resolvedEmphasis = emphasis ?? (resolvedVariant === 'text' ? 'secondary' : 'tertiary')
-  const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis, size })
+  const resolvedEmphasis = resolveEmphasis(resolvedVariant, emphasis)
+  const styles = actionStyles({ variant: resolvedVariant, emphasis: resolvedEmphasis })
 
   const button = (
     <button
@@ -83,7 +76,6 @@ function ButtonRoot(
       className={className ? `${styles} ${className}` : styles}
       data-variant={resolvedVariant}
       data-emphasis={resolvedEmphasis}
-      data-size={size}
       onPointerEnter={(event: PointerEvent<HTMLButtonElement>) => {
         onPointerEnter?.(event)
         if (hasTooltip) show(event)

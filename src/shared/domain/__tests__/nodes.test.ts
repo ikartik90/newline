@@ -271,25 +271,11 @@ describe('BlockNodeSchema', () => {
     expect(BlockNodeSchema.safeParse({ type: 'metric', children: [text('12')] }).success).toBe(true)
   })
 
-  it('accepts a link_card node with nothing configured yet', () => {
-    expect(BlockNodeSchema.safeParse({ type: 'link_card', config: {} }).success).toBe(true)
-  })
-
-  it('accepts a link_card node with a destination and words', () => {
-    expect(
-      BlockNodeSchema.safeParse({
-        type: 'link_card',
-        config: {
-          content: { title: 'Docs', meta: 'Reference' },
-          link: { kind: 'external', href: 'https://example.com', newTab: true }
-        }
-      }).success
-    ).toBe(true)
-  })
-
-  it('rejects the kartik.to-only blocks', () => {
-    for (const type of ['collection', 'component', 'project_grid', 'social_links']) {
-      expect(BlockNodeSchema.safeParse({ type, items: [], componentId: 'x' }).success).toBe(false)
+  it('rejects the kartik.to-only blocks and the link card', () => {
+    for (const type of ['collection', 'component', 'project_grid', 'social_links', 'link_card']) {
+      expect(
+        BlockNodeSchema.safeParse({ type, items: [], componentId: 'x', config: {} }).success
+      ).toBe(false)
     }
   })
 

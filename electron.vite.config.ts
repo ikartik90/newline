@@ -50,6 +50,15 @@ export default defineConfig({
         '@shared': resolve('src/shared')
       }
     },
-    plugins: [react(), tailwindcss(), svgr({ include: '**/*.svg', svgrOptions })]
+    plugins: [react(), tailwindcss(), svgr({ include: '**/*.svg', svgrOptions })],
+    build: {
+      rollupOptions: {
+        // The app's window, and the glass command palette's own.
+        input: {
+          index: resolve('src/renderer/index.html'),
+          'command-palette': resolve('src/renderer/command-palette.html')
+        }
+      }
+    }
   }
 })

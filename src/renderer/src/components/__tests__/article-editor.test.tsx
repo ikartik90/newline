@@ -25,7 +25,6 @@ vi.mock('@/components/slash-menu', () => ({
       <button onClick={() => onSelect('heading')}>heading</button>
       <button onClick={() => onSelect('paragraph')}>paragraph</button>
       <button onClick={() => onSelect('media')}>media</button>
-      <button onClick={() => onSelect('link_card')}>link_card</button>
       <button onClick={() => onSelect('list_item')}>list_item</button>
       <button onClick={() => onSelect('bullet_list_item')}>bullet_list_item</button>
       <button onClick={() => onSelect('horizontal_rule')}>horizontal_rule</button>
@@ -101,7 +100,6 @@ const image = (extra: Record<string, unknown> = {}): BlockNode =>
     src: 'https://example.com/photo.png',
     ...extra
   }) as BlockNode
-const linkCard = (): BlockNode => ({ type: 'link_card', config: {} })
 
 function docOf(content: BlockNode[]): Document {
   return { type: 'doc', content }
@@ -170,6 +168,39 @@ describe('ArticleEditor', () => {
   afterEach(() => {
     cleanup()
     useEditorStore.getState().reset()
+  })
+
+  it('sets paragraphs, list items and quotes in the prose serif', () => {
+    renderEditor([
+      paragraph('Body'),
+      { type: 'list_item', children: [text('Item')] },
+      blockquote('Quoted')
+    ])
+    const has = (el: Element | null, name: string) =>
+      expect(el?.className.split(/\s+/)).toContain(name)
+    has(screen.getByText('Body').closest('[contenteditable]'), 'text-style-prose')
+    has(screen.getByText('Item').closest('[contenteditable]'), 'text-style-prose')
+    has(screen.getByText('Quoted').closest('[contenteditable]'), 'text-style-quote')
+  })
+
+  it('sets a quote with no quote mark beside it', () => {
+    renderEditor([blockquote('Quoted')])
+    expect(document.querySelector('.article-blockquote-mark')).toBeNull()
+  })
+
+  it("rules a quote's left edge in the highlight, 12px from its text", () => {
+    renderEditor([blockquote('Quoted')])
+    const shell = screen.getByText('Quoted').closest('blockquote')!.parentElement!
+    expect(shell.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['border-l-2', 'border-border-quote', 'pl-3'])
+    )
+  })
+
+  it('moves an indented quote in by its margin, so its rule moves in with it', () => {
+    renderEditor([{ type: 'blockquote', indent: true, children: [text('Indented')] }])
+    const shell = screen.getByText('Indented').closest('blockquote')!.parentElement!
+    expect(shell.hasAttribute('data-indented')).toBe(true)
+    expect(shell.className.split(/\s+/)).toContain('data-indented:ml-8')
   })
 
   it("renders the title input with placeholder 'Title'", () => {
@@ -630,48 +661,6 @@ describe('ArticleEditor', () => {
       kind: 'video',
       src: 'https://cdn/8f2c-key'
     })
-  })
-
-  // ---------------------------------------------------------------------------
-  // Link card — an empty card is inserted at once and filled in from its rail
-  // ---------------------------------------------------------------------------
-
-  it('inserts an empty link card via the slash menu and focuses it', async () => {
-    renderEditor()
-
-    const block = blockAt(0)
-    openSlashMenuOnBlock(block)
-    fireEvent.click(screen.getByText('link_card'))
-
-    // No dialog: the card lands in the document straight away.
-    expect(screen.queryByTestId('image-dialog')).toBeNull()
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks[0]).toEqual({ type: 'link_card', config: {} })
-    expect(blocks[1]?.type).toBe('paragraph')
-
-    await flushTimers()
-    const host = document.querySelector('figure [data-showcase-media]') as HTMLElement
-    expect(document.activeElement).toBe(host)
-  })
-
-  it('deletes the focused link card on Backspace', () => {
-    renderEditor([linkCard(), paragraph('after')])
-
-    const host = document.querySelector('[data-showcase-media]') as HTMLElement
-    host.focus()
-    fireEvent.keyDown(host, { key: 'Backspace' })
-
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks.some((block) => block.type === 'link_card')).toBe(false)
-    expect(document.querySelector('figure')).toBeNull()
-  })
-
-  it('keeps a trailing paragraph after a terminal link card', () => {
-    renderEditor([linkCard()])
-
-    const blocks = useEditorStore.getState().document.content
-    expect(blocks.map((b) => b.type)).toEqual(['link_card', 'paragraph'])
-    expect(document.querySelector("p[data-block-index='1']")).not.toBeNull()
   })
 
   it('populates the title from the note', () => {
@@ -1560,6 +1549,23 @@ describe('ArticleEditor numbering popover', () => {
     fireEvent.click(marker)
   }
 
+  // A number is text: it stands on the first line's baseline, not centred
+  // beside it. A bullet has no baseline, so it keeps to the top of its row.
+  it('sets a number on its text’s baseline, a bullet at the top of its row', () => {
+    renderEditor([listItem('one'), { type: 'bullet_list_item', children: [text('two')] }])
+    const [numbered, bulleted] = Array.from(document.querySelectorAll('[data-list-item]'))
+    expect(numbered.className.split(/\s+/)).toContain('items-baseline')
+    expect(numbered.className.split(/\s+/)).not.toContain('items-start')
+    expect(bulleted.className.split(/\s+/)).toContain('items-start')
+  })
+
+  // The period stands apart, in the slot every number in the column ends at.
+  it('hangs each marker’s period in a slot of its own', () => {
+    renderEditor([listItem('one'), listItem('two')])
+    const periods = document.querySelectorAll('[data-numbering-marker] .list-marker-period')
+    expect(Array.from(periods).map((el) => el.textContent)).toEqual(['.', '.'])
+  })
+
   it('opens the numbering popover when a marker is clicked', () => {
     renderEditor([listItem('one'), listItem('two')])
     expect(screen.queryByRole('toolbar', { name: 'List numbering options' })).toBeNull()
@@ -1571,14 +1577,14 @@ describe('ArticleEditor numbering popover', () => {
 
   it('reset numbering restarts the counter at the clicked item', () => {
     renderEditor([listItem('one'), listItem('two'), listItem('three')])
-    expect(markers()).toEqual(['1', '2', '3'])
+    expect(markers()).toEqual(['1.', '2.', '3.'])
 
     openPopoverForMarker(2)
     fireEvent.click(screen.getByLabelText('Reset numbering at this item'))
 
     const block = useEditorStore.getState().document.content[2]
     expect(block.type === 'list_item' && block.start).toBe(1)
-    expect(markers()).toEqual(['1', '2', '1'])
+    expect(markers()).toEqual(['1.', '2.', '1.'])
   })
 
   it('swaps the run to lettered markers and back', () => {
@@ -1587,14 +1593,14 @@ describe('ArticleEditor numbering popover', () => {
     openPopoverForMarker(0)
     fireEvent.click(screen.getByLabelText('Switch to lettered list'))
 
-    expect(markers()).toEqual(['a', 'b', 'c'])
+    expect(markers()).toEqual(['a.', 'b.', 'c.'])
     const head = useEditorStore.getState().document.content[0]
     expect(head.type === 'list_item' && head.marker).toBe('alpha')
 
     // The third button now offers switching back to numbers.
     openPopoverForMarker(1)
     fireEvent.click(screen.getByLabelText('Switch to numbered list'))
-    expect(markers()).toEqual(['1', '2', '3'])
+    expect(markers()).toEqual(['1.', '2.', '3.'])
   })
 
   it('continue numbering picks up from the previous list', () => {
@@ -1606,12 +1612,12 @@ describe('ArticleEditor numbering popover', () => {
       listItem('d'),
       listItem('e')
     ])
-    expect(markers()).toEqual(['1', '2', '3', '1', '2'])
+    expect(markers()).toEqual(['1.', '2.', '3.', '1.', '2.'])
 
     openPopoverForMarker(3) // head of the second list
     fireEvent.click(screen.getByLabelText('Continue numbering from previous list'))
 
-    expect(markers()).toEqual(['1', '2', '3', '4', '5'])
+    expect(markers()).toEqual(['1.', '2.', '3.', '4.', '5.'])
     const head = useEditorStore.getState().document.content[4]
     expect(head.type === 'list_item' && head.continued).toBe(true)
   })
@@ -1624,7 +1630,7 @@ describe('ArticleEditor numbering popover', () => {
 
     const head = useEditorStore.getState().document.content[0]
     expect(head.type === 'list_item' && head.continued).toBeUndefined()
-    expect(markers()).toEqual(['1', '2'])
+    expect(markers()).toEqual(['1.', '2.'])
   })
 })
 

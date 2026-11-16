@@ -12,7 +12,23 @@ describe('Switch', () => {
       </Field>
     )
     const sw = screen.getByRole('switch', { name: 'Wi-Fi' })
-    expect(sw.getAttribute('aria-checked')).toBe('false')
+    expect((sw as HTMLInputElement).checked).toBe(false)
+  })
+
+  // A native checkbox in the switch role: checked state, label and Space are the browser's.
+  it('is a native checkbox in the switch role', () => {
+    render(
+      <Field>
+        <Switch />
+        <Field.Label>Wi-Fi</Field.Label>
+      </Field>
+    )
+    const sw = screen.getByRole('switch') as HTMLInputElement
+    expect(sw.tagName).toBe('INPUT')
+    expect(sw.type).toBe('checkbox')
+    expect(sw.hasAttribute('aria-checked')).toBe(false)
+    fireEvent.click(screen.getByText('Wi-Fi'))
+    expect(sw.checked).toBe(true)
   })
 
   // See Button: WebKit's default tab order skips a bare <button>, so every
@@ -27,7 +43,7 @@ describe('Switch', () => {
     expect(screen.getByRole('switch', { name: 'Wi-Fi' }).getAttribute('tabindex')).toBe('0')
   })
 
-  it('toggles aria-checked and reports each change when uncontrolled', () => {
+  it('toggles and reports each change when uncontrolled', () => {
     const onCheckedChange = vi.fn()
     render(
       <Field>
@@ -38,11 +54,11 @@ describe('Switch', () => {
     const sw = screen.getByRole('switch')
 
     fireEvent.click(sw)
-    expect(sw.getAttribute('aria-checked')).toBe('true')
+    expect((sw as HTMLInputElement).checked).toBe(true)
     expect(onCheckedChange).toHaveBeenLastCalledWith(true)
 
     fireEvent.click(sw)
-    expect(sw.getAttribute('aria-checked')).toBe('false')
+    expect((sw as HTMLInputElement).checked).toBe(false)
     expect(onCheckedChange).toHaveBeenLastCalledWith(false)
   })
 
@@ -53,7 +69,7 @@ describe('Switch', () => {
         <Field.Label>Wi-Fi</Field.Label>
       </Field>
     )
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
+    expect((screen.getByRole('switch') as HTMLInputElement).checked).toBe(true)
   })
 
   it('is controlled by `checked` — a click reports intent but never self-updates', () => {
@@ -68,7 +84,7 @@ describe('Switch', () => {
 
     fireEvent.click(sw)
     expect(onCheckedChange).toHaveBeenCalledWith(true)
-    expect(sw.getAttribute('aria-checked')).toBe('false') // parent still owns state
+    expect((sw as HTMLInputElement).checked).toBe(false) // parent still owns state
 
     rerender(
       <Field>
@@ -76,7 +92,7 @@ describe('Switch', () => {
         <Field.Label>Wi-Fi</Field.Label>
       </Field>
     )
-    expect(sw.getAttribute('aria-checked')).toBe('true')
+    expect((sw as HTMLInputElement).checked).toBe(true)
   })
 
   it('links a Field.Hint through aria-describedby, and omits it when there is none', () => {
@@ -133,5 +149,30 @@ describe('Switch', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(() => render(<Switch />)).toThrow(/must be used within <Field>/)
     spy.mockRestore()
+  })
+  // jsdom lays nothing out, so the geometry is read from the classes, each a
+  // step of the 4px spacing scale: the thumb (the track's ::before) sits inset
+  // alike on every side, off and on.
+  it.each(['sm', 'md', 'lg'] as const)('rests the %s thumb as far from either end', (size) => {
+    render(
+      <Field>
+        <Switch size={size} />
+        <Field.Label>Wi-Fi</Field.Label>
+      </Field>
+    )
+    const track = screen.getByRole('switch')
+    const step = (className: string, prefix: string) => {
+      const match = new RegExp(`(?:^|\\s)${prefix}-([\\d.]+)(?:\\s|$)`).exec(className)
+      if (!match) throw new Error(`no ${prefix}- in "${className}"`)
+      return Number(match[1]) * 4
+    }
+    const width = step(track.className, 'w')
+    const height = step(track.className, 'h')
+    const knob = step(track.className, 'before:size')
+    const inset = step(track.className, 'before:left')
+    const travel = step(track.className, 'checked:before:translate-x')
+    expect(step(track.className, 'before:top')).toBe(inset)
+    expect(height).toBe(knob + 2 * inset)
+    expect(inset + travel + knob).toBe(width - inset)
   })
 })

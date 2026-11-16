@@ -49,7 +49,7 @@ describe('MenuButton', () => {
   it('opens a menu of the items when pressed, and runs the one chosen', async () => {
     stubPlatform('macOS')
     const list = items()
-    render(<MenuButton items={list} />)
+    render(<MenuButton icon={TrashIcon} items={list} />)
     expect(screen.queryByRole('menu')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
@@ -67,7 +67,7 @@ describe('MenuButton', () => {
 
   it('writes the shortcut with the key the platform actually types', () => {
     stubPlatform('Windows')
-    render(<MenuButton items={items()} />)
+    render(<MenuButton icon={TrashIcon} items={items()} />)
 
     expect(screen.getByText('Ctrl K').tagName).toBe('KBD')
     expect(screen.queryByText('⌘K')).toBeNull()
@@ -75,14 +75,14 @@ describe('MenuButton', () => {
 
   it('opens on its shortcut', async () => {
     stubPlatform('macOS')
-    render(<MenuButton items={items()} />)
+    render(<MenuButton icon={TrashIcon} items={items()} />)
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(await screen.findByRole('menu')).toBeDefined()
   })
 
   it('carries the icon’s name in a hover tooltip, not beside it', () => {
     stubPlatform('macOS')
-    render(<MenuButton items={items()} />)
+    render(<MenuButton icon={TrashIcon} items={items()} />)
 
     const button = screen.getByRole('button', { name: 'Menu' })
     // Icon only — the glyph is an <svg>, so the button holds no text of its own.
@@ -104,7 +104,7 @@ describe('MenuButton', () => {
 
   it('takes its own name and shortcut key', () => {
     stubPlatform('macOS')
-    render(<MenuButton items={items()} label="Note actions" shortcut="J" />)
+    render(<MenuButton icon={TrashIcon} items={items()} label="Note actions" shortcut="J" />)
     expect(screen.getByRole('button', { name: 'Note actions' })).toBeDefined()
     expect(screen.getByText('⌘J').tagName).toBe('KBD')
   })

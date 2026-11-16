@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, within, act, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Combobox, type ComboboxProps } from '../combobox'
 import { Field } from '../field'
@@ -29,9 +30,9 @@ function renderCombobox(props: Partial<Omit<ComboboxProps, 'children'>> = {}) {
 }
 
 /**
- * The frame's button — the one control that opens the popup. Base UI names a
- * trigger whose popup holds the search `role="combobox"` (the popup is what it
- * expands), so the tag is what tells it from the search box inside.
+ * The frame's button — the one control that opens the popup. The trigger and
+ * the search inside the popup are both `role="combobox"`, so the tag is what
+ * tells them apart.
  */
 function trigger(): HTMLButtonElement {
   const el = screen.getAllByRole('combobox').find((b) => b.tagName === 'BUTTON')
@@ -39,7 +40,7 @@ function trigger(): HTMLButtonElement {
   return el as HTMLButtonElement
 }
 
-/** Base UI moves focus on the frame after the popup lands, not on the click. */
+/** Lets the effects that place the focus run after the popup lands. */
 const frame = () =>
   act(async () => {
     await new Promise(requestAnimationFrame)
@@ -168,11 +169,104 @@ describe('dismissing', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     await waitFor(() => expect(document.activeElement).toBe(trigger()))
   })
+
+  it('closes on a press outside, leaving the focus to where the press lands', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).not.toBe(trigger())
+  })
+
+  it('toggles shut from the trigger, the press on it not counting as outside', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    fireEvent.pointerDown(trigger())
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.click(trigger())
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('closes as Tab leaves the popup, by way of the trigger, so the Tab moves on from there', async () => {
+    renderCombobox({ search: false, defaultValue: 'grapes' })
+    await open()
+    const tab = fireEvent.keyDown(document.activeElement!, { key: 'Tab' })
+    expect(tab).toBe(true)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(trigger())
+  })
+
+  it('keeps Tab inside while there is somewhere left to go: the search, then the list', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    // The browser's own Tab does the moving; the popup only stays open for it.
+    fireEvent.keyDown(search(), { key: 'Tab' })
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    // Shift+Tab off the first stop leaves for the trigger itself.
+    fireEvent.keyDown(search(), { key: 'Tab', shiftKey: true })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(trigger())
+  })
+})
+
+describe('the popup', () => {
+  it('stands in the top layer as a manual popover, anchored to the trigger', async () => {
+    const show = vi.spyOn(HTMLElement.prototype, 'showPopover')
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    const dialog = screen.getByRole('dialog', { name: 'Choose an option' })
+    expect(dialog.getAttribute('popover')).toBe('manual')
+    expect(dialog.dataset.side).toBe('bottom')
+    expect(dialog.dataset.align).toBe('start')
+    expect(show).toHaveBeenCalledWith({ source: trigger() })
+    expect(dialog.parentElement).toBe(document.body)
+    show.mockRestore()
+  })
+
+  // As every popover does: the sheet, its rows a step up, a picked one the brand chip.
+  it('stands on the sheet, as every popover does', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    const classes = screen.getByRole('dialog').className.split(/\s+/)
+    expect(classes).toContain('bg-bg-sheet')
+    expect(classes).toContain('bg-level-1')
+    expect(classes.join(' ')).not.toMatch(/field-popover|border-field-focus/)
+    const picked = screen.getByRole('option', { selected: true }).className
+    expect(picked).toContain('aria-selected:bg-bg-field-selected')
+    expect(picked).not.toMatch(/hover-brand|note-selected/)
+  })
+
+  it('is named on the trigger as the dialog it opens', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    expect(trigger().getAttribute('aria-haspopup')).toBe('dialog')
+    expect(trigger().hasAttribute('aria-controls')).toBe(false)
+    await open()
+    expect(trigger().getAttribute('aria-controls')).toBe(screen.getByRole('dialog').id)
+  })
+
+  it('labels its list with the field’s label', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    await open()
+    expect(screen.getByRole('listbox', { name: 'Fruit' })).toBeTruthy()
+  })
+
+  it('opens from the trigger’s arrows', async () => {
+    renderCombobox({ defaultValue: 'grapes' })
+    fireEvent.keyDown(trigger(), { key: 'ArrowDown' })
+    await frame()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(document.activeElement).toBe(search())
+  })
+
+  it('stays in the field’s own tree with portal={false}', async () => {
+    renderCombobox({ defaultValue: 'grapes', portal: false })
+    await open()
+    expect(trigger().closest('[data-field]')?.contains(screen.getByRole('dialog'))).toBe(true)
+  })
 })
 
 describe('search', () => {
-  // An `input` event, as a keystroke raises: Base UI reads the reason off the
-  // native event to decide that typing should highlight the first match.
+  // An `input` event, as a keystroke raises.
   const openAndType = async (value: string) => {
     await open()
     fireEvent.input(search(), { target: { value } })
@@ -193,14 +287,31 @@ describe('search', () => {
     expect(screen.getByText('No fruit')).toBeTruthy()
   })
 
+  it('keeps a live status row above the list, empty until nothing matches', async () => {
+    renderCombobox({ emptyLabel: 'No fruit' })
+    await open()
+    const status = screen.getByRole('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.getAttribute('aria-atomic')).toBe('true')
+    expect(status.textContent).toBe('')
+    expect(status.compareDocumentPosition(screen.getByRole('listbox'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    fireEvent.input(search(), { target: { value: 'zzz' } })
+    await frame()
+    expect(status.textContent).toBe('No fruit')
+    // Said once, in the status row, not again inside the list.
+    expect(screen.getAllByText('No fruit')).toHaveLength(1)
+  })
+
   it('commits the highlighted option on Enter, closing and restoring focus', async () => {
     const onValueChange = vi.fn()
     renderCombobox({ onValueChange })
     await openAndType('man')
-    // Base UI highlights the first match as you type in a browser; jsdom
-    // needs the arrow to land it. Either way Enter commits the highlight.
-    fireEvent.keyDown(search(), { key: 'ArrowDown' })
-    await frame()
+    // Typing highlights the first match, so Enter commits it with no arrow first.
+    expect(search().getAttribute('aria-activedescendant')).toBe(
+      screen.getByRole('option', { name: 'Mango' }).id
+    )
     fireEvent.keyDown(search(), { key: 'Enter' })
 
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith('mango')
@@ -229,21 +340,23 @@ describe('search={false}', () => {
     expect(dialog.querySelector('input')).toBeNull()
   })
 
-  it('moves focus into the list instead, so the keyboard still has somewhere to land', async () => {
+  it('moves focus into the list instead, onto the selection, so the keyboard has somewhere to land', async () => {
     renderCombobox({ search: false, defaultValue: 'grapes' })
     await open()
-    expect(document.activeElement).toBe(screen.getByRole('listbox'))
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Grapes' }))
   })
 
   it('walks the list with the arrows and commits on Enter', async () => {
     const onValueChange = vi.fn()
     renderCombobox({ search: false, onValueChange })
     await open()
+    // Nothing selected: the focus lands on the first row, and the arrow moves it.
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Apple' }))
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
-    await frame()
-    fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Avocado' }))
+    await userEvent.keyboard('{Enter}')
     expect(onValueChange).toHaveBeenCalledOnce()
-    expect(onValueChange.mock.calls[0][0]).toBe('apple')
+    expect(onValueChange.mock.calls[0][0]).toBe('avocado')
   })
 
   it('still selects on click, closes, and restores focus to the trigger', async () => {
