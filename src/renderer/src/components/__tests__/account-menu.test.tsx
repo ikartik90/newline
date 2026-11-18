@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AccountMenu } from '../account-menu'
 
 // ---------------------------------------------------------------------------
@@ -66,12 +66,93 @@ describe('AccountMenu', () => {
     expect(img?.getAttribute('src')).toBe('https://example.com/me.png')
   })
 
-  it('opens onto the full address and Sign out', async () => {
+  it('opens onto its name over the full address, and Sign out', async () => {
     const onSignOut = vi.fn()
-    render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={onSignOut} />)
+    render(
+      <AccountMenu
+        user={{ id: 'u', email: 'k@example.com', name: 'Kartik' }}
+        onSignOut={onSignOut}
+      />
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Account' }))
-    expect(await screen.findByText('k@example.com')).toBeTruthy()
+    const menu = screen.getByRole('menu')
+    expect(within(menu).getByText('Kartik')).toBeTruthy()
+    expect(within(menu).getByText('k@example.com')).toBeTruthy()
+    // No chevron: it is the button's, which opens the menu.
+    expect(menu.querySelector('svg')).toBeNull()
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
     expect(onSignOut).toHaveBeenCalled()
+  })
+
+  describe('its menu', () => {
+    const originalApi = window.api
+    afterEach(() => {
+      Object.defineProperty(window, 'api', {
+        value: originalApi,
+        writable: true,
+        configurable: true
+      })
+    })
+    const withApi = (api: Partial<Window['api']>) =>
+      Object.defineProperty(window, 'api', {
+        value: { ...originalApi, ...api },
+        writable: true,
+        configurable: true
+      })
+
+    it('is the frosted sheet over a frosted window, cornered at 12px', async () => {
+      withApi({ frosted: true })
+      render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={vi.fn()} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      const classes = screen.getByRole('menu').className.split(/\s+/)
+      expect(classes).toContain('frosted-sheet')
+      expect(classes).not.toContain('bg-bg-sheet')
+      expect(classes).toContain('rounded-lg')
+    })
+
+    it('is the solid sheet where the window has no blur', async () => {
+      withApi({ frosted: false })
+      render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={vi.fn()} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      const classes = screen.getByRole('menu').className.split(/\s+/)
+      expect(classes).toContain('bg-bg-sheet')
+      expect(classes).not.toContain('frosted-sheet')
+      expect(classes).toContain('rounded-lg')
+    })
+
+    it('is AppKit’s glass, in a window of its own, where there is that glass', async () => {
+      let picked: ((id: string) => void) | undefined
+      const glassMenu = {
+        native: true,
+        open: vi.fn(),
+        onPicked: vi.fn((listener: (id: string) => void) => {
+          picked = listener
+          return () => {}
+        }),
+        onClosed: vi.fn(() => () => {}),
+        onShow: vi.fn(() => () => {}),
+        setHeight: vi.fn(),
+        pick: vi.fn(),
+        close: vi.fn()
+      }
+      withApi({ glassMenu })
+      const onSignOut = vi.fn()
+      render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={onSignOut} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      expect(screen.queryByRole('menu')).toBeNull()
+      // The menu draws the button again over it: the button hides under it.
+      const trigger = screen.getByRole('button', { name: 'Account' })
+      expect(trigger.className.split(/\s+/)).toContain('data-[popup-open]:opacity-0')
+      expect(trigger.hasAttribute('data-popup-open')).toBe(true)
+      expect(glassMenu.open).toHaveBeenCalledWith(
+        expect.objectContaining({
+          side: 'over',
+          identity: { name: 'k', email: 'k@example.com', picture: undefined },
+          items: [{ id: 'sign-out', label: 'Sign out' }]
+        })
+      )
+      picked?.('sign-out')
+      expect(onSignOut).toHaveBeenCalled()
+    })
   })
 })

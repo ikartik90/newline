@@ -433,7 +433,11 @@ describe('the surface scale', () => {
   })
 
   // No field stands on the glass. What does borrows a field's hover and press,
-  // which step as a shell's do; a picked option is a selected shell. A
+  // which step as a shell's do; a picked option is a selected shell, inked in
+  // ink 2 as a button is. Nothing on the glass is in the highlight: a fill in
+  // it is a selected shell, an ink ink 2 (a focused field's own text keeps its
+  // resting ink), a faint edge divider 5 at the highlight's 25% and a line
+  // that must stand out — the focus ring, a progress bar — divider 5. A
   // secondary button and a tertiary step on the inverse at 15%, and a primary
   // keeps its solid inverse fill, for its flipped ink. The avatar's disc and a
   // secondary button's press are filled on the glass alone.
@@ -445,12 +449,24 @@ describe('the surface scale', () => {
       ['--bg-button-secondary-pressed', 'color-mix(in srgb, var(--bg-inverse-3) 15%, transparent)'],
       ['--bg-button-tertiary-hover', 'color-mix(in srgb, var(--bg-inverse-5) 15%, transparent)'],
       ['--bg-button-tertiary-pressed', 'color-mix(in srgb, var(--bg-inverse-3) 15%, transparent)'],
+      ['--bg-field-focus', 'var(--bg-shell-selected)'],
       ['--bg-field-hover', 'var(--bg-shell-hover)'],
       ['--bg-field-pressed', 'var(--bg-shell-selected)'],
       ['--bg-field-selected', 'var(--bg-shell-selected)'],
+      ['--bg-mark-default', 'var(--bg-shell-selected)'],
       ['--bg-shell-hover', 'color-mix(in srgb, var(--bg-inverse-5) 15%, transparent)'],
       ['--bg-shell-selected', 'color-mix(in srgb, var(--bg-inverse-3) 15%, transparent)'],
-      ['--border-divider', 'color-mix(in srgb, var(--divider-3) 15%, transparent)']
+      ['--border-divider', 'color-mix(in srgb, var(--divider-3) 15%, transparent)'],
+      ['--border-field-focus', 'color-mix(in srgb, var(--divider-5) 25%, transparent)'],
+      ['--border-field-selected', 'color-mix(in srgb, var(--divider-5) 25%, transparent)'],
+      ['--border-progress', 'var(--divider-5)'],
+      ['--ink-field-focus', 'var(--ink-field-default)'],
+      ['--ink-field-placeholder-focus', 'var(--ink-field-placeholder)'],
+      ['--ink-field-selected', 'var(--ink-2)'],
+      ['--ink-link-default', 'var(--ink-2)'],
+      ['--ink-mark-default', 'var(--ink-2)'],
+      ['--ink-sync-syncing', 'var(--ink-2)'],
+      ['--outline-focus', 'var(--divider-5)']
     ])
   })
 

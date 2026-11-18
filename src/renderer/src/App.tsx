@@ -10,6 +10,7 @@ import { CommandMenu } from '@/components/command-menu'
 import { commandMenuActions, type CommandId } from '@/components/command-menu-actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SidebarResizeHandle } from '@/components/sidebar-resize-handle'
+import { AssistantSidebar } from '@/components/assistant-sidebar'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -18,14 +19,18 @@ import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useFullScreen } from '@/hooks/use-full-screen'
 import { useSidebarResize } from '@/hooks/use-sidebar-resize'
+import { ASSISTANT_RAIL } from '@/utils/sidebar-width'
 import { useSidebarGlass } from '@/hooks/use-sidebar-glass'
 import { useSidebarPeek } from '@/hooks/use-sidebar-peek'
 import { useWindowGlassHeld } from '@/hooks/use-window-glass'
 import { useScrolled } from '@/hooks/use-scrolled'
 import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
+import { insertReply } from '@/utils/insert-reply'
+import { useEditorStore } from '@/store/editor'
 import SettingsIcon from '@/assets/icons/settings.svg'
 import LeftSidebarIcon from '@/assets/icons/left-sidebar.svg'
+import NoteSparkleIcon from '@/assets/icons/note-sparkle.svg'
 import TrashIcon from '@/assets/icons/trash.svg'
 
 // Cornered as an icon button and the sidebar's rows are, and inked as the rows are.
@@ -33,8 +38,9 @@ const iconButton =
   'inline-flex items-center justify-center shrink-0 w-(--size-toolbar-button) h-(--size-toolbar-button) rounded-xl text-ink-body hover:bg-bg-field-hover transition-colors'
 
 // One bar is fixed across the top of the window, over the rail and the note
-// pane alike, and holds only the sidebar toggle. It stays put whether the rail
-// is open or not: beside the window's own controls on macOS, which the OS
+// pane alike, and holds the two rails' toggles: the notes sidebar's at the
+// left and Gemma's at the right. They stay put whether the rails are open or
+// not: the left one beside the window's own controls on macOS, which the OS
 // draws over that corner (main/index.ts centres them in these 48px), or at the
 // edge elsewhere. The bar is the window's drag handle; what scrolls does so in
 // the pane below it.
@@ -51,6 +57,11 @@ const topBarOverSidebar = `${topBar} bg-level-1`
 // one's place: its glyph centred at 23px, on the sidebar's glyphs.
 const toggleSlotPastWindowControls = 'flex items-center h-full pl-[85px]'
 const toggleSlotAtEdge = 'flex items-center h-full pl-[9px]'
+// Gemma's toggle mirrors the sidebar toggle's full-screen place at the right edge.
+// While the rail is open the toggle stands on it, and takes its level, on the
+// glass, as the sidebar's toggle does over the sidebar.
+const assistantSlot = 'ml-auto flex items-center h-full pr-[9px]'
+const assistantSlotOverRail = 'ml-auto flex items-center h-full pr-[9px] bg-level-1'
 const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 // The page never sees the pointer on the drag handle, so over a peek the bar is
 // the page's as far as the sidebar reaches: going along it past the sidebar's
@@ -98,8 +109,10 @@ function App() {
 
   const { theme, effectiveTheme, setTheme } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [assistantOpen, setAssistantOpen] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const sidebarResize = useSidebarResize(shellRef)
+  const railResize = useSidebarResize(shellRef, ASSISTANT_RAIL)
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null)
   useSidebarGlass(sidebarElement, sidebarCollapsed ? 0 : sidebarResize.width)
   const sidebarPeek = useSidebarPeek({
@@ -129,6 +142,7 @@ function App() {
   const menuState: CommandMenuState = {
     sidebarCollapsed,
     noteOpen: activeNote !== null,
+    assistantOpen,
     theme: effectiveTheme === 'dark' ? 'dark' : 'light'
   }
   const openCommandMenu = () => (palette ? palette.open(menuState) : setCommandMenuOpen(true))
@@ -206,6 +220,19 @@ function App() {
     [activeNoteId, persist]
   )
 
+  // A reply goes in through the editor's own store, so it is one undo step
+  // and saves as any edit does.
+  const handleInsertReply = useCallback(
+    (markdown: string) => {
+      const editor = useEditorStore.getState()
+      if (!activeNoteId || editor.noteId !== activeNoteId) return
+      const document = insertReply(editor.document, markdown)
+      editor.setDocument(document)
+      editor.pushHistory({ title: editor.title, document })
+    },
+    [activeNoteId]
+  )
+
   const handleTagsChange = useCallback(
     (tags: string[]) => {
       if (!activeNoteId) return
@@ -228,6 +255,7 @@ function App() {
   const runCommand = (id: CommandId) => {
     if (id === 'new-note') void createNote()
     else if (id === 'sidebar') setSidebarCollapsed((c) => !c)
+    else if (id === 'assistant') setAssistantOpen((open) => !open)
     else if (id === 'properties' && activeNote) setPropertiesOpen((open) => !open)
     else if (id === 'delete' && activeNote) askDelete(activeNote.id)
     else if (id === 'theme') setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
@@ -291,7 +319,7 @@ function App() {
   return (
     <div
       ref={shellRef}
-      style={sidebarResize.shellStyle}
+      style={{ ...sidebarResize.shellStyle, ...railResize.shellStyle }}
       className={
         !frosted ? solidShellStyle : paletteShown || onWindowGlass ? shellFadedStyle : shellStyle
       }
@@ -313,6 +341,22 @@ function App() {
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <LeftSidebarIcon className="w-5 h-5" aria-hidden />
+          </button>
+        </div>
+        <div
+          data-on-glass={assistantOpen ? '' : undefined}
+          className={assistantOpen ? assistantSlotOverRail : assistantSlot}
+        >
+          <button
+            type="button"
+            onClick={() => setAssistantOpen(!assistantOpen)}
+            className={iconButton}
+            style={noDrag}
+            title={assistantOpen ? 'Hide Gemma' : 'Ask Gemma'}
+            aria-label={assistantOpen ? 'Hide Gemma' : 'Ask Gemma'}
+            aria-pressed={assistantOpen}
+          >
+            <NoteSparkleIcon className="w-5 h-5" aria-hidden />
           </button>
         </div>
       </header>
@@ -408,6 +452,17 @@ function App() {
           />
         )}
       </div>
+
+      {assistantOpen && (
+        <>
+          <SidebarResizeHandle
+            side="end"
+            resizing={railResize.resizing}
+            handleProps={railResize.handleProps}
+          />
+          <AssistantSidebar noteId={activeNote?.id ?? null} onInsert={handleInsertReply} />
+        </>
+      )}
 
       <SettingsDialog
         open={settingsOpen}

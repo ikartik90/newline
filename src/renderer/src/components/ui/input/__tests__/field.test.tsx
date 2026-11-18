@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Field } from '../field'
+import { Switch } from '../switch'
 
 // Field.Search is a deliberately DUMB search box: it emits nothing but the raw
 // query string. Interpreting that query — filtering a list — is the container's
@@ -56,6 +57,58 @@ describe('Field', () => {
     expect(screen.getByRole('textbox').getAttribute('data-size')).toBe('sm')
     expect(screen.getByText('Label').getAttribute('data-size')).toBe('sm')
     expect(screen.getByText('Hint').getAttribute('data-size')).toBe('sm')
+  })
+
+  // A label over its control is a label; one beside it reads as the text it
+  // stands with, so it takes the control's text style and resting ink.
+  it('sets a stacked label smaller than its control, in the muted ink', () => {
+    render(
+      <Field size="sm">
+        <Field.Label>Title</Field.Label>
+        <Field.Frame>
+          <Field.Control />
+        </Field.Frame>
+      </Field>
+    )
+    const classes = screen.getByText('Title').className.split(/\s+/)
+    expect(classes).toEqual(expect.arrayContaining(['text-style-sidenote', 'text-ink-field-muted']))
+    expect(classes).not.toContain('text-style-body-sm')
+    expect(classes).not.toContain('text-ink-field-default')
+  })
+
+  it('sets an inline label as its control is, in the resting ink', () => {
+    render(
+      <Field size="sm" inlineLabel>
+        <Field.Label>Rotation</Field.Label>
+        <Field.Frame>
+          <Field.Control />
+        </Field.Frame>
+      </Field>
+    )
+    const classes = screen.getByText('Rotation').className.split(/\s+/)
+    expect(classes).toEqual(
+      expect.arrayContaining(['text-style-body-sm', 'text-ink-field-default'])
+    )
+    expect(classes).not.toContain('text-style-sidenote')
+    expect(classes).not.toContain('text-ink-field-muted')
+    expect(screen.getByRole('textbox').className.split(/\s+/)).toContain('text-style-body-sm')
+  })
+
+  it('sets a toggle’s label, beside it, as an inline one', () => {
+    render(
+      <Field size="sm">
+        <Switch />
+        <Field.Label>Wi-Fi</Field.Label>
+      </Field>
+    )
+    const classes = screen.getByText('Wi-Fi').className.split(/\s+/)
+    expect(classes).toEqual(
+      expect.arrayContaining(['text-style-body-sm', 'text-ink-field-default'])
+    )
+    expect(classes).not.toContain('text-style-sidenote')
+    expect(classes).not.toContain('text-ink-field-muted')
+    // The switch is nudged onto the label's first line, so it reads the same line box.
+    expect(screen.getByRole('switch').className.split(/\s+/)).toContain('text-style-body-sm')
   })
 
   it('throws a named error for a part used outside <Field>', () => {

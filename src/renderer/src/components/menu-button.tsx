@@ -69,10 +69,12 @@ const rowStyle = 'flex items-center gap-0.5'
 const shortcutStyle =
   'hidden [@media(hover:hover)_and_(pointer:fine)]:flex items-center shrink-0 h-5 px-1 rounded-sm border border-border-divider bg-bg-sheet text-ink-body text-style-caption whitespace-nowrap transition-[opacity,visibility] duration-150 delay-150 ease-out [button[data-tooltip-visible]~&]:opacity-0 [button[data-tooltip-visible]~&]:invisible [button[data-tooltip-visible]~&]:duration-0 [button[data-tooltip-visible]~&]:delay-0'
 
-// The `menuPopover` recipe, expanded: a 200px column on the surface. It fades in
-// and out; the 95% scale is set and dropped at once, never animated.
-export const menuPopupStyle =
-  'hidden open:flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-bg-sheet bg-level-1 rounded-md overflow-hidden outline-none shadow-[0_4px_16px_var(--shadow-sheet)] transition-[opacity,display,overlay] transition-discrete duration-150 ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95'
+// The `menuPopover` recipe, expanded: a 200px column on a sheet. It fades in
+// and out; the 95% scale is set and dropped at once, never animated. The frame
+// is all but its fill and corner, for a menu that takes its own.
+export const menuPopupFrame =
+  'hidden open:flex flex-col w-[200px] py-2 px-1 gap-0.5 bg-level-1 overflow-hidden outline-none shadow-[0_4px_16px_var(--shadow-sheet)] transition-[opacity,display,overlay] transition-discrete duration-150 ease-out opacity-0 scale-95 open:opacity-100 open:scale-100 starting:open:opacity-0 starting:open:scale-95'
+export const menuPopupStyle = `${menuPopupFrame} bg-bg-sheet rounded-md`
 
 // The `menuItem` recipe: a 32px row on an 8px inset, washed when highlighted.
 export const menuItemStyle =

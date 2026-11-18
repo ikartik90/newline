@@ -78,19 +78,19 @@ describe('CommandPalette', () => {
 
   it('shows the menu for what the window holds, in its theme', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: true, noteOpen: true, theme: 'dark' })
+    showWith({ sidebarCollapsed: true, noteOpen: true, assistantOpen: false, theme: 'dark' })
     expect(await within(menu()).findByText('Apples')).toBeTruthy()
     expect(within(menu()).getByText('Show sidebar')).toBeTruthy()
     expect(within(menu()).getByText('Delete note')).toBeTruthy()
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
   it('stands on the glass, so a highlight is the glass a shade deeper', () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     const ground = screen.getByRole('combobox').closest('[data-on-glass]')
     expect(ground?.className).toContain('bg-level-1')
   })
@@ -99,7 +99,7 @@ describe('CommandPalette', () => {
   // the page draws none of its own.
   it('draws no edge of its own over the glass', () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     const ground = screen.getByRole('combobox').closest('[data-on-glass]')
     expect(ground?.className).not.toMatch(/\bborder\b|rounded-/)
   })
@@ -108,7 +108,10 @@ describe('CommandPalette', () => {
   // under a field that stays.
   it('stands no taller than main allows, its list scrolling', () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' }, 288)
+    showWith(
+      { sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' },
+      288
+    )
     const ground = screen.getByRole('combobox').closest('[data-on-glass]') as HTMLElement
     expect(ground.style.maxHeight).toBe('288px')
     expect(ground.className.split(/\s+/)).toContain('overflow-hidden')
@@ -118,7 +121,10 @@ describe('CommandPalette', () => {
   // The window resized under it: the same showing, now no taller than this.
   it('fits a resized window, keeping what is typed', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' }, 600)
+    showWith(
+      { sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' },
+      600
+    )
     await userEvent.type(screen.getByRole('combobox'), 'app')
     act(() => fit!(288))
     const ground = screen.getByRole('combobox').closest('[data-on-glass]') as HTMLElement
@@ -128,21 +134,21 @@ describe('CommandPalette', () => {
 
   it('hands a picked action to main', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     await userEvent.click(within(menu()).getByText('New note'))
     expect(palette.run).toHaveBeenCalledWith('new-note')
   })
 
   it('hands a picked note to main', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     await userEvent.click(await within(menu()).findByText('Apples'))
     expect(palette.openNote).toHaveBeenCalledWith(note)
   })
 
   it('closes on Escape and on ⌘K', () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(palette.close).toHaveBeenCalledTimes(2)
@@ -150,16 +156,16 @@ describe('CommandPalette', () => {
 
   it('answers an action’s own keys, as the window would have', () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     fireEvent.keyDown(window, { key: 'n', metaKey: true })
     expect(palette.run).toHaveBeenCalledWith('new-note')
   })
 
   it('starts each showing with an empty field and the focus in it', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     await userEvent.type(screen.getByRole('combobox'), 'app')
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     const field = screen.getByRole('combobox') as HTMLInputElement
     expect(field.value).toBe('')
     await waitFor(() => expect(document.activeElement).toBe(field))
@@ -167,7 +173,7 @@ describe('CommandPalette', () => {
 
   it('tells main how tall it stands', async () => {
     render(<CommandPalette />)
-    showWith({ sidebarCollapsed: false, noteOpen: false, theme: 'light' })
+    showWith({ sidebarCollapsed: false, noteOpen: false, assistantOpen: false, theme: 'light' })
     await waitFor(() => expect(palette.setHeight).toHaveBeenCalled())
   })
 })

@@ -372,6 +372,16 @@ describe('PropertiesPanel.Control', () => {
     expect(label.getAttribute('for')).toBe(input.getAttribute('id'))
     expect(input.closest('[data-property-control]')).not.toBeNull()
   })
+
+  // The label stands beside its control, so it is set as the control's text is.
+  it('sets its label inline, as its control is', () => {
+    render(<Harness defaultEnabled />)
+    const classes = screen.getByText('Rotation').className.split(/\s+/)
+    expect(classes).toEqual(
+      expect.arrayContaining(['text-style-body-sm', 'text-ink-field-default'])
+    )
+    expect(classes).not.toContain('text-style-sidenote')
+  })
 })
 
 describe('PropertiesPanel.Text', () => {

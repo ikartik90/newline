@@ -88,7 +88,8 @@ export const FIELD_FOCUS = {
 }
 
 // Label, value, hint and frame height move together, so you get a "small
-// field" rather than a mismatched label over a normal input. `md` is the
+// field" rather than a mismatched label over a normal input. A label beside
+// its control, not over it, is no longer a caption: it takes `control`. `md` is the
 // design default; `lg` steps each part up one text style and the frame up 8px;
 // `sm` steps every part down one into a 28px frame.
 const SIZE = {
@@ -121,6 +122,8 @@ type FieldContextValue = {
   hintId: string
   size: FieldSize
   labelFirst: boolean
+  /** The label stands beside the control: a toggle's, or one asked for with `inlineLabel`. */
+  inline: boolean
   hasLabel: boolean
   setHasLabel: (present: boolean) => void
   hasHint: boolean
@@ -164,9 +167,9 @@ export function toggleControlClass({ size, labelFirst }: FieldContextValue): str
     // The control sits on the label's FIRST LINE, not on the middle of the
     // label: the row aligns to the top and the control is nudged back down by
     // half the difference between one line box and its own height. It holds
-    // no text of its own, so the label's text style is what `1lh` reads.
+    // no text of its own, so the inline label's text style is what `1lh` reads.
     'translate-y-[calc((1lh-100%)/2)]',
-    SIZE[size].label
+    SIZE[size].control
   )
 }
 
@@ -184,6 +187,12 @@ export interface FieldProps extends HTMLAttributes<HTMLDivElement> {
    * stacked text field already has its label first.
    */
   labelFirst?: boolean
+  /**
+   * The label stands beside the control, on its line (a settings row, a
+   * properties panel's label column), so it is set as the control's text is,
+   * in its resting ink. A toggle's label is inline already.
+   */
+  inlineLabel?: boolean
   children: ReactNode
 }
 
@@ -193,7 +202,14 @@ export interface FieldProps extends HTMLAttributes<HTMLDivElement> {
  * aria-describedby link resolve automatically) and holds the control ref used
  * to forward focus from the frame's dead space.
  */
-function FieldRoot({ children, className, size = 'md', labelFirst = false, ...rest }: FieldProps) {
+function FieldRoot({
+  children,
+  className,
+  size = 'md',
+  labelFirst = false,
+  inlineLabel = false,
+  ...rest
+}: FieldProps) {
   const uid = useId()
   const controlRef = useRef<HTMLElement | null>(null)
   const [hasLabel, setHasLabel] = useState(false)
@@ -206,6 +222,7 @@ function FieldRoot({ children, className, size = 'md', labelFirst = false, ...re
     hintId: `${uid}-hint`,
     size,
     labelFirst,
+    inline: inlineLabel || toggle,
     hasLabel,
     setHasLabel,
     hasHint,
@@ -255,7 +272,8 @@ export interface FieldLabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
 }
 
 function FieldLabel({ children, type, className, ...rest }: FieldLabelProps) {
-  const { controlId, labelId, setHasLabel, size, toggle, labelFirst } = useField('Field.Label')
+  const { controlId, labelId, setHasLabel, size, toggle, labelFirst, inline } =
+    useField('Field.Label')
   // Register presence + expose an id so a compound control that can't be a
   // single `htmlFor` target (the slider track, a listbox) can `aria-labelledby` it.
   useEffect(() => {
@@ -268,17 +286,17 @@ function FieldLabel({ children, type, className, ...rest }: FieldLabelProps) {
       htmlFor={controlId}
       data-size={size}
       className={cx(
-        'w-full break-words cursor-default text-ink-field-muted transition-colors duration-150',
+        'break-words transition-colors duration-150',
+        // Over the control it is a muted caption; beside it, it reads as the
+        // resting text it stands with.
+        inline ? 'text-ink-field-default' : 'text-ink-field-muted',
         FIELD_FOCUS.label,
         // Toggle archetype: the label is a full statement beside the control,
-        // so it reads as resting field text rather than a muted label, and
-        // clicking it toggles.
-        toggle &&
-          cx(
-            'row-start-1 w-auto text-ink-field-default cursor-pointer',
-            labelFirst ? 'col-start-1' : 'col-start-2'
-          ),
-        type ? TEXT_STYLE[type] : SIZE[size].label,
+        // and clicking it toggles.
+        toggle
+          ? cx('row-start-1 w-auto cursor-pointer', labelFirst ? 'col-start-1' : 'col-start-2')
+          : 'w-full cursor-default',
+        type ? TEXT_STYLE[type] : inline ? SIZE[size].control : SIZE[size].label,
         className
       )}
       {...rest}

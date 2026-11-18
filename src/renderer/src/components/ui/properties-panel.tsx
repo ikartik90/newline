@@ -504,7 +504,7 @@ export interface PropertiesPanelControlProps {
 function PropertiesPanelControl({ label, children }: PropertiesPanelControlProps) {
   usePanel('PropertiesPanel.Control')
   return (
-    <Field size="sm" data-property-control>
+    <Field size="sm" inlineLabel data-property-control>
       <Field.Label>{label}</Field.Label>
       {children}
     </Field>

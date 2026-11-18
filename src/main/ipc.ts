@@ -1,10 +1,11 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import * as assistantService from './services/assistant'
 import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
 import { pushNote, syncNow } from './services/sync'
 import { getSyncStatus } from './services/sync-status'
-import { showSidebarGlass, type SidebarGlassAddon } from './sidebar-glass'
+import { showRailGlass, showSidebarGlass, type SidebarGlassAddon } from './sidebar-glass'
 
 export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): void {
   ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
@@ -60,6 +61,12 @@ export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): voi
     if (window) showSidebarGlass(sidebarGlass, window, width)
   })
 
+  // The Gemma rail's width, in CSS pixels, for AppKit's inspector glass under it.
+  ipcMain.on('window:railWidth', (event, width: number) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) showRailGlass(sidebarGlass, window, width)
+  })
+
   ipcMain.handle('window:isFullScreen', (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false
   })
@@ -98,6 +105,45 @@ export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): voi
 
   ipcMain.handle('media:flushPending', () => {
     return mediaService.flushPending()
+  })
+
+  ipcMain.handle('assistant:status', () => {
+    return assistantService.getModelStatus()
+  })
+
+  ipcMain.handle('assistant:download', () => {
+    assistantService.startModelDownload()
+  })
+
+  ipcMain.handle('assistant:cancelDownload', () => {
+    assistantService.cancelModelDownload()
+  })
+
+  ipcMain.handle('assistant:messages', (_event, noteId: string) => {
+    return assistantService.listMessages(noteId)
+  })
+
+  ipcMain.handle('assistant:clear', (_event, noteId: string) => {
+    assistantService.clearMessages(noteId)
+  })
+
+  // The reply streams back to the window that asked, as it is generated.
+  ipcMain.handle('assistant:send', (event, noteId: string, text: string, requestId: string) => {
+    return assistantService.sendMessage(noteId, text, requestId, (chunk) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('assistant:chunk', { requestId, text: chunk })
+      }
+    })
+  })
+
+  ipcMain.handle('assistant:stop', (_event, requestId: string) => {
+    assistantService.stopMessage(requestId)
+  })
+
+  assistantService.onModelStatus((status) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('assistant:statusChanged', status)
+    }
   })
 
   ipcMain.handle('auth:google', async () => {

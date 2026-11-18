@@ -434,6 +434,8 @@
   /* The notes rail's width. The shell sets it from the divider's last drag;
      this is the floor it starts at. */
   --size-sidebar: 256px;
+  /* The Gemma rail's, the same way from the window's end. */
+  --size-assistant: 320px;
 }
 
 .dark {
@@ -553,7 +555,11 @@
    15% and presses in inverse 3 at 15%; a tertiary hovers and presses as the
    secondary does; a primary keeps its solid fill, for its flipped ink. The
    avatar's disc is the secondary's rest, and a divider is divider 3 at 15%. No field stands on the glass: what borrows a field's hover and
-   press steps as a shell does, and a picked option is a selected shell. In the
+   press steps as a shell does, and a picked option is a selected shell, inked
+   in ink 2 as a button is. Nothing on the glass is in the highlight: a fill in
+   it is a selected shell, an ink ink 2 (a focused field's own text keeps its
+   resting ink), a faint edge divider 5 at the highlight's 25%, and a line that
+   must stand out (the focus ring, a progress bar) divider 5. In the
    utilities layer, where it outranks the level by specificity. */
 @layer utilities {
   html[data-frosted] [data-on-glass].bg-level-1 {
@@ -563,14 +569,27 @@
     --bg-button-secondary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
     --bg-button-tertiary-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
     --bg-button-tertiary-pressed: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
+    --bg-field-focus: var(--bg-shell-selected);
     --bg-field-hover: var(--bg-shell-hover);
     --bg-field-pressed: var(--bg-shell-selected);
     --bg-field-selected: var(--bg-shell-selected);
+    --bg-mark-default: var(--bg-shell-selected);
     /* A shell's hover and selected on the glass: the primary's scale at 15%. */
     --bg-shell-hover: color-mix(in srgb, var(--bg-inverse-5) 15%, transparent);
     --bg-shell-selected: color-mix(in srgb, var(--bg-inverse-3) 15%, transparent);
     /* A line on the glass lets it show through: divider 3 at 15%. */
     --border-divider: color-mix(in srgb, var(--divider-3) 15%, transparent);
+    /* No highlight on the glass: its edges and lines in base, its inks ink 2. */
+    --border-field-focus: color-mix(in srgb, var(--divider-5) 25%, transparent);
+    --border-field-selected: color-mix(in srgb, var(--divider-5) 25%, transparent);
+    --border-progress: var(--divider-5);
+    --ink-field-focus: var(--ink-field-default);
+    --ink-field-placeholder-focus: var(--ink-field-placeholder);
+    --ink-field-selected: var(--ink-2);
+    --ink-link-default: var(--ink-2);
+    --ink-mark-default: var(--ink-2);
+    --ink-sync-syncing: var(--ink-2);
+    --outline-focus: var(--divider-5);
   }
 }
 

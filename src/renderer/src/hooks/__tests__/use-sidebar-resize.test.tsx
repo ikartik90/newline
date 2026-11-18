@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useSidebarResize } from '../use-sidebar-resize'
-import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@/utils/sidebar-width'
+import { ASSISTANT_RAIL, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@/utils/sidebar-width'
 
 // ---------------------------------------------------------------------------
 // The rail's divider is a handle: dragged, it widens the rail by as far as the
@@ -103,5 +103,56 @@ describe('useSidebarResize', () => {
     fireEvent.pointerUp(handle(), { clientX: 300, pointerId: 1 })
     expect(document.documentElement.hasAttribute('data-sidebar-resizing')).toBe(false)
     expect(document.documentElement.hasAttribute('data-control-dragging')).toBe(false)
+  })
+})
+
+// The Gemma rail stands at the window's other edge, so its divider is its
+// first pixel: drawn left, it widens.
+function RailShell() {
+  const shellRef = useRef<HTMLDivElement>(null)
+  const { width, shellStyle, handleProps } = useSidebarResize(shellRef, ASSISTANT_RAIL)
+  return (
+    <div ref={shellRef} data-testid="shell" style={shellStyle}>
+      <div {...handleProps} />
+      <output>{width}</output>
+    </div>
+  )
+}
+
+const railWidth = () => screen.getByTestId('shell').style.getPropertyValue('--size-assistant')
+const railHandle = () => screen.getByRole('separator', { name: 'Resize Gemma' })
+
+describe('useSidebarResize, from the window’s end edge', () => {
+  it('starts at the rail’s floor, in a property of its own', () => {
+    render(<RailShell />)
+    expect(railWidth()).toBe('320px')
+    expect(screen.getByTestId('shell').style.getPropertyValue('--size-sidebar')).toBe('')
+    expect(railHandle().getAttribute('aria-valuemax')).toBe('480')
+  })
+
+  it('widens as the pointer goes left, and remembers where it is let go', () => {
+    render(<RailShell />)
+    const at = { pointerId: 1, button: 0 }
+    fireEvent.pointerDown(railHandle(), { ...at, clientX: 1000 })
+    fireEvent.pointerMove(railHandle(), { ...at, clientX: 920 })
+    expect(railWidth()).toBe('400px')
+    fireEvent.pointerUp(railHandle(), { ...at, clientX: 920 })
+    expect(localStorage.getItem(ASSISTANT_RAIL.key)).toBe('400')
+    expect(localStorage.getItem('sidebarWidth')).toBeNull()
+
+    fireEvent.pointerDown(railHandle(), { ...at, clientX: 920 })
+    fireEvent.pointerMove(railHandle(), { ...at, clientX: 2000 })
+    fireEvent.pointerUp(railHandle(), { ...at, clientX: 2000 })
+    expect(railWidth()).toBe('320px')
+  })
+
+  it('widens on ArrowLeft and narrows on ArrowRight', () => {
+    render(<RailShell />)
+    fireEvent.keyDown(railHandle(), { key: 'ArrowLeft' })
+    expect(railWidth()).toBe('336px')
+    fireEvent.keyDown(railHandle(), { key: 'ArrowRight' })
+    expect(railWidth()).toBe('320px')
+    fireEvent.keyDown(railHandle(), { key: 'End' })
+    expect(railWidth()).toBe('480px')
   })
 })

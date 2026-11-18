@@ -5,6 +5,7 @@ import {
   glassWindowOptions,
   isFrostedWindow,
   loadSidebarGlass,
+  showRailGlass,
   showSidebarGlass,
   type SidebarGlassAddon
 } from '../sidebar-glass'
@@ -12,6 +13,7 @@ import {
 const addon = (supported: boolean): SidebarGlassAddon => ({
   isSupported: () => supported,
   show: vi.fn(() => true),
+  showRail: vi.fn(() => true),
   panelGlass: vi.fn(() => true),
   floatPanel: vi.fn(() => true),
   windowGlass: vi.fn(() => true)
@@ -121,6 +123,38 @@ describe('showSidebarGlass', () => {
   })
 })
 
+describe('showRailGlass', () => {
+  const handle = Buffer.from([1])
+  const window = (zoom: number) => ({
+    getNativeWindowHandle: () => handle,
+    webContents: { getZoomFactor: () => zoom }
+  })
+
+  it('lays the glass as wide as the Gemma rail, in points at the page’s zoom', () => {
+    const glass = addon(true)
+    showRailGlass(glass, window(1.25), 320)
+    expect(glass.showRail).toHaveBeenCalledWith(handle, 400)
+  })
+
+  it('takes the glass away once the rail is closed', () => {
+    const glass = addon(true)
+    showRailGlass(glass, window(1), 0)
+    expect(glass.showRail).toHaveBeenCalledWith(handle, 0)
+  })
+
+  it('ignores a width that is not one', () => {
+    const glass = addon(true)
+    for (const width of [Number.NaN, -1, Infinity, '320' as unknown as number]) {
+      showRailGlass(glass, window(1), width)
+    }
+    expect(glass.showRail).not.toHaveBeenCalled()
+  })
+
+  it('does nothing without the add-on', () => {
+    expect(() => showRailGlass(null, window(1), 320)).not.toThrow()
+  })
+})
+
 const built = join(__dirname, '../../../out/native/sidebar-glass.node')
 
 describe.skipIf(process.platform !== 'darwin' || !existsSync(built))('the built add-on', () => {
@@ -137,5 +171,6 @@ describe.skipIf(process.platform !== 'darwin' || !existsSync(built))('the built 
   it('refuses a handle that is not a window’s', () => {
     expect(load().show(Buffer.alloc(8), 256)).toBe(false)
     expect(load().show('handle' as unknown as Buffer, 256)).toBe(false)
+    expect(load().showRail(Buffer.alloc(8), 320)).toBe(false)
   })
 })

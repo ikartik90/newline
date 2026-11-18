@@ -2,6 +2,7 @@ import React from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AssistantMessage, AssistantModelStatus } from '@shared/domain/assistant'
 import { serializeDocument } from '@shared/domain/document'
 import App from '../App'
 import css from '@/assets/main.css?raw'
@@ -80,6 +81,7 @@ function installApi(notes: Note[]) {
     window: {
       isFullScreen: vi.fn(async () => false),
       setSidebarWidth: vi.fn(),
+      setRailWidth: vi.fn(),
       onFullScreenChange: vi.fn((listener: (fullScreen: boolean) => void) => {
         fullScreenListeners.add(listener)
         return () => {
@@ -96,6 +98,17 @@ function installApi(notes: Note[]) {
       delete: vi.fn(),
       uploadPoster: vi.fn(),
       flushPending: vi.fn(async () => 0)
+    },
+    assistant: {
+      status: vi.fn(async (): Promise<AssistantModelStatus> => ({ state: 'missing' })),
+      download: vi.fn(async () => {}),
+      cancelDownload: vi.fn(async () => {}),
+      messages: vi.fn(async (_noteId: string): Promise<AssistantMessage[]> => []),
+      clear: vi.fn(async () => {}),
+      send: vi.fn(async () => null),
+      stop: vi.fn(async () => {}),
+      onStatus: vi.fn(() => () => {}),
+      onChunk: vi.fn(() => () => {})
     },
     auth: {
       googleSignIn: vi.fn(),
@@ -173,6 +186,34 @@ describe('App', () => {
     expect(screen.getByText('Hello there')).toBeTruthy()
   })
 
+  it('puts a Gemma reply into the open note and saves it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const { api } = installApi([makeNote()])
+      api.assistant.status.mockResolvedValue({ state: 'ready', path: '/m', source: 'huggingface' })
+      api.assistant.messages.mockResolvedValue([
+        { id: 'r', noteId: 'n1', role: 'assistant', content: 'A **new** line', createdAt: 1 }
+      ])
+      render(<App />)
+      await userEvent.click(await screen.findByText('First note'))
+      await screen.findByRole('heading', { name: 'Title' })
+      fireEvent.click(screen.getByRole('button', { name: 'Ask Gemma' }))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Insert into note' }))
+      const article = document.querySelector('article')!
+      await waitFor(() => expect(article.textContent).toContain('A new line'))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      await waitFor(() => expect(api.notes.update).toHaveBeenCalled())
+      const [, fields] = api.notes.update.mock.calls.at(-1) as [string, Partial<Note>]
+      expect(fields.body).toContain('"new"')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('writes an edit to the note and has main push it, reporting the save', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
@@ -238,13 +279,61 @@ const hasMargin = (element: Element) =>
   classesOf(element).some((c) => /^-?m[trblxy]?-/.test(c) || /^-?m[se]-/.test(c))
 
 describe('App chrome', () => {
-  it('holds only the sidebar toggle in the top bar', async () => {
+  it('holds the two rails’ toggles in the top bar', async () => {
     installApi([makeNote()])
     render(<App />)
     const bar = await screen.findByRole('banner')
     const buttons = within(bar).getAllByRole('button')
-    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Collapse sidebar'])
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Collapse sidebar',
+      'Ask Gemma'
+    ])
     expect(screen.getByRole('complementary', { name: 'Notes' }).contains(bar)).toBe(false)
+  })
+
+  it('opens and closes the Gemma rail from the top bar, asking main nothing until opened', async () => {
+    const { api } = installApi([makeNote()])
+    render(<App />)
+    const toggle = await screen.findByRole('button', { name: 'Ask Gemma' })
+    expect(screen.queryByRole('complementary', { name: 'Gemma' })).toBeNull()
+    expect(api.assistant.status).not.toHaveBeenCalled()
+
+    fireEvent.click(toggle)
+    expect(await screen.findByRole('complementary', { name: 'Gemma' })).toBeTruthy()
+    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    expect(toggle.getAttribute('aria-label')).toBe('Hide Gemma')
+    expect(await screen.findByRole('button', { name: /Download/ })).toBeTruthy()
+
+    fireEvent.click(toggle)
+    expect(screen.queryByRole('complementary', { name: 'Gemma' })).toBeNull()
+  })
+
+  it('makes the divider between the note pane and the Gemma rail a handle that resizes the rail', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    const toggle = await screen.findByRole('button', { name: 'Ask Gemma' })
+    expect(screen.queryByRole('separator', { name: 'Resize Gemma' })).toBeNull()
+
+    fireEvent.click(toggle)
+    const rail = await screen.findByRole('complementary', { name: 'Gemma' })
+    const handle = screen.getByRole('separator', { name: 'Resize Gemma' })
+    // It stands just before the rail, on its edge, as the sidebar's does.
+    expect(rail.previousElementSibling).toBe(handle.parentElement)
+    expect(classesOf(handle)).toEqual(expect.arrayContaining(['cursor-col-resize', 'inset-y-0']))
+    expect(handle.querySelector('.group-hover\\:bg-border-resize-handle-hover')).not.toBeNull()
+    expect(classesOf(rail)).toContain('w-(--size-assistant)')
+
+    const shell = screen.getByRole('banner').parentElement!
+    expect(shell.style.getPropertyValue('--size-assistant')).toBe('320px')
+    expect(shell.style.getPropertyValue('--size-sidebar')).toBe('256px')
+    fireEvent.pointerDown(handle, { clientX: 900, pointerId: 1, button: 0 })
+    fireEvent.pointerMove(handle, { clientX: 860, pointerId: 1 })
+    expect(shell.style.getPropertyValue('--size-assistant')).toBe('360px')
+    fireEvent.pointerUp(handle, { clientX: 860, pointerId: 1 })
+    expect(localStorage.getItem('assistantWidth')).toBe('360')
+
+    fireEvent.click(toggle)
+    expect(screen.queryByRole('separator', { name: 'Resize Gemma' })).toBeNull()
   })
 
   it('inks the sidebar toggle and the settings gear as the sidebar inks its labels', async () => {
@@ -762,6 +851,7 @@ describe('App glass command palette', () => {
     expect(palette.open).toHaveBeenLastCalledWith({
       sidebarCollapsed: false,
       noteOpen: true,
+      assistantOpen: false,
       theme: 'light'
     })
     fireEvent.keyDown(window, { key: 'f', metaKey: true })

@@ -189,7 +189,7 @@ describe('token usage', () => {
     expect(action).toMatch(
       /secondary:\s+'bg-bg-button-secondary-default text-ink-button-secondary-default hover:bg-bg-button-secondary-hover active:bg-bg-button-secondary-pressed'/
     )
-    const account = SOURCES['../components/account-menu.tsx']
+    const account = SOURCES['../components/menu-identity.tsx']
     expect(account).toMatch(/avatarStyle =\s+'[^']*\bbg-bg-avatar-default\b/)
     expect(account).not.toMatch(/bg-button-secondary/)
   })

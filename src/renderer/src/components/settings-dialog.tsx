@@ -28,9 +28,10 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string; Icon: FC<SVGProps<SVGS
   { value: 'dark', label: 'Dark', Icon: DarkIcon }
 ]
 
-// A setting's row: its label, then its control on the far edge.
+// A setting's row: its label, set as the dialog's other text is, then its
+// control on the far edge.
 const settingRowStyle = 'flex items-center justify-between gap-2'
-const settingLabelStyle = 'text-style-sidenote text-ink-field-default'
+const settingLabelStyle = 'text-style-body-sm text-ink-body'
 
 export function SettingsDialog({ open, onClose, theme, onThemeChange }: SettingsDialogProps) {
   return (
