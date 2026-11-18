@@ -7,11 +7,22 @@ directories:
 
 files:
   - out/**/*
-  - "!**/*.map"
+  - '!**/*.map'
+  # node-llama-cpp ships prebuilt llama.cpp binaries for every platform; keep
+  # only the target's.
+  - '!node_modules/node-llama-cpp/bins/**/*'
+  - 'node_modules/node-llama-cpp/bins/${os}-${arch}*/**/*'
+  - '!node_modules/node-llama-cpp/llama/localBuilds/**/*'
+  - 'node_modules/node-llama-cpp/llama/localBuilds/${os}-${arch}*/**/*'
+  - '!node_modules/@node-llama-cpp/*/bins/**/*'
+  - 'node_modules/@node-llama-cpp/${os}-${arch}*/bins/**/*'
 
-# A native add-on cannot be loaded from inside the asar archive.
+# Native add-ons and libraries cannot be loaded from inside the asar archive.
 asarUnpack:
   - out/native/*.node
+  - node_modules/node-llama-cpp/bins
+  - node_modules/node-llama-cpp/llama/localBuilds
+  - node_modules/@node-llama-cpp/*
 
 mac:
   target:
@@ -24,7 +35,7 @@ mac:
   artifactName: ${name}-${version}-${arch}.${ext}
   # The sidebar-glass add-on is built universal already (scripts/build-native.mjs),
   # so the x64 and arm64 apps carry the same file and it is taken as it is.
-  x64ArchFiles: "**/out/native/*.node"
+  x64ArchFiles: '**/out/native/*.node'
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false

@@ -10,19 +10,21 @@ import {
 } from 'react'
 import { beginControlDrag, endControlDrag } from '@/utils/control-drag'
 import {
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
-  SIDEBAR_WIDTH_KEY,
-  clampSidebarWidth,
-  parseStoredSidebarWidth
+  NOTES_RAIL,
+  clampRailWidth,
+  parseStoredRailWidth,
+  type RailBounds
 } from '@/utils/sidebar-width'
 
 // ---------------------------------------------------------------------------
-// useSidebarResize — the divider between the rail and the note panel, as a
-// handle that drags the rail wider or narrower.
+// useSidebarResize — the divider between a rail and the note panel, as a
+// handle that drags the rail wider or narrower: the notes sidebar by default,
+// or the Gemma rail (`ASSISTANT_RAIL`), which stands at the window's end and
+// so widens as its handle goes left.
 //
-// The width reaches the page as `--size-sidebar` on the shell, which the rail,
-// the top bar's rail controls and the search's centring all read. A drag
+// The width reaches the page as the rail's property on the shell
+// (`--size-sidebar`, which the top bar's rail controls and the search's
+// centring read too, or `--size-assistant`). A drag
 // writes that property straight onto the element on every move and commits
 // to React state only on release: a render per move would re-render the
 // editor under the pointer. React leaves the property alone in between,
@@ -41,23 +43,32 @@ interface Gesture {
   width: number
 }
 
-export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
+export function useSidebarResize(
+  shellRef: RefObject<HTMLElement | null>,
+  rail: RailBounds = NOTES_RAIL
+) {
   const [stored, setStored] = useState(() =>
-    parseStoredSidebarWidth(localStorage.getItem(SIDEBAR_WIDTH_KEY))
+    parseStoredRailWidth(localStorage.getItem(rail.key), rail)
   )
   const [resizing, setResizing] = useState(false)
   const gesture = useRef<Gesture | null>(null)
 
-  const width = clampSidebarWidth(stored)
+  const width = clampRailWidth(stored, rail)
+  const clamp = (next: number) => clampRailWidth(next, rail)
+  // Which way the pointer and the arrow keys widen it.
+  const outward = rail.side === 'end' ? -1 : 1
 
   const paint = (next: number) => {
-    shellRef.current?.style.setProperty('--size-sidebar', `${next}px`)
+    shellRef.current?.style.setProperty(rail.property, `${next}px`)
   }
 
-  const commit = useCallback((next: number) => {
-    setStored(next)
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next))
-  }, [])
+  const commit = useCallback(
+    (next: number) => {
+      setStored(next)
+      localStorage.setItem(rail.key, String(next))
+    },
+    [rail.key]
+  )
 
   const release = (pointerId: number) => {
     endControlDrag(pointerId)
@@ -76,14 +87,14 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
     }
   }, [])
 
-  const shellStyle = { '--size-sidebar': `${width}px` } as CSSProperties
+  const shellStyle = { [rail.property]: `${width}px` } as CSSProperties
 
   const handleProps = {
     role: 'separator',
-    'aria-label': 'Resize sidebar',
+    'aria-label': rail.label,
     'aria-orientation': 'vertical' as const,
-    'aria-valuemin': SIDEBAR_MIN_WIDTH,
-    'aria-valuemax': SIDEBAR_MAX_WIDTH,
+    'aria-valuemin': rail.min,
+    'aria-valuemax': rail.max,
     'aria-valuenow': width,
     tabIndex: 0,
 
@@ -105,7 +116,7 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
       const live = gesture.current
       if (!live || live.pointerId !== event.pointerId) return
-      live.width = clampSidebarWidth(live.startWidth + event.clientX - live.startX)
+      live.width = clamp(live.startWidth + outward * (event.clientX - live.startX))
       paint(live.width)
       event.currentTarget.setAttribute('aria-valuenow', String(live.width))
     },
@@ -125,22 +136,22 @@ export function useSidebarResize(shellRef: RefObject<HTMLElement | null>) {
       release(live.pointerId)
     },
 
-    onDoubleClick: () => commit(SIDEBAR_MIN_WIDTH),
+    onDoubleClick: () => commit(rail.min),
 
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
       const next =
         event.key === 'ArrowRight'
-          ? width + KEY_STEP
+          ? width + outward * KEY_STEP
           : event.key === 'ArrowLeft'
-            ? width - KEY_STEP
+            ? width - outward * KEY_STEP
             : event.key === 'Home'
-              ? SIDEBAR_MIN_WIDTH
+              ? rail.min
               : event.key === 'End'
-                ? SIDEBAR_MAX_WIDTH
+                ? rail.max
                 : null
       if (next === null) return
       event.preventDefault()
-      commit(clampSidebarWidth(next))
+      commit(clamp(next))
     }
   }
 

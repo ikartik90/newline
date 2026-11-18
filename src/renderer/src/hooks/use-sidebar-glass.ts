@@ -24,3 +24,25 @@ export function useSidebarGlass(element: HTMLElement | null, minWidth = 0): void
     }
   }, [element, minWidth])
 }
+
+/**
+ * Keeps AppKit's inspector glass, which main lays at the window's right edge
+ * on macOS, as wide as the Gemma rail while it is open, and takes it away
+ * once the rail closes.
+ */
+export function useRailGlass(element: HTMLElement | null): void {
+  useEffect(() => {
+    if (!element || window.api.platform !== 'darwin') return
+    const { setRailWidth } = window.api.window
+    const send = (): void => setRailWidth(element.getBoundingClientRect().width)
+    send()
+    const observer = new ResizeObserver(send)
+    observer.observe(element)
+    window.addEventListener('resize', send)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', send)
+      setRailWidth(0)
+    }
+  }, [element])
+}

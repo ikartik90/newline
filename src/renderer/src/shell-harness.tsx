@@ -7,6 +7,12 @@ import {
   parseDocument,
   serializeDocument
 } from '@shared/domain/document'
+import {
+  GEMMA_MODEL,
+  type AssistantChunk,
+  type AssistantMessage,
+  type AssistantModelStatus
+} from '@shared/domain/assistant'
 import App from './App'
 import './assets/main.css'
 
@@ -75,6 +81,86 @@ const notes: Note[] = [
   seed('Ideas', paragraphs('A command menu. Swipe to delete.'), [], 45 * DAY)
 ]
 
+// The assistant: a download that fills in a few seconds, and a reply that
+// streams a canned answer word by word. `?gemma=ready` starts with the model
+// already on disk, as if another app had downloaded it.
+let modelStatus: AssistantModelStatus = new URLSearchParams(location.search).has('gemma')
+  ? { state: 'ready', path: '/harness/gemma.gguf', source: 'lm-studio' }
+  : { state: 'missing' }
+const statusListeners = new Set<(status: AssistantModelStatus) => void>()
+const chunkListeners = new Set<(chunk: AssistantChunk) => void>()
+const turns: AssistantMessage[] = []
+let downloadTimer: ReturnType<typeof setInterval> | null = null
+const stopped = new Set<string>()
+
+function setModelStatus(next: AssistantModelStatus) {
+  modelStatus = next
+  statusListeners.forEach((listener) => listener(next))
+}
+
+const assistant = {
+  status: async () => modelStatus,
+  download: async () => {
+    let received = 0
+    downloadTimer = setInterval(() => {
+      received = Math.min(GEMMA_MODEL.size, received + GEMMA_MODEL.size / 20)
+      if (received < GEMMA_MODEL.size) {
+        setModelStatus({
+          state: 'downloading',
+          receivedBytes: received,
+          totalBytes: GEMMA_MODEL.size
+        })
+      } else {
+        clearInterval(downloadTimer!)
+        setModelStatus({ state: 'ready', path: '/harness/gemma.gguf', source: 'huggingface' })
+      }
+    }, 250)
+  },
+  cancelDownload: async () => {
+    if (downloadTimer) clearInterval(downloadTimer)
+    setModelStatus({ state: 'missing' })
+  },
+  messages: async (noteId: string) => turns.filter((t) => t.noteId === noteId),
+  clear: async (noteId: string) => {
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i].noteId === noteId) turns.splice(i, 1)
+  },
+  send: async (noteId: string, text: string, requestId: string) => {
+    turns.push({ id: uuid(), noteId, role: 'user', content: text, createdAt: Date.now() })
+    const note = notes.find((n) => n.id === noteId)
+    const words =
+      `This note, “${note?.title || 'Untitled'}”, says: ${note?.plainText || 'nothing yet'} A **summary** in one line would be that.`.split(
+        /(?<= )/
+      )
+    let said = ''
+    for (const word of words) {
+      if (stopped.has(requestId)) break
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      said += word
+      chunkListeners.forEach((listener) => listener({ requestId, text: word }))
+    }
+    const reply: AssistantMessage = {
+      id: uuid(),
+      noteId,
+      role: 'assistant',
+      content: said.trim(),
+      createdAt: Date.now()
+    }
+    turns.push(reply)
+    return reply
+  },
+  stop: async (requestId: string) => {
+    stopped.add(requestId)
+  },
+  onStatus: (listener: (status: AssistantModelStatus) => void) => {
+    statusListeners.add(listener)
+    return () => statusListeners.delete(listener)
+  },
+  onChunk: (listener: (chunk: AssistantChunk) => void) => {
+    chunkListeners.add(listener)
+    return () => chunkListeners.delete(listener)
+  }
+}
+
 const matches = (note: Note, term: string) =>
   [note.title, note.plainText, ...note.tags].some((field) => field.toLowerCase().includes(term))
 
@@ -122,6 +208,7 @@ Object.defineProperty(window, 'api', {
     window: {
       isFullScreen: async () => document.fullscreenElement !== null,
       setSidebarWidth: () => {},
+      setRailWidth: () => {},
       onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
         const handler = () => listener(document.fullscreenElement !== null)
         document.addEventListener('fullscreenchange', handler)
@@ -153,6 +240,7 @@ Object.defineProperty(window, 'api', {
       uploadPoster: async () => null,
       flushPending: async () => 0
     },
+    assistant,
     auth: {
       googleSignIn: async () => ({ user: { id: 'harness', email: 'harness@example.com' } }),
       cancelSignIn: async () => {},

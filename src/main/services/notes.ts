@@ -115,6 +115,8 @@ export function deleteNote(id: string): void {
   const now = Date.now()
 
   db.prepare('UPDATE notes SET is_deleted = 1, updated_at = ? WHERE id = ?').run(now, id)
+  // The assistant's conversation was about this note and is kept nowhere else.
+  db.prepare('DELETE FROM assistant_messages WHERE note_id = ?').run(id)
 
   enqueueSyncAction(id, 'delete')
 }

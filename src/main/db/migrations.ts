@@ -167,6 +167,24 @@ const migrations: Migration[] = [
 
       db.exec(`DELETE FROM app_meta WHERE key = 'last_full_sync'`)
     }
+  },
+  {
+    // The assistant rail's conversations, one per note. They stay on this
+    // device: nothing here is queued, and the Worker has no such table.
+    version: 4,
+    up(db) {
+      db.exec(`
+        CREATE TABLE assistant_messages (
+          id         TEXT PRIMARY KEY,
+          note_id    TEXT NOT NULL,
+          role       TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+          content    TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX idx_assistant_messages_note ON assistant_messages(note_id, created_at);
+      `)
+    }
   }
 ]
 

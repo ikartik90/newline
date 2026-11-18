@@ -4,7 +4,9 @@
 // This lays one such split view at the bottom of an Electron window, below the
 // page, with its sidebar exactly as wide as the page's: where the page is clear
 // over its sidebar, AppKit's sidebar shows through, drawn by AppKit itself. The
-// split view's other side lies under the note pane, which the page paints solid.
+// split view's middle lies under the note pane, which the page paints solid,
+// and its inspector, the trailing pane AppKit glazes as it does the sidebar,
+// under the page's Gemma rail while that is open.
 //
 // It also lays glass under the command palette's own window: AppKit's Liquid
 // Glass, filled with the popover material at an opacity of the caller's, from
@@ -30,12 +32,14 @@ static const void *kCornerMaskKey = &kCornerMaskKey;
 @interface NLSidebarGlass : NSObject
 @property(strong) NSSplitViewController *controller;
 @property(strong) NSSplitViewItem *sidebar;
+@property(strong) NSSplitViewItem *inspector;
 // The glass over the whole window while the command palette shows, and
 // whether it is up: the sidebar's own is hidden under it meanwhile.
 @property(strong) NSView *window;
 @property BOOL whole;
-// Whether the page has a sidebar for it to stand under.
+// Whether the page has a sidebar, and a Gemma rail, for it to stand under.
 @property BOOL shown;
+@property BOOL railShown;
 @end
 
 @implementation NLSidebarGlass
@@ -90,6 +94,11 @@ static NLSidebarGlass *GlassFor(NSView *content) {
   sidebar.allowsFullHeightLayout = YES;
   [controller addSplitViewItem:sidebar];
   [controller addSplitViewItem:[NSSplitViewItem splitViewItemWithViewController:EmptyController()]];
+  NSSplitViewItem *inspector = [NSSplitViewItem inspectorWithViewController:EmptyController()];
+  inspector.canCollapse = YES;
+  inspector.collapsed = YES;
+  inspector.allowsFullHeightLayout = YES;
+  [controller addSplitViewItem:inspector];
 
   NSView *view = controller.view;
   view.frame = content.bounds;
@@ -99,21 +108,45 @@ static NLSidebarGlass *GlassFor(NSView *content) {
   glass = [[NLSidebarGlass alloc] init];
   glass.controller = controller;
   glass.sidebar = sidebar;
+  glass.inspector = inspector;
   objc_setAssociatedObject(content, kGlassKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
   return glass;
 }
 
-// Pins the sidebar to one width: AppKit keeps its thickness between these two.
-static void SetWidth(NLSidebarGlass *glass, CGFloat width) {
-  NSSplitViewItem *sidebar = glass.sidebar;
-  if (width > sidebar.maximumThickness) {
-    sidebar.maximumThickness = width;
-    sidebar.minimumThickness = width;
+// Pins an item to one width: AppKit keeps its thickness between these two.
+static void PinThickness(NSSplitViewItem *item, CGFloat width) {
+  if (width > item.maximumThickness) {
+    item.maximumThickness = width;
+    item.minimumThickness = width;
   } else {
-    sidebar.minimumThickness = width;
-    sidebar.maximumThickness = width;
+    item.minimumThickness = width;
+    item.maximumThickness = width;
   }
+}
+
+static void SetWidth(NLSidebarGlass *glass, CGFloat width) {
+  PinThickness(glass.sidebar, width);
   [glass.controller.splitView setPosition:width ofDividerAtIndex:0];
+}
+
+static void SetRailWidth(NLSidebarGlass *glass, CGFloat width) {
+  NSSplitViewItem *inspector = glass.inspector;
+  if (width < 1) {
+    inspector.collapsed = YES;
+    return;
+  }
+  PinThickness(inspector, width);
+  inspector.collapsed = NO;
+  NSSplitView *splitView = glass.controller.splitView;
+  [splitView setPosition:NSWidth(splitView.bounds) - width ofDividerAtIndex:1];
+}
+
+// The split view shows while the page has a sidebar or a rail over it, and
+// hides under the window's glass, to show as it is once that goes. The
+// sidebar's item keeps its last width under a collapsed sidebar, where the
+// note pane's solid canvas covers it.
+static void ShowSplitView(NLSidebarGlass *glass) {
+  glass.controller.view.hidden = glass.whole || !(glass.shown || glass.railShown);
 }
 
 static napi_value JsBoolean(napi_env env, bool value) {
@@ -140,16 +173,31 @@ static napi_value Show(napi_env env, napi_callback_info info) {
   if (!content || !Supported() || ![NSThread isMainThread]) return JsBoolean(env, false);
 
   NLSidebarGlass *glass = GlassFor(content);
-  NSView *view = glass.controller.view;
   glass.shown = width >= 1;
-  if (width < 1) {
-    view.hidden = YES;
+  if (glass.shown) SetWidth(glass, width);
+  ShowSplitView(glass);
+  return JsBoolean(env, glass.shown);
+}
+
+// showRail(handle, width): lays the inspector's glass at the window's right
+// edge under the Gemma rail, or moves it to the new width. A width under a
+// point takes it away. Answers whether glass is now under the rail.
+static napi_value ShowRail(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value argv[2];
+  if (napi_get_cb_info(env, info, &argc, argv, NULL, NULL) != napi_ok || argc < 2) {
     return JsBoolean(env, false);
   }
-  // Under the window's glass it is only moved, to show as it is once that goes.
-  view.hidden = glass.whole;
-  SetWidth(glass, width);
-  return JsBoolean(env, true);
+  double width = 0;
+  if (napi_get_value_double(env, argv[1], &width) != napi_ok) return JsBoolean(env, false);
+  NSView *content = ContentView(env, argv[0]);
+  if (!content || !Supported() || ![NSThread isMainThread]) return JsBoolean(env, false);
+
+  NLSidebarGlass *glass = GlassFor(content);
+  glass.railShown = width >= 1;
+  SetRailWidth(glass, width);
+  ShowSplitView(glass);
+  return JsBoolean(env, glass.railShown);
 }
 
 // The sidebar's glass is Liquid Glass in AppKit's private sidebar variant,
@@ -195,15 +243,9 @@ static napi_value WindowGlass(napi_env env, napi_callback_info info) {
   NLSidebarGlass *glass = GlassFor(content);
   NSView *whole = WindowGlassFor(glass, content);
   if (!whole) return JsBoolean(env, false);
-  NSView *sidebar = glass.controller.view;
-  if (on) {
-    whole.hidden = NO;
-    sidebar.hidden = YES;
-  } else if (glass.whole) {
-    whole.hidden = YES;
-    sidebar.hidden = !glass.shown;
-  }
+  whole.hidden = !on;
   glass.whole = on;
+  ShowSplitView(glass);
   return JsBoolean(env, on);
 }
 
@@ -398,6 +440,7 @@ NAPI_MODULE_INIT() {
   napi_property_descriptor properties[] = {
       {"isSupported", NULL, IsSupported, NULL, NULL, NULL, napi_enumerable, NULL},
       {"show", NULL, Show, NULL, NULL, NULL, napi_enumerable, NULL},
+      {"showRail", NULL, ShowRail, NULL, NULL, NULL, napi_enumerable, NULL},
       {"panelGlass", NULL, PanelGlass, NULL, NULL, NULL, napi_enumerable, NULL},
       {"floatPanel", NULL, FloatPanel, NULL, NULL, NULL, napi_enumerable, NULL},
       {"windowGlass", NULL, WindowGlass, NULL, NULL, NULL, napi_enumerable, NULL},

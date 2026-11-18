@@ -165,7 +165,7 @@ describe('runMigrations', () => {
 
     beforeEach(() => {
       seedV2()
-      runMigrations(db)
+      runMigrations(db, { toVersion: 3 })
     })
 
     it('records the version', () => {
@@ -194,6 +194,33 @@ describe('runMigrations', () => {
         db.prepare('SELECT key FROM app_meta ORDER BY key').all() as { key: string }[]
       ).map((r) => r.key)
       expect(keys).toEqual(['session_token'])
+    })
+  })
+
+  describe('v4', () => {
+    beforeEach(() => {
+      seedV1(db)
+      runMigrations(db)
+    })
+
+    it('records the version', () => {
+      expect(db.prepare('SELECT MAX(version) AS v FROM schema_version').get()).toEqual({ v: 4 })
+    })
+
+    it('keeps the assistant conversation per note, in order, and queues none of it', () => {
+      const insert = db.prepare(
+        `INSERT INTO assistant_messages (id, note_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)`
+      )
+      insert.run('m2', 'a', 'assistant', 'Hello', 2)
+      insert.run('m1', 'a', 'user', 'Hi', 1)
+      insert.run('m3', 'b', 'user', 'Other', 1)
+      const rows = db
+        .prepare(`SELECT id FROM assistant_messages WHERE note_id = 'a' ORDER BY created_at`)
+        .all()
+      expect(rows).toEqual([{ id: 'm1' }, { id: 'm2' }])
+      expect(() => insert.run('m4', 'a', 'system', 'x', 3)).toThrow()
+      const queued = db.prepare(`SELECT COUNT(*) AS n FROM sync_queue WHERE entity_type != 'note'`)
+      expect(queued.get()).toEqual({ n: 0 })
     })
   })
 })

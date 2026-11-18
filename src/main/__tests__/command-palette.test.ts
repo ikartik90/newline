@@ -10,7 +10,12 @@ import {
   type PaletteState
 } from '../command-palette'
 
-const state: PaletteState = { sidebarCollapsed: false, noteOpen: true, theme: 'dark' }
+const state: PaletteState = {
+  sidebarCollapsed: false,
+  noteOpen: true,
+  assistantOpen: false,
+  theme: 'dark'
+}
 
 /** The parts of a BrowserWindow the palette drives, recorded. */
 function fakeWindow(content = { x: 100, y: 50, width: 1200, height: 800 }) {

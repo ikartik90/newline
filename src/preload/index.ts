@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('api', {
   window: {
     isFullScreen: () => ipcRenderer.invoke('window:isFullScreen'),
     setSidebarWidth: (width: number) => ipcRenderer.send('window:sidebarWidth', width),
+    setRailWidth: (width: number) => ipcRenderer.send('window:railWidth', width),
     onFullScreenChange: (listener: (fullScreen: boolean) => void) => {
       const handler = (_event: unknown, fullScreen: boolean): void => listener(fullScreen)
       ipcRenderer.on('window:fullScreen', handler)
@@ -84,6 +85,17 @@ contextBridge.exposeInMainWorld('api', {
     close: () => ipcRenderer.send('palette:close'),
     setHeight: (height: number) => ipcRenderer.send('palette:height', height)
   },
+  // A menu on AppKit's glass, in a window of its own; `native` where there is that glass.
+  glassMenu: {
+    native: process.argv.includes('--glass-command-palette'),
+    open: (request: unknown) => ipcRenderer.send('glassMenu:open', request),
+    onPicked: (listener: (id: string) => void) => listen('glassMenu:picked', listener),
+    onClosed: (listener: () => void) => listen('glassMenu:closed', listener),
+    onShow: (listener: (request: unknown) => void) => listen('glassMenu:show', listener),
+    setHeight: (height: number) => ipcRenderer.send('glassMenu:height', height),
+    pick: (id: string) => ipcRenderer.send('glassMenu:pick', id),
+    close: () => ipcRenderer.send('glassMenu:close')
+  },
   meta: {
     set: (key: string, value: string) => ipcRenderer.invoke('meta:set', key, value),
     get: (key: string) => ipcRenderer.invoke('meta:get', key)
@@ -97,6 +109,30 @@ contextBridge.exposeInMainWorld('api', {
     uploadPoster: (key: string, bytes: Uint8Array) =>
       ipcRenderer.invoke('media:uploadPoster', key, bytes),
     flushPending: () => ipcRenderer.invoke('media:flushPending')
+  },
+  assistant: {
+    status: () => ipcRenderer.invoke('assistant:status'),
+    download: () => ipcRenderer.invoke('assistant:download'),
+    cancelDownload: () => ipcRenderer.invoke('assistant:cancelDownload'),
+    messages: (noteId: string) => ipcRenderer.invoke('assistant:messages', noteId),
+    clear: (noteId: string) => ipcRenderer.invoke('assistant:clear', noteId),
+    send: (noteId: string, text: string, requestId: string) =>
+      ipcRenderer.invoke('assistant:send', noteId, text, requestId),
+    stop: (requestId: string) => ipcRenderer.invoke('assistant:stop', requestId),
+    onStatus: (listener: (status: unknown) => void) => {
+      const handler = (_event: unknown, status: unknown): void => listener(status)
+      ipcRenderer.on('assistant:statusChanged', handler)
+      return () => {
+        ipcRenderer.removeListener('assistant:statusChanged', handler)
+      }
+    },
+    onChunk: (listener: (chunk: unknown) => void) => {
+      const handler = (_event: unknown, chunk: unknown): void => listener(chunk)
+      ipcRenderer.on('assistant:chunk', handler)
+      return () => {
+        ipcRenderer.removeListener('assistant:chunk', handler)
+      }
+    }
   },
   auth: {
     googleSignIn: () => ipcRenderer.invoke('auth:google'),

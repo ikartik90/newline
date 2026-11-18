@@ -66,6 +66,16 @@ describe('SettingsDialog', () => {
     expect(label.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  // Inline, the label is the dialog's own text, set as its title is.
+  it('sets the theme label as the dialog’s other text', () => {
+    renderDialog()
+    const title = screen.getByRole('heading', { name: 'Settings' })
+    const label = screen.getByText('Theme')
+    const style = (el: Element) => el.className.split(/\s+/).filter((c) => c.startsWith('text-'))
+    expect(style(label)).toEqual(['text-style-body-sm', 'text-ink-body'])
+    expect(style(title)).toEqual(expect.arrayContaining(style(label)))
+  })
+
   it('reports a new theme as it is pressed', async () => {
     const props = renderDialog('system')
     await userEvent.click(screen.getByRole('button', { name: 'Light' }))

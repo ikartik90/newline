@@ -21,11 +21,20 @@ import {
   type CommandPalette,
   type PaletteState
 } from './command-palette'
+import {
+  createGlassMenu,
+  GLASS_MENU_RADIUS,
+  glassMenuWindowOptions,
+  type GlassMenu,
+  type GlassMenuRequest
+} from './glass-menu'
 import { createWindowGlass, type WindowGlass } from './window-glass'
 
 let mainWindow: BrowserWindow | null = null
 // The note window's glass command palette, where AppKit has the glass.
 let commandPalette: CommandPalette | null = null
+// Its menus on AppKit's glass, the account menu's.
+let glassMenu: GlassMenu | null = null
 
 // AppKit's sidebar glass, laid under the page's sidebar; null where there is none.
 const sidebarGlass = loadSidebarGlass(process.platform, requireSidebarGlass)
@@ -117,6 +126,26 @@ function createCommandPaletteFor(parent: BrowserWindow): CommandPalette | null {
   return createCommandPalette(parent, panel, (on) => glass?.hold('palette', on))
 }
 
+/** A menu on the glass over `parent`, made hidden so a menu finds it drawn. */
+function createGlassMenuFor(parent: BrowserWindow): GlassMenu | null {
+  if (!sidebarGlass) return null
+  const panel = new BrowserWindow({
+    ...glassMenuWindowOptions(join(__dirname, '../preload/index.js')),
+    parent
+  })
+  // Bare Liquid Glass, as AppKit's own menus are.
+  sidebarGlass.panelGlass(panel.getNativeWindowHandle(), GLASS_MENU_RADIUS, 0)
+  void loadPage(panel, 'glass-menu.html')
+  return createGlassMenu(parent, panel)
+}
+
+function registerGlassMenuIpc(): void {
+  ipcMain.on('glassMenu:open', (_event, request: GlassMenuRequest) => glassMenu?.open(request))
+  ipcMain.on('glassMenu:height', (_event, height: number) => glassMenu?.setHeight(height))
+  ipcMain.on('glassMenu:pick', (_event, id: string) => glassMenu?.pick(id))
+  ipcMain.on('glassMenu:close', () => glassMenu?.close())
+}
+
 /** The palette's messages, each answered by the palette of the window it is about. */
 function registerCommandPaletteIpc(): void {
   ipcMain.on('palette:open', (_event, state: PaletteState) => commandPalette?.open(state))
@@ -164,8 +193,10 @@ function createWindow(): void {
     }
   })
   commandPalette = createCommandPaletteFor(mainWindow)
+  glassMenu = createGlassMenuFor(mainWindow)
   mainWindow.on('closed', () => {
     commandPalette = null
+    glassMenu = null
     mainWindow = null
   })
 
@@ -193,6 +224,9 @@ app.whenReady().then(() => {
   initDatabase()
   registerIpcHandlers(sidebarGlass)
   registerCommandPaletteIpc()
+  registerGlassMenuIpc()
+  // A menu goes as the app goes to the back, as AppKit's own do.
+  app.on('did-resign-active', () => glassMenu?.dismiss())
 
   createWindow()
   // The first cycle pushes whatever was saved while the app was closed and

@@ -7,6 +7,11 @@ export interface SidebarGlassAddon {
   /** Lays AppKit's sidebar `width` points wide under the page; under a point takes it away. */
   show(handle: Buffer, width: number): boolean
   /**
+   * Lays AppKit's inspector `width` points wide at the window's right edge,
+   * under the page's Gemma rail; under a point takes it away.
+   */
+  showRail(handle: Buffer, width: number): boolean
+  /**
    * Fills a clear window with Liquid Glass cornered at `radius` points, under
    * its page, filled with the popover material at opacity `fill`: 0 is bare
    * glass, 1 as solid as a popover. Called again, it sets the fill. The window
@@ -85,14 +90,32 @@ export function glassWindowOptions(
   return { backgroundColor: dark ? '#1f2123' : '#eef2f6' }
 }
 
+type GlassWindow = Pick<BrowserWindow, 'getNativeWindowHandle'> & {
+  webContents: Pick<BrowserWindow['webContents'], 'getZoomFactor'>
+}
+
+/** `cssWidth` in points at the page's zoom, or null when it is not a width. */
+function points(window: GlassWindow, cssWidth: number): number | null {
+  if (typeof cssWidth !== 'number' || !Number.isFinite(cssWidth) || cssWidth < 0) return null
+  return cssWidth * window.webContents.getZoomFactor()
+}
+
 /** Lays the glass under a sidebar `cssWidth` CSS pixels wide, in points at the page's zoom. */
 export function showSidebarGlass(
   glass: SidebarGlassAddon | null,
-  window: Pick<BrowserWindow, 'getNativeWindowHandle'> & {
-    webContents: Pick<BrowserWindow['webContents'], 'getZoomFactor'>
-  },
+  window: GlassWindow,
   cssWidth: number
 ): void {
-  if (!glass || typeof cssWidth !== 'number' || !Number.isFinite(cssWidth) || cssWidth < 0) return
-  glass.show(window.getNativeWindowHandle(), cssWidth * window.webContents.getZoomFactor())
+  const width = points(window, cssWidth)
+  if (glass && width !== null) glass.show(window.getNativeWindowHandle(), width)
+}
+
+/** Lays the glass under the Gemma rail, `cssWidth` CSS pixels wide at the window's right edge. */
+export function showRailGlass(
+  glass: SidebarGlassAddon | null,
+  window: GlassWindow,
+  cssWidth: number
+): void {
+  const width = points(window, cssWidth)
+  if (glass && width !== null) glass.showRail(window.getNativeWindowHandle(), width)
 }

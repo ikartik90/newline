@@ -5,8 +5,9 @@ import TrashIcon from '@/assets/icons/trash.svg'
 import MetadataIcon from '@/assets/icons/metadata.svg'
 import DarkIcon from '@/assets/icons/dark.svg'
 import LightIcon from '@/assets/icons/light.svg'
+import NoteSparkleIcon from '@/assets/icons/note-sparkle.svg'
 
-export type CommandId = 'new-note' | 'sidebar' | 'properties' | 'delete' | 'theme'
+export type CommandId = 'new-note' | 'sidebar' | 'assistant' | 'properties' | 'delete' | 'theme'
 
 /**
  * The command menu's actions for what the window holds, each running `run`
@@ -14,7 +15,7 @@ export type CommandId = 'new-note' | 'sidebar' | 'properties' | 'delete' | 'them
  * runs in a window of its own and can only name what to do.
  */
 export function commandMenuActions(
-  { sidebarCollapsed, noteOpen, theme }: CommandMenuState,
+  { sidebarCollapsed, noteOpen, assistantOpen, theme }: CommandMenuState,
   run: (id: CommandId) => void
 ): CommandMenuAction[] {
   const action = (id: CommandId, fields: Omit<CommandMenuAction, 'id' | 'run'>) => ({
@@ -28,6 +29,10 @@ export function commandMenuActions(
       label: sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar',
       icon: LeftSidebarIcon,
       shortcut: '\\'
+    }),
+    action('assistant', {
+      label: assistantOpen ? 'Hide Gemma' : 'Ask Gemma',
+      icon: NoteSparkleIcon
     }),
     ...(noteOpen
       ? [

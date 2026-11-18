@@ -53,10 +53,11 @@ export default defineConfig({
     plugins: [react(), tailwindcss(), svgr({ include: '**/*.svg', svgrOptions })],
     build: {
       rollupOptions: {
-        // The app's window, and the glass command palette's own.
+        // The app's window, and the glass command palette's and glass menu's own.
         input: {
           index: resolve('src/renderer/index.html'),
-          'command-palette': resolve('src/renderer/command-palette.html')
+          'command-palette': resolve('src/renderer/command-palette.html'),
+          'glass-menu': resolve('src/renderer/glass-menu.html')
         }
       }
     }

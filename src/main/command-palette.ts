@@ -15,6 +15,7 @@ import type { BrowserWindowConstructorOptions, Rectangle } from 'electron'
 export interface PaletteState {
   sidebarCollapsed: boolean
   noteOpen: boolean
+  assistantOpen: boolean
   theme: 'light' | 'dark'
 }
 

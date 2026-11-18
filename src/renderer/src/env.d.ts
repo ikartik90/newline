@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+import type {
+  AssistantChunk,
+  AssistantMessage,
+  AssistantModelStatus
+} from '@shared/domain/assistant'
 import type { AuthUser } from '@shared/domain/auth'
 import type { MediaAsset } from '@shared/domain/media'
 import type { SyncResult } from '@shared/domain/sync'
@@ -50,7 +55,23 @@ declare global {
   interface CommandMenuState {
     sidebarCollapsed: boolean
     noteOpen: boolean
+    assistantOpen: boolean
     theme: 'light' | 'dark'
+  }
+
+  /** A menu for the glass menu's window to show (main/glass-menu.ts). */
+  interface GlassMenuRequest {
+    /** The trigger, in the page's CSS pixels. */
+    anchor: { x: number; y: number; width: number; height: number }
+    /** Above or below the trigger, or over it: its first row where the trigger was. */
+    side: 'top' | 'bottom' | 'over'
+    align: 'start' | 'end'
+    /** What the keys land on: the menu itself, or its first or last row. */
+    focus: 'menu' | 'first' | 'last'
+    theme: 'light' | 'dark'
+    /** Who the menu is about, over its rows: the account's picture, name and address. */
+    identity?: { name: string; email: string; picture?: string }
+    items: { id: string; label: string; disabled?: boolean }[]
   }
 
   interface Window {
@@ -96,6 +117,8 @@ declare global {
         isFullScreen: () => Promise<boolean>
         /** The sidebar's width in CSS pixels, for the macOS glass laid under it. */
         setSidebarWidth: (width: number) => void
+        /** The Gemma rail's width in CSS pixels, 0 once it closes, for the macOS glass under it. */
+        setRailWidth: (width: number) => void
         /** Hear the window enter or leave full screen. Returns the unsubscribe. */
         onFullScreenChange: (listener: (fullScreen: boolean) => void) => () => void
         /**
@@ -103,6 +126,25 @@ declare global {
          * to stand on (macOS 27 and later). Absent where there is no such glass.
          */
         setGlass?: (on: boolean) => void
+      }
+      /**
+       * A menu on AppKit's glass (macOS 27 and later), in a window of its own
+       * over the note window. The note window opens it where it is `native`;
+       * the menu's own window draws it.
+       */
+      glassMenu?: {
+        native: boolean
+        /** The note window: show the menu for `request`. */
+        open: (request: GlassMenuRequest) => void
+        /** The note window: hear a row picked, by its id. */
+        onPicked: (listener: (id: string) => void) => () => void
+        /** The note window: hear the menu close, picked or not. */
+        onClosed: (listener: () => void) => () => void
+        /** The menu's window: hear what to show. */
+        onShow: (listener: (request: GlassMenuRequest) => void) => () => void
+        setHeight: (height: number) => void
+        pick: (id: string) => void
+        close: () => void
       }
       /**
        * The glass command palette (macOS 27 and later): the command menu in a
@@ -153,6 +195,30 @@ declare global {
         uploadPoster: (key: string, bytes: Uint8Array) => Promise<string | null>
         /** Upload anything still local-only. Resolves to how many landed. */
         flushPending: () => Promise<number>
+      }
+      /**
+       * The note assistant: Gemma 4 E4B, run by main on this machine. The
+       * model is not shipped with the app — `download` fetches it on the
+       * user's say-so, unless main found a copy another app already holds.
+       * Each note's conversation is kept on this device and never synced.
+       */
+      assistant: {
+        status: () => Promise<AssistantModelStatus>
+        /** Start the one download; progress arrives through `onStatus`. */
+        download: () => Promise<void>
+        /** Stop it, keeping what landed so the next download resumes. */
+        cancelDownload: () => Promise<void>
+        messages: (noteId: string) => Promise<AssistantMessage[]>
+        clear: (noteId: string) => Promise<void>
+        /**
+         * Ask about the note as it is saved now. The reply streams through
+         * `onChunk` under `requestId` and resolves once kept — null if empty.
+         */
+        send: (noteId: string, text: string, requestId: string) => Promise<AssistantMessage | null>
+        /** End a reply early; what was said so far is kept. */
+        stop: (requestId: string) => Promise<void>
+        onStatus: (listener: (status: AssistantModelStatus) => void) => () => void
+        onChunk: (listener: (chunk: AssistantChunk) => void) => () => void
       }
       /**
        * Sign-in lives in the main process: it sends the user's browser to

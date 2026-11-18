@@ -1,10 +1,11 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useSidebarGlass } from '../use-sidebar-glass'
+import { useRailGlass, useSidebarGlass } from '../use-sidebar-glass'
 
 const originalApi = window.api
 const OriginalResizeObserver = globalThis.ResizeObserver
 let setSidebarWidth: ReturnType<typeof vi.fn>
+let setRailWidth: ReturnType<typeof vi.fn>
 let observers: { callback: () => void; observed: Element[]; disconnected: boolean }[]
 
 const sidebar = (width: number) => {
@@ -15,9 +16,10 @@ const sidebar = (width: number) => {
 
 beforeEach(() => {
   setSidebarWidth = vi.fn()
+  setRailWidth = vi.fn()
   observers = []
   Object.defineProperty(window, 'api', {
-    value: { platform: 'darwin', window: { setSidebarWidth } },
+    value: { platform: 'darwin', window: { setSidebarWidth, setRailWidth } },
     writable: true,
     configurable: true
   })
@@ -113,5 +115,37 @@ describe('useSidebarGlass', () => {
     window.api.platform = 'win32'
     renderHook(() => useSidebarGlass(sidebar(256)))
     expect(setSidebarWidth).not.toHaveBeenCalled()
+  })
+})
+
+describe('useRailGlass', () => {
+  it('tells main how wide the Gemma rail is once it is open, and again as it changes', () => {
+    let width = 320
+    const element = document.createElement('aside')
+    element.getBoundingClientRect = () => ({ width }) as DOMRect
+    renderHook(() => useRailGlass(element))
+    width = 300
+    observers[0].callback()
+    window.dispatchEvent(new Event('resize'))
+    expect(setRailWidth.mock.calls.map(([w]) => w)).toEqual([320, 300, 300])
+    expect(setSidebarWidth).not.toHaveBeenCalled()
+  })
+
+  it('takes the glass away when the rail closes', () => {
+    const { unmount } = renderHook(() => useRailGlass(sidebar(320)))
+    unmount()
+    expect(observers[0].disconnected).toBe(true)
+    expect(setRailWidth.mock.calls.map(([w]) => w)).toEqual([320, 0])
+  })
+
+  it('waits for the rail to be mounted', () => {
+    renderHook(() => useRailGlass(null))
+    expect(setRailWidth).not.toHaveBeenCalled()
+  })
+
+  it('stays quiet off macOS', () => {
+    window.api.platform = 'linux'
+    renderHook(() => useRailGlass(sidebar(320)))
+    expect(setRailWidth).not.toHaveBeenCalled()
   })
 })

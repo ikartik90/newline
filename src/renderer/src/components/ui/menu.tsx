@@ -37,9 +37,9 @@ import { useAnchoredPlacement, type PopoverAlign, type PopoverSide } from './pop
 // It stays mounted, hidden while closed, so it fades out as it fades in.
 // ---------------------------------------------------------------------------
 
-type OpenFocus = 'menu' | 'first' | 'last'
+export type OpenFocus = 'menu' | 'first' | 'last'
 
-interface MenuContextValue {
+export interface MenuContextValue {
   /** Closes, handing the focus back to the trigger if the menu held it. */
   close: () => void
   /** The id of the lit row, if any. */
@@ -48,9 +48,9 @@ interface MenuContextValue {
   highlight: (row: HTMLElement | null) => void
 }
 
-const MenuContext = createContext<MenuContextValue | null>(null)
+export const MenuContext = createContext<MenuContextValue | null>(null)
 
-type TriggerProps = HTMLAttributes<HTMLElement> & {
+export type TriggerProps = HTMLAttributes<HTMLElement> & {
   ref?: Ref<HTMLElement>
   'data-popup-open'?: string
 }
@@ -77,96 +77,44 @@ function rowsOf(menu: HTMLElement): HTMLElement[] {
   return Array.from(menu.querySelectorAll<HTMLElement>(`${ROW}:not([aria-disabled="true"])`))
 }
 
-function setRef<T>(ref: Ref<T> | undefined, node: T | null): void {
+export function setRef<T>(ref: Ref<T> | undefined, node: T | null): void {
   if (typeof ref === 'function') ref(node)
   else if (ref) ref.current = node
 }
 
-export function Menu({
-  trigger,
-  open: controlled,
-  onOpenChange,
-  side = 'bottom',
-  align = 'start',
-  className,
-  children
-}: MenuProps) {
-  const [uncontrolled, setUncontrolled] = useState(false)
-  const open = controlled ?? uncontrolled
-  const id = `menu-${useId().replace(/[^\w-]/g, '')}`
-  const triggerId = trigger.props.id ?? `${id}-trigger`
-  const triggerRef = useRef<HTMLElement | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  // An owner's own open (a shortcut) comes from the keyboard: onto the first row.
-  const openFocus = useRef<OpenFocus>('first')
+/** The row a menu opens onto: its first or last, or none, resting on the menu. */
+export function rowFor(menu: HTMLElement, focus: OpenFocus): HTMLElement | null {
+  const rows = rowsOf(menu)
+  return (focus === 'first' ? rows[0] : focus === 'last' ? rows.at(-1) : null) ?? null
+}
+
+export interface MenuRows {
+  /** For `MenuContext`, which the rows read. */
+  context: MenuContextValue
+  /** Lights a row and focuses it; `null` rests the focus on the menu itself. */
+  highlight: (row: HTMLElement | null) => void
+  /** Lights none, as the menu hides. */
+  unlight: () => void
+  /** The menu's own keys: arrows, Home/End, type-ahead, and Tab closing it. */
+  onKeyDown: (e: KeyboardEvent<HTMLElement>) => void
+}
+
+/**
+ * The rows' keyboard model, apart from the layer the menu stands in: an
+ * in-page popover (`Menu`) or a window of its own on the glass.
+ */
+export function useMenuRows(menuRef: { current: HTMLElement | null }, close: () => void): MenuRows {
   const typed = useRef({ text: '', timer: 0 })
   const [highlighted, setHighlighted] = useState<string | null>(null)
 
-  const isControlled = controlled !== undefined
-  const setOpen = useCallback(
-    (next: boolean) => {
-      if (!isControlled) setUncontrolled(next)
-      onOpenChange?.(next)
+  const highlight = useCallback(
+    (row: HTMLElement | null) => {
+      setHighlighted(row?.id ?? null)
+      ;(row ?? menuRef.current)?.focus({ preventScroll: true })
     },
-    [isControlled, onOpenChange]
+    [menuRef]
   )
-
-  const openOnto = (focus: OpenFocus) => {
-    openFocus.current = focus
-    setOpen(true)
-  }
-
-  // The focus leaves before the menu hides, so the browser's own return of it
-  // (to whatever held it as the menu opened) never runs over a row's.
-  const close = useCallback(() => {
-    if (menuRef.current?.contains(document.activeElement)) {
-      triggerRef.current?.focus({ preventScroll: true })
-    }
-    setOpen(false)
-  }, [setOpen])
-
-  const highlight = useCallback((row: HTMLElement | null) => {
-    setHighlighted(row?.id ?? null)
-    ;(row ?? menuRef.current)?.focus({ preventScroll: true })
-  }, [])
-
-  const shown = useRef(false)
-  const place = useAnchoredPlacement(menuRef, () => triggerRef.current, open)
-  useLayoutEffect(() => {
-    const menu = menuRef.current
-    if (!menu) return
-    if (open && !shown.current) {
-      menu.showPopover({ source: triggerRef.current ?? undefined })
-      place()
-      shown.current = true
-      const rows = rowsOf(menu)
-      const target =
-        openFocus.current === 'first' ? rows[0] : openFocus.current === 'last' ? rows.at(-1) : null
-      highlight(target ?? null)
-      openFocus.current = 'first'
-    } else if (!open && shown.current) {
-      menu.hidePopover()
-      shown.current = false
-      setHighlighted(null)
-    }
-  }, [open, highlight, place])
-
-  useDismiss({ ref: menuRef, onDismiss: close, dismissOnOutsidePointer: false, enabled: open })
-
-  // A press outside closes it and leaves the focus to wherever the press lands.
-  useEffect(() => {
-    if (!open) return
-    function handlePointerDown(e: globalThis.PointerEvent) {
-      const target = e.target as Node
-      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      if (menuRef.current?.contains(document.activeElement)) {
-        ;(document.activeElement as HTMLElement).blur()
-      }
-      setOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [open, setOpen])
+  const unlight = useCallback(() => setHighlighted(null), [])
 
   useEffect(() => () => window.clearTimeout(typed.current.timer), [])
 
@@ -187,7 +135,7 @@ export function Menu({
     return undefined
   }
 
-  function handleMenuKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+  function onKeyDown(e: KeyboardEvent<HTMLElement>) {
     if (e.defaultPrevented) return
     const rows = rowsOf(e.currentTarget)
     if (rows.length === 0) return
@@ -217,6 +165,92 @@ export function Menu({
     e.preventDefault()
     if (next) highlight(next)
   }
+
+  const context = useMemo(
+    () => ({ close, highlighted, highlight }),
+    [close, highlighted, highlight]
+  )
+  return { context, highlight, unlight, onKeyDown }
+}
+
+export function Menu({
+  trigger,
+  open: controlled,
+  onOpenChange,
+  side = 'bottom',
+  align = 'start',
+  className,
+  children
+}: MenuProps) {
+  const [uncontrolled, setUncontrolled] = useState(false)
+  const open = controlled ?? uncontrolled
+  const id = `menu-${useId().replace(/[^\w-]/g, '')}`
+  const triggerId = trigger.props.id ?? `${id}-trigger`
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  // An owner's own open (a shortcut) comes from the keyboard: onto the first row.
+  const openFocus = useRef<OpenFocus>('first')
+
+  const isControlled = controlled !== undefined
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) setUncontrolled(next)
+      onOpenChange?.(next)
+    },
+    [isControlled, onOpenChange]
+  )
+
+  const openOnto = (focus: OpenFocus) => {
+    openFocus.current = focus
+    setOpen(true)
+  }
+
+  // The focus leaves before the menu hides, so the browser's own return of it
+  // (to whatever held it as the menu opened) never runs over a row's.
+  const close = useCallback(() => {
+    if (menuRef.current?.contains(document.activeElement)) {
+      triggerRef.current?.focus({ preventScroll: true })
+    }
+    setOpen(false)
+  }, [setOpen])
+
+  const rows = useMenuRows(menuRef, close)
+  const { highlight, unlight } = rows
+
+  const shown = useRef(false)
+  const place = useAnchoredPlacement(menuRef, () => triggerRef.current, open)
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!menu) return
+    if (open && !shown.current) {
+      menu.showPopover({ source: triggerRef.current ?? undefined })
+      place()
+      shown.current = true
+      highlight(rowFor(menu, openFocus.current))
+      openFocus.current = 'first'
+    } else if (!open && shown.current) {
+      menu.hidePopover()
+      shown.current = false
+      unlight()
+    }
+  }, [open, highlight, unlight, place])
+
+  useDismiss({ ref: menuRef, onDismiss: close, dismissOnOutsidePointer: false, enabled: open })
+
+  // A press outside closes it and leaves the focus to wherever the press lands.
+  useEffect(() => {
+    if (!open) return
+    function handlePointerDown(e: globalThis.PointerEvent) {
+      const target = e.target as Node
+      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return
+      if (menuRef.current?.contains(document.activeElement)) {
+        ;(document.activeElement as HTMLElement).blur()
+      }
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [open, setOpen])
 
   const { ref: ownRef, onClick, onKeyDown } = trigger.props
   const triggerProps: TriggerProps = {
@@ -248,16 +282,11 @@ export function Menu({
     }
   }
 
-  const context = useMemo(
-    () => ({ close, highlighted, highlight }),
-    [close, highlighted, highlight]
-  )
-
   return (
     <>
       {cloneElement(trigger, triggerProps)}
       {createPortal(
-        <MenuContext value={context}>
+        <MenuContext value={rows.context}>
           <div
             ref={menuRef}
             id={id}
@@ -270,7 +299,7 @@ export function Menu({
             data-side={side}
             data-align={align}
             className={className}
-            onKeyDown={handleMenuKeyDown}
+            onKeyDown={rows.onKeyDown}
           >
             {children}
           </div>
