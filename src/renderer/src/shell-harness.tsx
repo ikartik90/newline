@@ -11,7 +11,9 @@ import {
   GEMMA_MODEL,
   type AssistantChunk,
   type AssistantMessage,
-  type AssistantModelStatus
+  type AssistantModelCopy,
+  type AssistantModelStatus,
+  type AssistantUsage
 } from '@shared/domain/assistant'
 import App from './App'
 import './assets/main.css'
@@ -81,11 +83,13 @@ const notes: Note[] = [
   seed('Ideas', paragraphs('A command menu. Swipe to delete.'), [], 45 * DAY)
 ]
 
-// The assistant: a download that fills in a few seconds, and a reply that
-// streams a canned answer word by word. `?gemma=ready` starts with the model
-// already on disk, as if another app had downloaded it.
+// The assistant: the first message starts a download that fills in a few
+// seconds, then a reply that streams a canned answer word by word.
+// `?gemma=ready` starts with the model already on disk, as if another app had
+// downloaded it.
+const HARNESS_MODEL = '/harness/gemma.gguf'
 let modelStatus: AssistantModelStatus = new URLSearchParams(location.search).has('gemma')
-  ? { state: 'ready', path: '/harness/gemma.gguf', source: 'lm-studio' }
+  ? { state: 'ready', path: HARNESS_MODEL, source: 'lm-studio' }
   : { state: 'missing' }
 const statusListeners = new Set<(status: AssistantModelStatus) => void>()
 const chunkListeners = new Set<(chunk: AssistantChunk) => void>()
@@ -98,33 +102,75 @@ function setModelStatus(next: AssistantModelStatus) {
   statusListeners.forEach((listener) => listener(next))
 }
 
+function startDownload() {
+  if (downloadTimer) return
+  let received = 0
+  setModelStatus({ state: 'downloading', receivedBytes: 0, totalBytes: GEMMA_MODEL.size })
+  downloadTimer = setInterval(() => {
+    received = Math.min(GEMMA_MODEL.size, received + GEMMA_MODEL.size / 20)
+    if (received < GEMMA_MODEL.size) {
+      setModelStatus({
+        state: 'downloading',
+        receivedBytes: received,
+        totalBytes: GEMMA_MODEL.size
+      })
+    } else {
+      clearInterval(downloadTimer!)
+      downloadTimer = null
+      setModelStatus({ state: 'ready', path: HARNESS_MODEL, source: 'huggingface' })
+    }
+  }, 250)
+}
+
+function cancelDownload() {
+  if (downloadTimer) clearInterval(downloadTimer)
+  downloadTimer = null
+  setModelStatus({ state: 'missing' })
+}
+
+/** Resolves once the model is "on disk", false if the download was stopped. */
+function ensureModel(requestId: string): Promise<boolean> {
+  if (modelStatus.state === 'ready') return Promise.resolve(true)
+  startDownload()
+  return new Promise((resolve) => {
+    const poll = setInterval(() => {
+      if (stopped.has(requestId)) cancelDownload()
+      if (modelStatus.state === 'downloading') return
+      clearInterval(poll)
+      resolve(modelStatus.state === 'ready')
+    }, 50)
+  })
+}
+
+const tokens = (text: string) => Math.ceil(text.length / 4)
+
 const assistant = {
   status: async () => modelStatus,
-  download: async () => {
-    let received = 0
-    downloadTimer = setInterval(() => {
-      received = Math.min(GEMMA_MODEL.size, received + GEMMA_MODEL.size / 20)
-      if (received < GEMMA_MODEL.size) {
-        setModelStatus({
-          state: 'downloading',
-          receivedBytes: received,
-          totalBytes: GEMMA_MODEL.size
-        })
-      } else {
-        clearInterval(downloadTimer!)
-        setModelStatus({ state: 'ready', path: '/harness/gemma.gguf', source: 'huggingface' })
-      }
-    }, 250)
-  },
-  cancelDownload: async () => {
-    if (downloadTimer) clearInterval(downloadTimer)
-    setModelStatus({ state: 'missing' })
-  },
+  cancelDownload: async () => cancelDownload(),
   messages: async (noteId: string) => turns.filter((t) => t.noteId === noteId),
-  clear: async (noteId: string) => {
-    for (let i = turns.length - 1; i >= 0; i--) if (turns[i].noteId === noteId) turns.splice(i, 1)
+  usage: async (noteId: string): Promise<AssistantUsage> => {
+    const note = notes.find((n) => n.id === noteId)
+    const said = turns.filter((t) => t.noteId === noteId).map((t) => t.content)
+    return {
+      usedTokens: 120 + tokens(note?.plainText ?? '') + said.reduce((n, t) => n + tokens(t) + 4, 0),
+      contextTokens: 16_384,
+      estimated: modelStatus.state !== 'ready'
+    }
   },
+  models: async (): Promise<AssistantModelCopy[]> =>
+    modelStatus.state === 'ready'
+      ? [
+          {
+            path: modelStatus.path,
+            source: modelStatus.source,
+            sizeBytes: GEMMA_MODEL.size,
+            deletable: true
+          }
+        ]
+      : [],
+  deleteModel: async () => setModelStatus({ state: 'missing' }),
   send: async (noteId: string, text: string, requestId: string) => {
+    if (!(await ensureModel(requestId))) return null
     turns.push({ id: uuid(), noteId, role: 'user', content: text, createdAt: Date.now() })
     const note = notes.find((n) => n.id === noteId)
     const words =

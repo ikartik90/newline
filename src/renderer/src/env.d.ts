@@ -2,8 +2,11 @@
 
 import type {
   AssistantChunk,
+  AssistantEffort,
   AssistantMessage,
-  AssistantModelStatus
+  AssistantModelCopy,
+  AssistantModelStatus,
+  AssistantUsage
 } from '@shared/domain/assistant'
 import type { AuthUser } from '@shared/domain/auth'
 import type { MediaAsset } from '@shared/domain/media'
@@ -198,23 +201,33 @@ declare global {
       }
       /**
        * The note assistant: Gemma 4 E4B, run by main on this machine. The
-       * model is not shipped with the app — `download` fetches it on the
-       * user's say-so, unless main found a copy another app already holds.
-       * Each note's conversation is kept on this device and never synced.
+       * model is not shipped with the app: the first `send` downloads it,
+       * unless main found a copy another app already holds. Each note's
+       * conversation is kept on this device and never synced.
        */
       assistant: {
         status: () => Promise<AssistantModelStatus>
-        /** Start the one download; progress arrives through `onStatus`. */
-        download: () => Promise<void>
-        /** Stop it, keeping what landed so the next download resumes. */
+        /** Stop the download, keeping what landed so the next one resumes. */
         cancelDownload: () => Promise<void>
         messages: (noteId: string) => Promise<AssistantMessage[]>
-        clear: (noteId: string) => Promise<void>
+        /** How much of the context window the note's next request starts with. */
+        usage: (noteId: string) => Promise<AssistantUsage>
+        /** Every Gemma 4 E4B on this machine, Newline's or another app's. */
+        models: () => Promise<AssistantModelCopy[]>
+        /** Delete one copy `models` listed; refused for one it did not, or Ollama's. */
+        deleteModel: (path: string) => Promise<void>
         /**
-         * Ask about the note as it is saved now. The reply streams through
-         * `onChunk` under `requestId` and resolves once kept — null if empty.
+         * Ask about the note as it is saved now, downloading the model first
+         * if it is not on disk. The reply streams through `onChunk` under
+         * `requestId` and resolves once kept — null if empty, or if stopped
+         * before the download finished, when nothing is kept.
          */
-        send: (noteId: string, text: string, requestId: string) => Promise<AssistantMessage | null>
+        send: (
+          noteId: string,
+          text: string,
+          requestId: string,
+          effort: AssistantEffort
+        ) => Promise<AssistantMessage | null>
         /** End a reply early; what was said so far is kept. */
         stop: (requestId: string) => Promise<void>
         onStatus: (listener: (status: AssistantModelStatus) => void) => () => void

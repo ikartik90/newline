@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import * as assistantService from './services/assistant'
+import { AssistantEffortSchema } from '@shared/domain/assistant'
 import * as authService from './services/auth'
 import * as notesService from './services/notes'
 import * as mediaService from './services/media'
@@ -111,10 +112,6 @@ export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): voi
     return assistantService.getModelStatus()
   })
 
-  ipcMain.handle('assistant:download', () => {
-    assistantService.startModelDownload()
-  })
-
   ipcMain.handle('assistant:cancelDownload', () => {
     assistantService.cancelModelDownload()
   })
@@ -123,18 +120,36 @@ export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): voi
     return assistantService.listMessages(noteId)
   })
 
-  ipcMain.handle('assistant:clear', (_event, noteId: string) => {
-    assistantService.clearMessages(noteId)
+  ipcMain.handle('assistant:usage', (_event, noteId: string) => {
+    return assistantService.getUsage(noteId)
+  })
+
+  ipcMain.handle('assistant:models', () => {
+    return assistantService.listModelCopies()
+  })
+
+  ipcMain.handle('assistant:deleteModel', (_event, path: string) => {
+    return assistantService.deleteModelCopy(path)
   })
 
   // The reply streams back to the window that asked, as it is generated.
-  ipcMain.handle('assistant:send', (event, noteId: string, text: string, requestId: string) => {
-    return assistantService.sendMessage(noteId, text, requestId, (chunk) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send('assistant:chunk', { requestId, text: chunk })
-      }
-    })
-  })
+  ipcMain.handle(
+    'assistant:send',
+    (event, noteId: string, text: string, requestId: string, effort: unknown) => {
+      const parsed = AssistantEffortSchema.safeParse(effort)
+      return assistantService.sendMessage(
+        noteId,
+        text,
+        requestId,
+        (chunk) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send('assistant:chunk', { requestId, text: chunk })
+          }
+        },
+        parsed.success ? parsed.data : undefined
+      )
+    }
+  )
 
   ipcMain.handle('assistant:stop', (_event, requestId: string) => {
     assistantService.stopMessage(requestId)

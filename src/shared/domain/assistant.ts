@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
 // The note assistant: Gemma 4 E4B, run on this machine by main. The model is
-// never shipped with the app; the user downloads it from the assistant rail,
-// or main finds a copy another app already put on disk.
+// never shipped with the app; the first message sent downloads it, unless main
+// finds a copy another app already put on disk.
 // ---------------------------------------------------------------------------
 
 /**
@@ -70,3 +70,43 @@ export interface AssistantChunk {
   requestId: string
   text: string
 }
+
+/**
+ * How hard Gemma thinks before it answers. Gemma 4 reasons in a hidden
+ * thought segment first; low skips it, and the others cap it in tokens.
+ */
+export const ASSISTANT_EFFORTS = ['low', 'medium', 'high'] as const
+export const AssistantEffortSchema = z.enum(ASSISTANT_EFFORTS)
+export type AssistantEffort = z.infer<typeof AssistantEffortSchema>
+export const DEFAULT_EFFORT: AssistantEffort = 'medium'
+
+export const EFFORT_THOUGHT_TOKENS: Record<AssistantEffort, number> = {
+  low: 0,
+  medium: 1024,
+  high: 4096
+}
+
+/**
+ * How much of the context window the next request starts with: the system
+ * prompt (the note) and the earlier turns handed back. Estimated from the
+ * text until the model is loaded and can count its own tokens.
+ */
+export const AssistantUsageSchema = z.object({
+  usedTokens: z.number().int().nonnegative(),
+  contextTokens: z.number().int().positive(),
+  estimated: z.boolean()
+})
+export type AssistantUsage = z.infer<typeof AssistantUsageSchema>
+
+/**
+ * A Gemma 4 E4B on this machine, as Settings lists it. Ollama's copy is not
+ * deletable here: its blobs are shared by its manifests, so only Ollama can
+ * remove one safely.
+ */
+export const AssistantModelCopySchema = z.object({
+  path: z.string().min(1),
+  source: ModelSourceSchema,
+  sizeBytes: z.number().nonnegative(),
+  deletable: z.boolean()
+})
+export type AssistantModelCopy = z.infer<typeof AssistantModelCopySchema>

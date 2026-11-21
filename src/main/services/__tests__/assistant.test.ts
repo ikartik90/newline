@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,9 +14,11 @@ vi.mock('../../db/database', async () => {
 })
 
 const locate = vi.fn()
+const locateAll = vi.fn()
 vi.mock('../model-locator', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../model-locator')>()),
-  locateGemmaModel: (...args: unknown[]) => locate(...args)
+  locateGemmaModel: (...args: unknown[]) => locate(...args),
+  locateGemmaModels: (...args: unknown[]) => locateAll(...args)
 }))
 
 const download = vi.fn()
@@ -26,9 +28,13 @@ vi.mock('../model-download', async (importOriginal) => ({
 }))
 
 const generate = vi.fn()
+const countTokens = vi.fn()
+const disposeEngine = vi.fn()
 vi.mock('../llama-engine', () => ({
   generate: (...args: unknown[]) => generate(...args),
-  disposeEngine: async () => {}
+  countTokens: (...args: unknown[]) => countTokens(...args),
+  contextWindow: () => 16_384,
+  disposeEngine: (...args: unknown[]) => disposeEngine(...args)
 }))
 
 type Assistant = typeof import('../assistant')
@@ -45,8 +51,11 @@ const body = (text: string) =>
 beforeEach(async () => {
   vi.resetModules()
   locate.mockReset().mockResolvedValue(null)
+  locateAll.mockReset().mockResolvedValue([])
   download.mockReset()
   generate.mockReset()
+  countTokens.mockReset().mockResolvedValue(null)
+  disposeEngine.mockReset().mockResolvedValue(undefined)
   assistant = await import('../assistant')
   notes = await import('../notes')
   const { getDb } = await import('../../db/database')
@@ -196,28 +205,191 @@ describe('conversation', () => {
     expect((await pending)?.content).toBe('Half a')
   })
 
-  it('refuses before the model is on disk, or for a note that is gone', async () => {
-    const note = notes.createNote('Trip', body(''))
-    locate.mockResolvedValue(null)
-    await expect(assistant.sendMessage(note.id, 'Hi', 'r1', () => {})).rejects.toThrow(/model/i)
-
-    locate.mockResolvedValue({ path: '/m.gguf', source: 'huggingface' })
+  it('refuses a note that is gone', async () => {
     await expect(assistant.sendMessage('nope', 'Hi', 'r2', () => {})).rejects.toThrow(/note/i)
   })
 
-  it('clears one note’s conversation, and forgets it when the note is deleted', async () => {
+  it('thinks as hard as asked', async () => {
+    const note = notes.createNote('Trip', body(''))
+    generate.mockResolvedValue('Ok.')
+    await assistant.sendMessage(note.id, 'Hi', 'r1', () => {}, 'high')
+    await assistant.sendMessage(note.id, 'Hi', 'r2', () => {})
+    expect(generate.mock.calls[0][0].effort).toBe('high')
+    expect(generate.mock.calls[1][0].effort).toBe('medium')
+  })
+
+  it('forgets a note’s conversation when the note is deleted', async () => {
     const a = notes.createNote('A', body(''))
     const b = notes.createNote('B', body(''))
     generate.mockResolvedValue('Ok.')
     await assistant.sendMessage(a.id, 'Hi', 'r1', () => {})
     await assistant.sendMessage(b.id, 'Hi', 'r2', () => {})
 
-    assistant.clearMessages(a.id)
-    expect(assistant.listMessages(a.id)).toEqual([])
-    expect(assistant.listMessages(b.id)).toHaveLength(2)
-
     notes.deleteNote(b.id)
     expect(assistant.listMessages(b.id)).toEqual([])
+    expect(assistant.listMessages(a.id)).toHaveLength(2)
+  })
+})
+
+describe('the first message', () => {
+  function holdDownload() {
+    let finish!: (path: string) => void
+    let fail!: (error: Error) => void
+    download.mockImplementation(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise<string>((resolve, reject) => {
+          finish = resolve
+          fail = reject
+          signal.addEventListener('abort', () => reject(new Error('aborted')))
+        })
+    )
+    return { finish: (path: string) => finish(path), fail: (e: Error) => fail(e) }
+  }
+
+  it('downloads the model first, then answers, keeping the turn once it can', async () => {
+    const note = notes.createNote('Trip', body(''))
+    const held = holdDownload()
+    generate.mockResolvedValue('Ok.')
+
+    const reply = assistant.sendMessage(note.id, 'Hi', 'r1', () => {})
+    await flush()
+    expect((await assistant.getModelStatus()).state).toBe('downloading')
+    expect(assistant.listMessages(note.id)).toEqual([])
+
+    const path = join(mkdtempSync(join(tmpdir(), 'hub-')), 'gemma.gguf')
+    writeFileSync(path, 'GGUF')
+    held.finish(path)
+    expect(await reply).toMatchObject({ content: 'Ok.' })
+    expect(generate.mock.calls[0][0].modelPath).toBe(path)
+    expect(assistant.listMessages(note.id).map((m) => m.content)).toEqual(['Hi', 'Ok.'])
+  })
+
+  it('joins a download already running rather than starting another', async () => {
+    const note = notes.createNote('Trip', body(''))
+    holdDownload()
+    assistant.startModelDownload()
+    void assistant.sendMessage(note.id, 'Hi', 'r1', () => {})
+    await flush()
+    expect(download).toHaveBeenCalledTimes(1)
+  })
+
+  it('stopped while the model downloads, cancels the download and keeps nothing', async () => {
+    const note = notes.createNote('Trip', body(''))
+    holdDownload()
+    const reply = assistant.sendMessage(note.id, 'Hi', 'r1', () => {})
+    await flush()
+    assistant.stopMessage('r1')
+    expect(await reply).toBeNull()
+    expect(await assistant.getModelStatus()).toEqual({ state: 'missing' })
+    expect(assistant.listMessages(note.id)).toEqual([])
+    expect(generate).not.toHaveBeenCalled()
+  })
+
+  it('says why the download failed, keeping nothing', async () => {
+    const note = notes.createNote('Trip', body(''))
+    const held = holdDownload()
+    const reply = assistant.sendMessage(note.id, 'Hi', 'r1', () => {})
+    await flush()
+    held.fail(new Error('Not enough disk space'))
+    await expect(reply).rejects.toThrow('Not enough disk space')
+    expect(assistant.listMessages(note.id)).toEqual([])
+  })
+})
+
+describe('context usage', () => {
+  beforeEach(() => {
+    locate.mockResolvedValue({ path: '/m.gguf', source: 'huggingface' })
+  })
+
+  it('estimates the note and the turns from their text until the model can count them', async () => {
+    const note = notes.createNote('Trip', body('x'.repeat(4000)))
+    const empty = await assistant.getUsage(note.id)
+    expect(empty.estimated).toBe(true)
+    expect(empty.contextTokens).toBe(16_384)
+    expect(empty.usedTokens).toBeGreaterThan(1000)
+
+    generate.mockResolvedValue('y'.repeat(4000))
+    await assistant.sendMessage(note.id, 'Go', 'r1', () => {})
+    expect((await assistant.getUsage(note.id)).usedTokens).toBeGreaterThan(empty.usedTokens + 900)
+  })
+
+  it('counts exactly once the model is loaded, handing it what the next request carries', async () => {
+    const note = notes.createNote('Trip', body('Pack the tent.'))
+    generate.mockResolvedValue('Ok.')
+    await assistant.sendMessage(note.id, 'Hi', 'r1', () => {})
+    countTokens.mockResolvedValue(321)
+
+    expect(await assistant.getUsage(note.id)).toEqual({
+      usedTokens: 321,
+      contextTokens: 16_384,
+      estimated: false
+    })
+    const call = countTokens.mock.calls[0][0]
+    expect(call.system).toContain('Pack the tent.')
+    expect(call.history.map((m: { content: string }) => m.content)).toEqual(['Hi', 'Ok.'])
+  })
+
+  it('counts nothing for a note that is gone', async () => {
+    expect(await assistant.getUsage('nope')).toEqual({
+      usedTokens: 0,
+      contextTokens: 16_384,
+      estimated: true
+    })
+  })
+})
+
+describe('model copies', () => {
+  it('lists every copy, deletable unless Ollama holds it', async () => {
+    locateAll.mockResolvedValue([
+      { path: '/hf/gemma.gguf', source: 'huggingface', sizeBytes: 5 },
+      { path: '/ollama/blob', source: 'ollama', sizeBytes: 6 }
+    ])
+    expect(await assistant.listModelCopies()).toEqual([
+      { path: '/hf/gemma.gguf', source: 'huggingface', sizeBytes: 5, deletable: true },
+      { path: '/ollama/blob', source: 'ollama', sizeBytes: 6, deletable: false }
+    ])
+  })
+
+  it('deletes a Hugging Face copy whole — link, blob and repo — and looks again', async () => {
+    const hub = mkdtempSync(join(tmpdir(), 'hub-'))
+    const repo = join(hub, 'models--google--gemma-4-E4B-it-qat-q4_0-gguf')
+    mkdirSync(join(repo, 'blobs'), { recursive: true })
+    mkdirSync(join(repo, 'snapshots', 'c0ffee'), { recursive: true })
+    const blob = join(repo, 'blobs', 'abc')
+    writeFileSync(blob, 'GGUF')
+    const snapshot = join(repo, 'snapshots', 'c0ffee', 'gemma-4-E4B_q4_0-it.gguf')
+    symlinkSync(blob, snapshot)
+    locateAll.mockResolvedValue([{ path: snapshot, source: 'huggingface', sizeBytes: 4 }])
+    locate.mockResolvedValue({ path: snapshot, source: 'huggingface' })
+    expect((await assistant.getModelStatus()).state).toBe('ready')
+    const seen: unknown[] = []
+    assistant.onModelStatus((s) => seen.push(s))
+
+    locate.mockResolvedValue(null)
+    await assistant.deleteModelCopy(snapshot)
+    expect(existsSync(repo)).toBe(false)
+    expect(existsSync(hub)).toBe(true)
+    expect(disposeEngine).toHaveBeenCalled()
+    expect(seen.at(-1)).toEqual({ state: 'missing' })
+  })
+
+  it('deletes another app’s plain file', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lm-'))
+    const file = join(dir, 'gemma-4-E4B-it-Q4_K_M.gguf')
+    writeFileSync(file, 'GGUF')
+    locateAll.mockResolvedValue([{ path: file, source: 'lm-studio', sizeBytes: 4 }])
+    await assistant.deleteModelCopy(file)
+    expect(existsSync(file)).toBe(false)
+  })
+
+  it('refuses a path it did not find, and Ollama’s copy', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'other-'))
+    const file = join(dir, 'notes.db')
+    writeFileSync(file, 'x')
+    locateAll.mockResolvedValue([{ path: '/ollama/blob', source: 'ollama', sizeBytes: 6 }])
+    await expect(assistant.deleteModelCopy(file)).rejects.toThrow(/not a model/i)
+    await expect(assistant.deleteModelCopy('/ollama/blob')).rejects.toThrow(/Ollama/)
+    expect(existsSync(file)).toBe(true)
   })
 })
 

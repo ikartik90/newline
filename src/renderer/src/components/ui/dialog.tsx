@@ -390,11 +390,15 @@ function DialogRoot({
           e.preventDefault()
           onClose()
         }}
+        // React carries these up the component tree, so a dialog opened from
+        // inside this one would close it too: each answers only for itself.
         onCancel={(e) => {
+          if (e.target !== e.currentTarget) return
           e.preventDefault()
           onClose()
         }}
-        onClose={() => {
+        onClose={(e) => {
+          if (e.target !== e.currentTarget) return
           // The browser closed it without asking — an Escape it would not let
           // be cancelled. The caller still hears of it.
           if (openRef.current) onClose()

@@ -112,12 +112,13 @@ contextBridge.exposeInMainWorld('api', {
   },
   assistant: {
     status: () => ipcRenderer.invoke('assistant:status'),
-    download: () => ipcRenderer.invoke('assistant:download'),
     cancelDownload: () => ipcRenderer.invoke('assistant:cancelDownload'),
     messages: (noteId: string) => ipcRenderer.invoke('assistant:messages', noteId),
-    clear: (noteId: string) => ipcRenderer.invoke('assistant:clear', noteId),
-    send: (noteId: string, text: string, requestId: string) =>
-      ipcRenderer.invoke('assistant:send', noteId, text, requestId),
+    usage: (noteId: string) => ipcRenderer.invoke('assistant:usage', noteId),
+    models: () => ipcRenderer.invoke('assistant:models'),
+    deleteModel: (path: string) => ipcRenderer.invoke('assistant:deleteModel', path),
+    send: (noteId: string, text: string, requestId: string, effort: string) =>
+      ipcRenderer.invoke('assistant:send', noteId, text, requestId, effort),
     stop: (requestId: string) => ipcRenderer.invoke('assistant:stop', requestId),
     onStatus: (listener: (status: unknown) => void) => {
       const handler = (_event: unknown, status: unknown): void => listener(status)

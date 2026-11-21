@@ -101,8 +101,10 @@ function installApi(notes: Note[]) {
     },
     assistant: {
       status: vi.fn(async (): Promise<AssistantModelStatus> => ({ state: 'missing' })),
-      download: vi.fn(async () => {}),
       cancelDownload: vi.fn(async () => {}),
+      usage: vi.fn(async () => ({ usedTokens: 0, contextTokens: 16384, estimated: true })),
+      models: vi.fn(async () => []),
+      deleteModel: vi.fn(async () => {}),
       messages: vi.fn(async (_noteId: string): Promise<AssistantMessage[]> => []),
       clear: vi.fn(async () => {}),
       send: vi.fn(async () => null),
@@ -302,7 +304,7 @@ describe('App chrome', () => {
     expect(await screen.findByRole('complementary', { name: 'Gemma' })).toBeTruthy()
     expect(toggle.getAttribute('aria-pressed')).toBe('true')
     expect(toggle.getAttribute('aria-label')).toBe('Hide Gemma')
-    expect(await screen.findByRole('button', { name: /Download/ })).toBeTruthy()
+    expect(await screen.findByRole('textbox', { name: 'Ask Gemma' })).toBeTruthy()
 
     fireEvent.click(toggle)
     expect(screen.queryByRole('complementary', { name: 'Gemma' })).toBeNull()

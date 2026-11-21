@@ -303,6 +303,26 @@ describe('Dialog', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
+  // React carries a dialog's cancel and close up its component tree, through
+  // the portal, so a dialog opened from inside another reaches the outer one's
+  // handlers too. Each answers only for itself.
+  it('stays open as a dialog opened from inside it cancels or closes', () => {
+    const outerClose = vi.fn()
+    const innerClose = vi.fn()
+    render(
+      <Dialog open onClose={outerClose} aria-label="Outer">
+        <Dialog open onClose={innerClose} aria-label="Inner">
+          inner
+        </Dialog>
+      </Dialog>
+    )
+    const inner = screen.getByRole('dialog', { name: 'Inner' }) as HTMLDialogElement
+    fireEvent(inner, new Event('cancel', { cancelable: true }))
+    act(() => inner.close())
+    expect(innerClose).toHaveBeenCalledTimes(2)
+    expect(outerClose).not.toHaveBeenCalled()
+  })
+
   describe('holds the page behind it still', () => {
     const html = document.documentElement
     const body = document.body
