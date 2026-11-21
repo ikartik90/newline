@@ -1,4 +1,8 @@
-import type { AssistantMessage } from '@shared/domain/assistant'
+import {
+  EFFORT_THOUGHT_TOKENS,
+  type AssistantEffort,
+  type AssistantMessage
+} from '@shared/domain/assistant'
 
 // ---------------------------------------------------------------------------
 // The one place that touches node-llama-cpp. It is ESM-only and native, so
@@ -16,15 +20,36 @@ export interface GenerateOptions {
   system: string
   history: Pick<AssistantMessage, 'role' | 'content'>[]
   prompt: string
+  effort: AssistantEffort
   onChunk: (text: string) => void
   signal: AbortSignal
 }
+
+type ChatHistory = Parameters<InstanceType<NodeLlamaCpp['LlamaChatSession']>['setChatHistory']>[0]
 
 /** Room for a long note plus a conversation; less where the GPU cannot hold it. */
 const CONTEXT_TOKENS = 16_384
 
 let runtime: Promise<{ lib: NodeLlamaCpp; llama: Llama }> | null = null
 let loaded: { path: string; model: Promise<LlamaModel> } | null = null
+/** The window the last context was given; the cap until one has been made. */
+let windowTokens = CONTEXT_TOKENS
+
+/** The context window a request has, in tokens. */
+export function contextWindow(): number {
+  return windowTokens
+}
+
+function chatHistory(system: string, history: GenerateOptions['history']): ChatHistory {
+  return [
+    { type: 'system', text: system },
+    ...history.map((m) =>
+      m.role === 'user'
+        ? { type: 'user' as const, text: m.content }
+        : { type: 'model' as const, response: [m.content] }
+    )
+  ]
+}
 
 function loadRuntime() {
   runtime ??= (async () => {
@@ -54,26 +79,49 @@ export async function generate({
   system,
   history,
   prompt,
+  effort,
   onChunk,
   signal
 }: GenerateOptions): Promise<string> {
   const { lib } = await loadRuntime()
   const model = await loadModel(modelPath)
   const context = await model.createContext({ contextSize: { max: CONTEXT_TOKENS } })
+  windowTokens = context.contextSize
   try {
-    const session = new lib.LlamaChatSession({ contextSequence: context.getSequence() })
-    session.setChatHistory([
-      { type: 'system', text: system },
-      ...history.map((m) =>
-        m.role === 'user'
-          ? { type: 'user' as const, text: m.content }
-          : { type: 'model' as const, response: [m.content] }
-      )
-    ])
-    return await session.prompt(prompt, { onTextChunk: onChunk, signal, stopOnAbortSignal: true })
+    const thoughtTokens = EFFORT_THOUGHT_TOKENS[effort]
+    const session = new lib.LlamaChatSession({
+      contextSequence: context.getSequence(),
+      chatWrapper: new lib.Gemma4ChatWrapper({ reasoning: thoughtTokens > 0 })
+    })
+    session.setChatHistory(chatHistory(system, history))
+    // Thoughts never reach `onChunk`: it hears the answer alone.
+    return await session.prompt(prompt, {
+      onTextChunk: onChunk,
+      budgets: { thoughtTokens },
+      signal,
+      stopOnAbortSignal: true
+    })
   } finally {
     await context.dispose()
   }
+}
+
+/**
+ * The tokens a request would start with, as the chat template lays them out.
+ * Null until the model is loaded: counting never loads it.
+ */
+export async function countTokens({
+  modelPath,
+  system,
+  history
+}: Pick<GenerateOptions, 'modelPath' | 'system' | 'history'>): Promise<number | null> {
+  if (!runtime || loaded?.path !== modelPath) return null
+  const [{ lib }, model] = await Promise.all([runtime, loaded.model.catch(() => null)])
+  if (!model) return null
+  const { contextText } = new lib.Gemma4ChatWrapper({ reasoning: false }).generateContextState({
+    chatHistory: chatHistory(system, history)
+  })
+  return contextText.tokenize(model.tokenizer).length
 }
 
 /** Free the model and the GPU; the next `generate` loads them again. */

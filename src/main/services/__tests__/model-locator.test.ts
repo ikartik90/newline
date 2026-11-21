@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { huggingFaceHubDir, locateGemmaModel, type LocatorEnv } from '../model-locator'
+import {
+  huggingFaceHubDir,
+  locateGemmaModel,
+  locateGemmaModels,
+  type LocatorEnv
+} from '../model-locator'
 import { writeModel } from './gguf-fixture'
 
 let home: string
@@ -130,5 +135,30 @@ describe('locateGemmaModel', () => {
       )
     )
     expect(await locateGemmaModel(env)).toEqual({ path: hf, source: 'huggingface' })
+  })
+})
+
+describe('locateGemmaModels', () => {
+  it('lists every copy on disk, best first, with its size, counting a linked file once', async () => {
+    const lm = writeModel(join(home, '.lmstudio/models/a/b/gemma-4-E4B-it-Q4_K_M.gguf'))
+    const repo = join(home, '.cache/huggingface/hub/models--google--gemma-4-E4B-it-qat-q4_0-gguf')
+    const blob = writeModel(join(repo, 'blobs', 'abc'))
+    const snapshot = join(repo, 'snapshots', '1')
+    mkdirSync(snapshot, { recursive: true })
+    symlinkSync(blob, join(snapshot, 'gemma-4-E4B_q4_0-it.gguf'))
+    // node-llama-cpp's folder holding a link to the same bytes.
+    mkdirSync(join(home, '.node-llama-cpp/models'), { recursive: true })
+    symlinkSync(blob, join(home, '.node-llama-cpp/models/gemma-4-E4B-it.gguf'))
+
+    const copies = await locateGemmaModels(env)
+    expect(copies.map(({ path, source }) => ({ path, source }))).toEqual([
+      { path: join(snapshot, 'gemma-4-E4B_q4_0-it.gguf'), source: 'huggingface' },
+      { path: lm, source: 'lm-studio' }
+    ])
+    expect(copies[0].sizeBytes).toBeGreaterThan(0)
+  })
+
+  it('lists nothing on a machine without the model', async () => {
+    expect(await locateGemmaModels(env)).toEqual([])
   })
 })

@@ -3,9 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   AssistantChunk,
   AssistantMessage,
-  AssistantModelStatus
+  AssistantModelCopy,
+  AssistantModelStatus,
+  AssistantUsage
 } from '@shared/domain/assistant'
-import { useAssistantChat, useAssistantModel } from '../use-assistant'
+import {
+  useAssistantChat,
+  useAssistantEffort,
+  useAssistantModel,
+  useAssistantModels
+} from '../use-assistant'
 
 const message = (over: Partial<AssistantMessage>): AssistantMessage => ({
   id: 'm',
@@ -22,13 +29,21 @@ function installAssistant() {
   const store = new Map<string, AssistantMessage[]>()
   const assistant = {
     status: vi.fn(async (): Promise<AssistantModelStatus> => ({ state: 'missing' })),
-    download: vi.fn(async () => {}),
     cancelDownload: vi.fn(async () => {}),
+    usage: vi.fn(
+      async (): Promise<AssistantUsage> => ({
+        usedTokens: 100,
+        contextTokens: 1000,
+        estimated: true
+      })
+    ),
+    models: vi.fn(async (): Promise<AssistantModelCopy[]> => []),
+    deleteModel: vi.fn(async (_path: string) => {}),
     messages: vi.fn(async (noteId: string) => [...(store.get(noteId) ?? [])]),
-    clear: vi.fn(async (noteId: string) => {
-      store.delete(noteId)
-    }),
-    send: vi.fn(async (_noteId: string, _text: string, _requestId: string) => null),
+    send: vi.fn(
+      async (_noteId: string, _text: string, _requestId: string, _effort: string) =>
+        null as AssistantMessage | null
+    ),
     stop: vi.fn(async () => {}),
     onStatus: vi.fn((l: (s: AssistantModelStatus) => void) => {
       statusListeners.add(l)
@@ -65,11 +80,9 @@ describe('useAssistantModel', () => {
     })
   })
 
-  it('starts and cancels the download', () => {
+  it('cancels the download', () => {
     const { result } = renderHook(() => useAssistantModel())
-    result.current.download()
     result.current.cancel()
-    expect(api.assistant.download).toHaveBeenCalled()
     expect(api.assistant.cancelDownload).toHaveBeenCalled()
   })
 })
@@ -102,37 +115,73 @@ describe('useAssistantChat', () => {
     const { result } = renderHook(() => useAssistantChat('n1'))
     await waitFor(() => expect(api.assistant.messages).toHaveBeenCalled())
 
-    let sent!: Promise<void>
+    let sent!: Promise<boolean>
     act(() => {
-      sent = result.current.send('  Hi  ')
+      sent = result.current.send('  Hi  ', 'high')
     })
     await waitFor(() => expect(result.current.pending?.text).toBe('Hello'))
     expect(result.current.pending?.prompt).toBe('Hi')
 
+    let kept = false
     await act(async () => {
       finish()
-      await sent
+      kept = await sent
     })
+    expect(kept).toBe(true)
+    expect(api.assistant.send).toHaveBeenCalledWith('n1', 'Hi', expect.any(String), 'high')
     expect(result.current.pending).toBeNull()
     expect(result.current.messages.map((m) => m.content)).toEqual(['Hi', 'Hello'])
+  })
+
+  it('reports a prompt main did not keep — stopped before the download finished', async () => {
+    const { result } = renderHook(() => useAssistantChat('n1'))
+    let kept = true
+    await act(async () => {
+      kept = await result.current.send('Hi', 'medium')
+    })
+    expect(kept).toBe(false)
+    expect(result.current.error).toBeNull()
+  })
+
+  it('counts the context the note’s next request starts with, again after each turn', async () => {
+    const { result } = renderHook(() => useAssistantChat('n1'))
+    await waitFor(() =>
+      expect(result.current.usage).toEqual({
+        usedTokens: 100,
+        contextTokens: 1000,
+        estimated: true
+      })
+    )
+    api.assistant.usage.mockResolvedValue({
+      usedTokens: 250,
+      contextTokens: 1000,
+      estimated: false
+    })
+    await act(async () => {
+      await result.current.send('Hi', 'medium')
+    })
+    expect(result.current.usage?.usedTokens).toBe(250)
+    expect(api.assistant.usage).toHaveBeenCalledWith('n1')
   })
 
   it('stops the reply in flight', async () => {
     api.assistant.send.mockImplementation(() => new Promise(() => {}))
     const { result } = renderHook(() => useAssistantChat('n1'))
-    act(() => void result.current.send('Hi'))
+    act(() => void result.current.send('Hi', 'medium'))
     await waitFor(() => expect(result.current.pending).not.toBeNull())
     act(() => result.current.stop())
     expect(api.assistant.stop).toHaveBeenCalledWith(result.current.pending!.requestId)
   })
 
   it('says why when the model could not answer', async () => {
-    api.assistant.send.mockRejectedValue(new Error('The model is not downloaded yet.'))
+    api.assistant.send.mockRejectedValue(new Error('Not enough disk space'))
     const { result } = renderHook(() => useAssistantChat('n1'))
+    let kept = true
     await act(async () => {
-      await result.current.send('Hi')
+      kept = await result.current.send('Hi', 'medium')
     })
-    expect(result.current.error).toBe('The model is not downloaded yet.')
+    expect(kept).toBe(false)
+    expect(result.current.error).toBe('Not enough disk space')
     expect(result.current.pending).toBeNull()
   })
 
@@ -141,22 +190,73 @@ describe('useAssistantChat', () => {
       initialProps: { id: 'n1' as string | null }
     })
     await act(async () => {
-      await result.current.send('   ')
+      await result.current.send('   ', 'medium')
     })
     rerender({ id: null })
     await act(async () => {
-      await result.current.send('Hi')
+      await result.current.send('Hi', 'medium')
     })
     expect(api.assistant.send).not.toHaveBeenCalled()
   })
+})
 
-  it('clears the conversation', async () => {
-    api.store.set('n1', [message({ content: 'One' })])
-    const { result } = renderHook(() => useAssistantChat('n1'))
-    await waitFor(() => expect(result.current.messages).toHaveLength(1))
-    await act(async () => {
-      await result.current.clear()
+describe('useAssistantEffort', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('starts at medium and remembers the choice', () => {
+    const { result, unmount } = renderHook(() => useAssistantEffort())
+    expect(result.current[0]).toBe('medium')
+    act(() => result.current[1]('high'))
+    expect(result.current[0]).toBe('high')
+    unmount()
+    expect(renderHook(() => useAssistantEffort()).result.current[0]).toBe('high')
+  })
+
+  it('passes over a stored value it does not know', () => {
+    localStorage.setItem('assistantEffort', 'max')
+    expect(renderHook(() => useAssistantEffort()).result.current[0]).toBe('medium')
+  })
+})
+
+describe('useAssistantModels', () => {
+  const copy: AssistantModelCopy = {
+    path: '/hf/gemma.gguf',
+    source: 'huggingface',
+    sizeBytes: 5e9,
+    deletable: true
+  }
+
+  it('lists the copies while shown, and asks nothing while hidden', async () => {
+    api.assistant.models.mockResolvedValue([copy])
+    const { result, rerender } = renderHook(({ shown }) => useAssistantModels(shown), {
+      initialProps: { shown: false }
     })
-    expect(result.current.messages).toEqual([])
+    expect(api.assistant.models).not.toHaveBeenCalled()
+    rerender({ shown: true })
+    await waitFor(() => expect(result.current.copies).toEqual([copy]))
+  })
+
+  it('deletes a copy and lists again, or says why it could not', async () => {
+    api.assistant.models.mockResolvedValue([copy])
+    const { result } = renderHook(() => useAssistantModels(true))
+    await waitFor(() => expect(result.current.copies).toHaveLength(1))
+
+    api.assistant.models.mockResolvedValue([])
+    await act(async () => {
+      await result.current.remove(copy.path)
+    })
+    expect(api.assistant.deleteModel).toHaveBeenCalledWith(copy.path)
+    expect(result.current.copies).toEqual([])
+
+    // As Electron hands a main-side error over IPC.
+    api.assistant.deleteModel.mockRejectedValue(
+      new Error(
+        "Error invoking remote method 'assistant:deleteModel': Error: Wait for Gemma to finish answering."
+      )
+    )
+    await act(async () => {
+      await result.current.remove(copy.path)
+    })
+    expect(result.current.error).toBe('Wait for Gemma to finish answering.')
   })
 })

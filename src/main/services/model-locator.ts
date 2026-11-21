@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, readFile, realpath, stat } from 'fs/promises'
 import { join } from 'path'
 import { isGemmaModelFile, type ModelSource } from '@shared/domain/assistant'
 import { readGgufArchitecture } from './gguf'
@@ -20,6 +20,10 @@ export interface LocatorEnv {
 export interface LocatedModel {
   path: string
   source: ModelSource
+}
+
+export interface LocatedModelCopy extends LocatedModel {
+  sizeBytes: number
 }
 
 const ARCHITECTURE = 'gemma4'
@@ -131,4 +135,24 @@ export async function locateGemmaModel(env: LocatorEnv): Promise<LocatedModel | 
     }
   }
   return null
+}
+
+/**
+ * Every Gemma 4 E4B on disk, in the order `locateGemmaModel` prefers them.
+ * A file reached twice — a link in one app's folder to another's bytes — is
+ * listed once, where it is found first.
+ */
+export async function locateGemmaModels(env: LocatorEnv): Promise<LocatedModelCopy[]> {
+  const seen = new Set<string>()
+  const copies: LocatedModelCopy[] = []
+  for (const [source, search] of SEARCHES) {
+    for (const path of await preferred(await search(env))) {
+      const real = await realpath(path).catch(() => path)
+      if (seen.has(real)) continue
+      seen.add(real)
+      if ((await readGgufArchitecture(path)) !== ARCHITECTURE) continue
+      copies.push({ path, source, sizeBytes: (await stat(path)).size })
+    }
+  }
+  return copies
 }

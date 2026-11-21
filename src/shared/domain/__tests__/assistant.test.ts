@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ASSISTANT_EFFORTS,
+  AssistantEffortSchema,
   AssistantMessageSchema,
+  AssistantModelCopySchema,
+  AssistantUsageSchema,
+  EFFORT_THOUGHT_TOKENS,
   AssistantModelStatusSchema,
   GEMMA_MODEL,
   isGemmaModelFile
@@ -66,5 +71,34 @@ describe('AssistantMessageSchema', () => {
     const message = { id: 'm1', noteId: 'n1', role: 'user', content: 'Hi', createdAt: 1 }
     expect(AssistantMessageSchema.parse(message)).toEqual(message)
     expect(() => AssistantMessageSchema.parse({ ...message, role: 'system' })).toThrow()
+  })
+})
+
+describe('efforts', () => {
+  it('runs low to high, thinking longer at each step and not at all at the lowest', () => {
+    expect(ASSISTANT_EFFORTS).toEqual(['low', 'medium', 'high'])
+    expect(EFFORT_THOUGHT_TOKENS.low).toBe(0)
+    expect(EFFORT_THOUGHT_TOKENS.medium).toBeGreaterThan(0)
+    expect(EFFORT_THOUGHT_TOKENS.high).toBeGreaterThan(EFFORT_THOUGHT_TOKENS.medium)
+    expect(AssistantEffortSchema.parse('medium')).toBe('medium')
+    expect(() => AssistantEffortSchema.parse('max')).toThrow()
+  })
+})
+
+describe('AssistantUsageSchema', () => {
+  it('counts the tokens a request starts with against the window', () => {
+    expect(
+      AssistantUsageSchema.parse({ usedTokens: 1200, contextTokens: 16384, estimated: true })
+    ).toEqual({ usedTokens: 1200, contextTokens: 16384, estimated: true })
+    expect(() =>
+      AssistantUsageSchema.parse({ usedTokens: -1, contextTokens: 0, estimated: false })
+    ).toThrow()
+  })
+})
+
+describe('AssistantModelCopySchema', () => {
+  it('names a copy on disk, its size, its source and whether Newline may delete it', () => {
+    const copy = { path: '/m.gguf', source: 'ollama', sizeBytes: 5e9, deletable: false }
+    expect(AssistantModelCopySchema.parse(copy)).toEqual(copy)
   })
 })
