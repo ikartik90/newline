@@ -23,9 +23,9 @@ export interface AccountMenuProps {
 // not the button, takes up the rest of the foot. Under the glass menu, which
 // draws it again over itself, it hides.
 const triggerStyle =
-  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-ink-body hover:bg-bg-field-hover data-[popup-open]:bg-bg-field-hover transition-colors outline-none'
+  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-body-sm text-ink-body hover:bg-bg-field-hover data-[popup-open]:bg-bg-field-hover transition-colors outline-none'
 const triggerUnderGlassStyle =
-  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-ink-body hover:bg-bg-field-hover data-[popup-open]:opacity-0 transition-colors outline-none'
+  'flex items-center gap-2 min-w-0 mr-auto h-8 px-[6.5px] rounded-xl text-left text-style-body-sm text-ink-body hover:bg-bg-field-hover data-[popup-open]:opacity-0 transition-colors outline-none'
 const popupStyle = `${menuPopupFrame} bg-bg-sheet rounded-lg`
 const popupFrostedStyle = `${menuPopupFrame} frosted-sheet rounded-lg`
 

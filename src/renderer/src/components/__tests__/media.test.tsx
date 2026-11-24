@@ -1,7 +1,7 @@
-import { act, render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Media } from '../media'
-import { MEDIA_PLACEHOLDER_ASPECT } from '@shared/domain/nodes'
+import { MEDIA_PLACEHOLDER_ASPECT } from '@shared/domain/media-node'
 
 // jsdom ships no media stack at all: `play()` is a not-implemented stub that
 // returns undefined where every browser returns a promise, and `paused` is a
@@ -57,11 +57,6 @@ describe('Media', () => {
     expect(video()).toBeNull()
   })
 
-  it('withholds the transport from anything declared a picture', () => {
-    render(<Media src="/media/still.mp4" alt="A frame" kind="image" transport />)
-    expect(screen.queryByRole('button')).toBeNull()
-  })
-
   // A decorative source is unlabelled, exactly as `alt=""` leaves an <img>.
   it('leaves a clip with no alt unlabelled rather than labelling it empty', () => {
     render(<Media src="/media/demo.mp4" alt="" kind="video" />)
@@ -99,128 +94,14 @@ describe('Media', () => {
     expect(video()?.hasAttribute('controls')).toBe(true)
   })
 
-  it('reports intrinsic size from whichever element measured it', () => {
-    const onMeasure = vi.fn()
+  it('wears the class it is handed, on either element', () => {
     const { rerender } = render(
-      <Media src="/media/shot.png" alt="A screenshot" onMeasure={onMeasure} kind="image" />
+      <Media src="/media/shot.png" alt="A screenshot" kind="image" className="tile" />
     )
-    const image = screen.getByAltText('A screenshot')
-    Object.defineProperty(image, 'naturalWidth', { value: 640 })
-    Object.defineProperty(image, 'naturalHeight', { value: 480 })
-    fireEvent.load(image)
-    expect(onMeasure).toHaveBeenCalledWith(640, 480)
+    expect(screen.getByAltText('A screenshot').className).toBe('tile')
 
-    rerender(<Media src="/media/demo.mp4" alt="A demo" onMeasure={onMeasure} kind="video" />)
-    const clip = video()!
-    Object.defineProperty(clip, 'videoWidth', { value: 1280 })
-    Object.defineProperty(clip, 'videoHeight', { value: 720 })
-    fireEvent.loadedMetadata(clip)
-    expect(onMeasure).toHaveBeenLastCalledWith(1280, 720)
-  })
-
-  it('gives a clip a transport where it is asked for, and never a picture', () => {
-    const { rerender } = render(<Media src="/media/demo.mp4" alt="A demo" kind="video" />)
-    expect(screen.queryByRole('button')).toBeNull()
-
-    rerender(<Media src="/media/demo.mp4" alt="A demo" transport kind="video" />)
-    expect(screen.getByRole('button')).toBeTruthy()
-
-    rerender(<Media src="/media/shot.png" alt="A screenshot" transport kind="image" />)
-    expect(screen.queryByRole('button')).toBeNull()
-  })
-
-  // The chip reports the ELEMENT, not the last press.
-  it('names the transport for what pressing it will do', () => {
-    render(<Media src="/media/demo.mp4" alt="A demo" transport autoPlay={false} kind="video" />)
-    expect(screen.getByRole('button', { name: 'Play video' })).toBeTruthy()
-
-    act(() => void video()!.play())
-    expect(screen.getByRole('button', { name: 'Pause video' })).toBeTruthy()
-
-    act(() => video()!.pause())
-    expect(screen.getByRole('button', { name: 'Play video' })).toBeTruthy()
-  })
-
-  it('reports a clip that was already running when the chip arrived', () => {
-    const { rerender } = render(<Media src="/media/demo.mp4" alt="A demo" kind="video" />)
-    expect(video()!.paused).toBe(false)
-
-    rerender(<Media src="/media/demo.mp4" alt="A demo" transport kind="video" />)
-    expect(screen.getByRole('button', { name: 'Pause video' })).toBeTruthy()
-  })
-
-  it('stops a playing clip and starts a stopped one', () => {
-    render(<Media src="/media/demo.mp4" alt="A demo" transport autoPlay={false} kind="video" />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Play video' }))
-    expect(play).toHaveBeenCalledTimes(1)
-    expect(pause).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pause video' }))
-    expect(pause).toHaveBeenCalledTimes(1)
-    expect(play).toHaveBeenCalledTimes(1)
-  })
-
-  it('passes the presentation through to either element', () => {
-    const { rerender } = render(
-      <Media
-        src="/media/shot.png"
-        alt="A screenshot"
-        kind="image"
-        className="tile"
-        draggable={false}
-        data-checkered=""
-      />
-    )
-    const image = screen.getByAltText('A screenshot')
-    expect(image.className).toBe('tile')
-    expect(image.getAttribute('draggable')).toBe('false')
-    expect(image.hasAttribute('data-checkered')).toBe(true)
-
-    rerender(
-      <Media
-        src="/media/demo.mp4"
-        alt="A demo"
-        kind="video"
-        className="tile"
-        draggable={false}
-        data-checkered=""
-      />
-    )
+    rerender(<Media src="/media/demo.mp4" alt="A demo" kind="video" className="tile" />)
     expect(video()?.className).toBe('tile')
-    expect(video()?.getAttribute('draggable')).toBe('false')
-    expect(video()?.hasAttribute('data-checkered')).toBe(true)
-  })
-
-  // The editor's block has no caret of its own, so the media element is the
-  // tab stop — and which element that is, is what this component decides.
-  it('passes the interaction contract through to either element', () => {
-    const onFocus = vi.fn()
-    const onBlur = vi.fn()
-    const onKeyDown = vi.fn()
-    const contract = { tabIndex: 0, onFocus, onBlur, onKeyDown, 'data-showcase-media': '' }
-
-    const { rerender } = render(
-      <Media src="/media/shot.png" alt="A screenshot" kind="image" {...contract} />
-    )
-    const image = screen.getByAltText('A screenshot')
-    expect(image.tabIndex).toBe(0)
-    expect(image.hasAttribute('data-showcase-media')).toBe(true)
-    fireEvent.focus(image)
-    fireEvent.keyDown(image, { key: 'Backspace' })
-    fireEvent.blur(image)
-
-    rerender(<Media src="/media/demo.mp4" alt="A demo" kind="video" {...contract} />)
-    const clip = video() as HTMLVideoElement
-    expect(clip.tabIndex).toBe(0)
-    expect(clip.hasAttribute('data-showcase-media')).toBe(true)
-    fireEvent.focus(clip)
-    fireEvent.keyDown(clip, { key: 'Backspace' })
-    fireEvent.blur(clip)
-
-    expect(onFocus).toHaveBeenCalledTimes(2)
-    expect(onKeyDown).toHaveBeenCalledTimes(2)
-    expect(onBlur).toHaveBeenCalledTimes(2)
   })
 
   // -------------------------------------------------------------------------

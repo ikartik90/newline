@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Field } from '../field'
-import { Switch } from '../switch'
+import { Checkbox } from '../checkbox'
 
 // Field.Search is a deliberately DUMB search box: it emits nothing but the raw
 // query string. Interpreting that query — filtering a list — is the container's
@@ -76,6 +76,22 @@ describe('Field', () => {
     expect(classes).not.toContain('text-ink-field-default')
   })
 
+  // The smallest text style there is: a small field's label is set in it too.
+  it("sets a small field's hint in the sidenote style", () => {
+    render(
+      <Field size="sm">
+        <Field.Label>Title</Field.Label>
+        <Field.Frame>
+          <Field.Control />
+        </Field.Frame>
+        <Field.Hint>Shown in the sidebar</Field.Hint>
+      </Field>
+    )
+    expect(screen.getByText('Shown in the sidebar').className.split(/\s+/)).toContain(
+      'text-style-sidenote'
+    )
+  })
+
   it('sets an inline label as its control is, in the resting ink', () => {
     render(
       <Field size="sm" inlineLabel>
@@ -97,7 +113,7 @@ describe('Field', () => {
   it('sets a toggle’s label, beside it, as an inline one', () => {
     render(
       <Field size="sm">
-        <Switch />
+        <Checkbox />
         <Field.Label>Wi-Fi</Field.Label>
       </Field>
     )
@@ -107,8 +123,8 @@ describe('Field', () => {
     )
     expect(classes).not.toContain('text-style-sidenote')
     expect(classes).not.toContain('text-ink-field-muted')
-    // The switch is nudged onto the label's first line, so it reads the same line box.
-    expect(screen.getByRole('switch').className.split(/\s+/)).toContain('text-style-body-sm')
+    // The box is nudged onto the label's first line, so it reads the same line box.
+    expect(screen.getByRole('checkbox').className.split(/\s+/)).toContain('text-style-body-sm')
   })
 
   it('throws a named error for a part used outside <Field>', () => {

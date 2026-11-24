@@ -2,12 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { v4 as uuid } from 'uuid'
 import {
-  documentPlainText,
-  EMPTY_DOCUMENT,
-  parseDocument,
-  serializeDocument
-} from '@shared/domain/document'
-import {
   GEMMA_MODEL,
   type AssistantChunk,
   type AssistantMessage,
@@ -15,6 +9,7 @@ import {
   type AssistantModelStatus,
   type AssistantUsage
 } from '@shared/domain/assistant'
+import { mdxPlainText } from '@shared/mdx/plain-text'
 import App from './App'
 import './assets/main.css'
 
@@ -31,11 +26,9 @@ import './assets/main.css'
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
-function paragraphs(...lines: string[]) {
-  return serializeDocument({
-    type: 'doc',
-    content: lines.map((text) => ({ type: 'paragraph', children: [{ type: 'text', text }] }))
-  })
+/** A note of plain paragraphs, in MDX as every note is kept. */
+function paragraphs(...lines: string[]): string {
+  return `${lines.join('\n\n')}\n`
 }
 
 function seed(title: string, body: string, tags: string[], age: number): Note {
@@ -44,7 +37,8 @@ function seed(title: string, body: string, tags: string[], age: number): Note {
     id: uuid(),
     title,
     body,
-    plainText: documentPlainText(parseDocument(body)),
+    // As main reads them for search.
+    plainText: mdxPlainText(body),
     tags,
     createdAt: now - age - DAY,
     updatedAt: now - age,
@@ -53,8 +47,23 @@ function seed(title: string, body: string, tags: string[], age: number): Note {
   }
 }
 
+// A note holding more than paragraphs: a colour, a mark, a list under an item, a size.
+const WRITTEN_IN_MDX = [
+  'Plain words, <TextStyle color="danger">red ones</TextStyle> and <mark>marked ones</mark>.',
+  '',
+  '- A list',
+  '',
+  '  - with a list under its item',
+  '',
+  '<BlockStyle size="sm" color="muted">',
+  '  A small, muted line.',
+  '</BlockStyle>',
+  ''
+].join('\n')
+
 const notes: Note[] = [
   seed('Groceries', paragraphs('Milk, eggs, bread, coffee beans.'), ['home'], 5 * 60_000),
+  seed('Written in MDX', WRITTEN_IN_MDX, ['mdx'], 30 * 60_000),
   seed(
     'Reading list',
     paragraphs('Piranesi. The Overstory. A Pattern Language.'),
@@ -225,8 +234,8 @@ Object.defineProperty(window, 'api', {
           .map((note) => ({ ...note }))
       },
       get: async (id: string) => live().find((note) => note.id === id) ?? null,
-      create: async (title = '', body = serializeDocument(EMPTY_DOCUMENT)) => {
-        const note = seed(title, body, [], 0)
+      create: async () => {
+        const note = seed('', '', [], 0)
         notes.unshift(note)
         return { ...note }
       },
@@ -236,7 +245,7 @@ Object.defineProperty(window, 'api', {
         if (fields.title !== undefined) note.title = fields.title
         if (fields.body !== undefined) {
           note.body = fields.body
-          note.plainText = documentPlainText(parseDocument(fields.body))
+          note.plainText = mdxPlainText(note.body)
         }
         if (fields.tags !== undefined) note.tags = fields.tags
         note.updatedAt = Date.now()

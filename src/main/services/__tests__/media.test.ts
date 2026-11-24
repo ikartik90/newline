@@ -2,8 +2,8 @@ import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseDocument, serializeDocument } from '@shared/domain/document'
 import type { MediaAsset } from '@shared/domain/media'
+import { writeMdx } from '@shared/mdx/dialect'
 import { getDb } from '../../db/database'
 import * as media from '../media'
 import * as notes from '../notes'
@@ -47,9 +47,18 @@ function upload(overrides: Partial<media.MediaUploadInput> = {}): Promise<MediaA
   })
 }
 
-function noteWithSrc(src: string): string {
-  return serializeDocument({ type: 'doc', content: [{ type: 'media', kind: 'image', src }] })
+/** A note of pictures, written as the editor writes one. */
+function noteOf(...pictures: { src: string; caption?: string }[]): string {
+  return writeMdx({
+    type: 'root',
+    children: pictures.map(({ src, caption }) => ({
+      type: 'paragraph',
+      children: [{ type: 'image', url: src, alt: '', title: caption ?? null }]
+    }))
+  })
 }
+
+const noteWithSrc = (src: string): string => noteOf({ src })
 
 beforeEach(() => {
   resetFakeMediaApi()
@@ -143,12 +152,8 @@ describe('flushPending', () => {
     expect(store.has(asset.key)).toBe(true)
     expect(store.has(other.key)).toBe(true)
     const publicUrl = `${PUBLIC_BASE}/${asset.key}`
-    expect(parseDocument(notes.getNote(note.id)!.body).content).toEqual([
-      { type: 'media', kind: 'image', src: publicUrl }
-    ])
-    expect(parseDocument(notes.getNote(untouched.id)!.body).content).toEqual([
-      { type: 'media', kind: 'image', src: 'https://elsewhere/x.png' }
-    ])
+    expect(notes.getNote(note.id)!.body).toBe(noteWithSrc(publicUrl))
+    expect(notes.getNote(untouched.id)!.body).toBe(noteWithSrc('https://elsewhere/x.png'))
     expect(notes.getDirtyNotes().map((n) => n.id)).toEqual([note.id])
 
     const rows = getDb().prepare('SELECT url, uploaded_at FROM media_assets').all() as {
@@ -157,6 +162,44 @@ describe('flushPending', () => {
     }[]
     expect(rows.every((r) => r.url.startsWith('https://') && r.uploaded_at !== null)).toBe(true)
     expect(await media.flushPending()).toBe(0)
+  })
+
+  it('rewrites an address however the note spells it, a file name with brackets too', async () => {
+    const plain = await upload()
+    const bracketed = await upload({ filename: 'Shot (2).png' })
+    expect(bracketed.url).toMatch(/^local:\/\/[0-9a-f-]{36}-Shot-\(2\)\.png$/)
+    const spaced = await upload({ filename: 'A shot.png' })
+    const body = noteOf(
+      { src: plain.url, caption: 'One' },
+      { src: bracketed.url },
+      { src: `${spaced.url}?a b` },
+      { src: 'https://elsewhere/x-(1).png' }
+    )
+    expect(body).toContain('\\(2\\)')
+    expect(body).toContain('<local://')
+    notes.upsertFromRemote('m1', {
+      title: 'In MDX',
+      body,
+      tags: [],
+      createdAt: 1,
+      updatedAt: 2,
+      isDeleted: false
+    })
+
+    connect()
+    expect(await media.flushPending()).toBe(3)
+
+    const note = notes.getNote('m1')!
+    expect(note.body).not.toContain('local://')
+    expect(note.body).toBe(
+      noteOf(
+        { src: `${PUBLIC_BASE}/${plain.key}`, caption: 'One' },
+        { src: `${PUBLIC_BASE}/${bracketed.key}` },
+        { src: `${PUBLIC_BASE}/${spaced.key}?a b` },
+        { src: 'https://elsewhere/x-(1).png' }
+      )
+    )
+    expect(notes.getDirtyNotes().map((n) => n.id)).toEqual(['m1'])
   })
 
   it('leaves a row local when its upload fails', async () => {
@@ -181,9 +224,7 @@ describe('flushPending', () => {
     expect(store.get(posterKey)?.contentType).toBe('image/jpeg')
     expect(store.get(clip.key)?.metadata.poster).toBe(`${PUBLIC_BASE}/${posterKey}`)
     expect((await media.listMedia())[0].poster).toBe(`${PUBLIC_BASE}/${posterKey}`)
-    expect(parseDocument(notes.getNote(note.id)!.body).content).toEqual([
-      { type: 'media', kind: 'image', src: `${PUBLIC_BASE}/${posterKey}` }
-    ])
+    expect(notes.getNote(note.id)!.body).toBe(noteWithSrc(`${PUBLIC_BASE}/${posterKey}`))
   })
 })
 

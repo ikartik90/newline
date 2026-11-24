@@ -1,5 +1,7 @@
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { OptionList, type OptionListProps } from '../option-list'
 import { Field } from '../field'
 import { resetInputModality } from '@/hooks/use-input-modality'
@@ -487,6 +489,41 @@ describe('externalKeys (slash-menu — focus stays outside the list)', () => {
     expect(activeValue()).toBe('apple')
     pressDoc('ArrowUp')
     expect(activeValue()).toBe('mango') // jackfruit is disabled, so last enabled is mango
+  })
+
+  // The first key after the mouse turns the input modality over, and the page
+  // renders again before the press has reached every listener.
+  it('takes a key during which it is rendered again', () => {
+    const again = { current: () => {} }
+    function Rerendered() {
+      const [, setRenders] = useState(0)
+      again.current = () => setRenders((renders) => renders + 1)
+      return (
+        <OptionList>
+          <OptionList.Listbox externalKeys loop>
+            {optionEls()}
+          </OptionList.Listbox>
+        </OptionList>
+      )
+    }
+    const stir = (): void => flushSync(() => again.current())
+    document.addEventListener('keydown', stir, { capture: true })
+    try {
+      render(<Rerendered />)
+      const key = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+        cancelable: true
+      })
+      act(() => {
+        document.body.dispatchEvent(key)
+      })
+      expect(activeValue()).toBe('avocado')
+      // The list had the key: what the focus is in gets none of it.
+      expect(key.defaultPrevented).toBe(true)
+    } finally {
+      document.removeEventListener('keydown', stir, { capture: true })
+    }
   })
 })
 

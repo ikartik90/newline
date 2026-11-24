@@ -1,12 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { SelectionToolbar } from '../selection-toolbar'
+import { SelectionToolbar, type MarkName } from '../selection-toolbar'
 import { POPOVER_TOOLBAR } from '@/components/ui/popover'
 
 // The Popover shell a toolbar floats in.
 const shellOf = (el: HTMLElement) => el.closest<HTMLElement>('.bg-bg-sheet')!
-
-import type { Mark } from '@shared/domain/nodes'
 
 function noopHandlers() {
   return {
@@ -24,10 +22,10 @@ function noopHandlers() {
   }
 }
 
-const empty: ReadonlySet<Mark['type']> = new Set()
+const empty: ReadonlySet<MarkName> = new Set()
 
 describe('SelectionToolbar — format mode', () => {
-  it('floats every mode at a button’s 28px height', () => {
+  it('floats every mode at one height, a button and the 2px round it', () => {
     for (const mode of ['format', 'link-view', 'sidenote-view'] as const) {
       const { unmount } = render(
         <SelectionToolbar mode={mode} activeMarks={empty} {...noopHandlers()} />
@@ -38,8 +36,7 @@ describe('SelectionToolbar — format mode', () => {
     }
     render(<SelectionToolbar mode="link-edit" activeMarks={empty} {...noopHandlers()} />)
     const edit = screen.getByRole('toolbar', { name: 'Edit link' }).classList
-    expect(edit).toContain('h-(--size-toolbar-button)')
-    expect(edit).not.toContain('h-10')
+    expect([...edit].filter((c) => /^h-/.test(c))).toEqual(['h-(--size-toolbar)'])
   })
 
   it('renders the formatting buttons', () => {
@@ -70,7 +67,7 @@ describe('SelectionToolbar — format mode', () => {
     render(
       <SelectionToolbar
         mode="format"
-        activeMarks={new Set<Mark['type']>(['italic', 'sidenote'])}
+        activeMarks={new Set<MarkName>(['italic', 'sidenote'])}
         {...noopHandlers()}
       />
     )
@@ -84,7 +81,7 @@ describe('SelectionToolbar — format mode', () => {
     render(
       <SelectionToolbar
         mode="format"
-        activeMarks={new Set<Mark['type']>(['link'])}
+        activeMarks={new Set<MarkName>(['link'])}
         {...noopHandlers()}
       />
     )
@@ -119,6 +116,43 @@ describe('SelectionToolbar — format mode', () => {
     expect(h.onDismiss).toHaveBeenCalled()
   })
 
+  // Whatever stands in the note beside its words, a block's grip say, is no way out of it.
+  it('dismisses on a press outside it, but not on one it is told to take no notice of', () => {
+    const modes = [
+      'format',
+      'link-view',
+      'sidenote-view',
+      'link-edit',
+      'color',
+      'size',
+      'align'
+    ] as const
+    for (const mode of modes) {
+      const h = noopHandlers()
+      const { container, unmount } = render(
+        <>
+          <button data-furniture="">Beside the words</button>
+          <button>Elsewhere</button>
+          <SelectionToolbar
+            mode={mode}
+            activeMarks={empty}
+            {...h}
+            onPickColor={vi.fn()}
+            onPickSize={vi.fn()}
+            onPickAlign={vi.fn()}
+            ignoreSelector="[data-furniture]"
+          />
+        </>
+      )
+      const [beside, elsewhere] = container.querySelectorAll('button')
+      fireEvent.pointerDown(beside)
+      expect(h.onDismiss).not.toHaveBeenCalled()
+      fireEvent.pointerDown(elsewhere)
+      expect(h.onDismiss).toHaveBeenCalledTimes(1)
+      unmount()
+    }
+  })
+
   it('anchors to the article-relative rect it is given', () => {
     render(
       <article style={{ position: 'relative' }}>
@@ -133,6 +167,219 @@ describe('SelectionToolbar — format mode', () => {
     const anchor = document.querySelector<HTMLElement>('[data-popover-anchor]')
     expect(anchor?.style.left).toBe('12px')
     expect(anchor?.style.top).toBe('34px')
+  })
+})
+
+// A note's words can be given a colour by name and its paragraphs a size. The
+// two are offered only by an editor that can set them, each opening its
+// choices in the toolbar's own row, as Add link opens its field.
+describe('SelectionToolbar — colour and size', () => {
+  function pickers() {
+    return {
+      onStartColor: vi.fn(),
+      onPickColor: vi.fn(),
+      onStartSize: vi.fn(),
+      onPickSize: vi.fn()
+    }
+  }
+
+  it('offers neither where the editor cannot set them', () => {
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
+    expect(screen.queryByLabelText('Colour')).toBeNull()
+    expect(screen.queryByLabelText('Size')).toBeNull()
+  })
+
+  it('offers a colour and a size after the marks, behind a divider of their own', () => {
+    const p = pickers()
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} {...p} />)
+    const row = [...screen.getByRole('toolbar', { name: 'Format selection' }).children]
+    expect(row.slice(-3).map((el) => el.getAttribute('aria-label'))).toEqual([
+      null,
+      'Colour',
+      'Size'
+    ])
+    fireEvent.click(screen.getByLabelText('Colour'))
+    expect(p.onStartColor).toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Size'))
+    expect(p.onStartSize).toHaveBeenCalled()
+  })
+
+  it('offers the colour alone where there is no paragraph to size', () => {
+    const { onStartColor, onPickColor } = pickers()
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={empty}
+        {...noopHandlers()}
+        onStartColor={onStartColor}
+        onPickColor={onPickColor}
+      />
+    )
+    expect(screen.getByLabelText('Colour')).toBeTruthy()
+    expect(screen.queryByLabelText('Size')).toBeNull()
+  })
+
+  it('offers neither over a link, which carries no style', () => {
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={new Set<MarkName>(['link'])}
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    expect(screen.queryByLabelText('Colour')).toBeNull()
+    expect(screen.queryByLabelText('Size')).toBeNull()
+  })
+
+  it('presses the colour while the words wear one, and the size while it is not the paragraph’s own', () => {
+    const { rerender } = render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={empty}
+        color="danger"
+        size="lg"
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    expect(screen.getByLabelText('Colour').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Size').getAttribute('aria-pressed')).toBe('true')
+    rerender(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={empty}
+        color="default"
+        size="md"
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    expect(screen.getByLabelText('Colour').getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByLabelText('Size').getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('lists the colours by name, each letter in its own ink, the one worn pressed', () => {
+    const p = pickers()
+    render(
+      <SelectionToolbar
+        mode="color"
+        activeMarks={empty}
+        color="warning"
+        {...noopHandlers()}
+        {...p}
+      />
+    )
+    const row = screen.getByRole('toolbar', { name: 'Text colour' })
+    for (const c of POPOVER_TOOLBAR.split(' ')) expect(shellOf(row).classList).toContain(c)
+    const options = [...row.querySelectorAll('button')]
+    expect(options.map((option) => option.getAttribute('aria-label'))).toEqual([
+      'Default',
+      'Highlight',
+      'Muted',
+      'Danger',
+      'Warning',
+      'Success'
+    ])
+    expect(
+      options.map((option) => option.querySelector('span')?.className.split(' ').at(-1))
+    ).toEqual([
+      'text-ink-body',
+      'text-ink-style-highlight',
+      'text-ink-style-muted',
+      'text-ink-style-danger',
+      'text-ink-style-warning',
+      'text-ink-style-success'
+    ])
+    expect(options.map((option) => option.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'false',
+      'false',
+      'false',
+      'true',
+      'false'
+    ])
+    fireEvent.click(screen.getByLabelText('Success'))
+    expect(p.onPickColor).toHaveBeenLastCalledWith('success')
+    fireEvent.click(screen.getByLabelText('Default'))
+    expect(p.onPickColor).toHaveBeenLastCalledWith(null)
+  })
+
+  it('presses Default for words in no colour, and nothing for words in several', () => {
+    const pressed = () =>
+      [...screen.getByRole('toolbar').querySelectorAll('button[aria-pressed=true]')].map((el) =>
+        el.getAttribute('aria-label')
+      )
+    const { rerender } = render(
+      <SelectionToolbar
+        mode="color"
+        activeMarks={empty}
+        color="default"
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    expect(pressed()).toEqual(['Default'])
+    rerender(
+      <SelectionToolbar
+        mode="color"
+        activeMarks={empty}
+        color={null}
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    expect(pressed()).toEqual([])
+  })
+
+  it('lists the sizes by name, the one worn pressed', () => {
+    const p = pickers()
+    render(
+      <SelectionToolbar mode="size" activeMarks={empty} size="sm" {...noopHandlers()} {...p} />
+    )
+    const row = screen.getByRole('toolbar', { name: 'Text size' })
+    for (const c of POPOVER_TOOLBAR.split(' ')) expect(shellOf(row).classList).toContain(c)
+    const options = [...row.querySelectorAll('button')]
+    expect(options.map((option) => option.textContent)).toEqual(['Small', 'Medium', 'Large'])
+    expect(options.map((option) => option.getAttribute('aria-pressed'))).toEqual([
+      'true',
+      'false',
+      'false'
+    ])
+    fireEvent.click(screen.getByText('Large'))
+    expect(p.onPickSize).toHaveBeenLastCalledWith('lg')
+    fireEvent.click(screen.getByText('Medium'))
+    expect(p.onPickSize).toHaveBeenLastCalledWith('md')
+  })
+
+  // A word's line is taller than a glyph: left to it, a size would fill the toolbar from top to
+  // bottom, over the 2px the shell keeps clear.
+  it('stands a size as tall as a button, as the icons beside it are', () => {
+    render(
+      <SelectionToolbar
+        mode="size"
+        activeMarks={empty}
+        size="md"
+        {...noopHandlers()}
+        {...pickers()}
+      />
+    )
+    const row = screen.getByRole('toolbar', { name: 'Text size' })
+    for (const option of row.querySelectorAll('button')) {
+      expect(option.className.split(/\s+/).filter((c) => /^h-/.test(c))).toEqual([
+        'h-(--size-toolbar-button)'
+      ])
+    }
+  })
+
+  it('keeps the selection alive through a pick, and dismisses on Escape', () => {
+    const h = noopHandlers()
+    render(<SelectionToolbar mode="color" activeMarks={empty} {...h} {...pickers()} />)
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    screen.getByLabelText('Danger').dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(h.onDismiss).toHaveBeenCalled()
   })
 })
 
@@ -232,5 +479,141 @@ describe('SelectionToolbar — sidenote-view mode', () => {
     fireEvent.click(screen.getByLabelText('Delete sidenote'))
     expect(h.onEditSidenote).toHaveBeenCalled()
     expect(h.onDeleteSidenote).toHaveBeenCalled()
+  })
+})
+
+// A block can be set to the left, the centre or the right. The toolbar offers it
+// after the colour and the size, its sides in a row of their own, as theirs are.
+describe('SelectionToolbar — alignment', () => {
+  function aligning() {
+    return { onStartAlign: vi.fn(), onPickAlign: vi.fn() }
+  }
+  const drawing = (name: string): string =>
+    screen.getByRole('button', { name }).querySelector('svg')!.innerHTML
+
+  it('offers no alignment where the editor cannot set one', () => {
+    render(<SelectionToolbar mode="format" activeMarks={empty} {...noopHandlers()} />)
+    expect(screen.queryByLabelText('Alignment')).toBeNull()
+  })
+
+  it('offers the alignment last, after the colour and the size', () => {
+    const a = aligning()
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={empty}
+        align="left"
+        {...noopHandlers()}
+        onStartColor={vi.fn()}
+        onStartSize={vi.fn()}
+        {...a}
+      />
+    )
+    const row = [...screen.getByRole('toolbar', { name: 'Format selection' }).children]
+    expect(row.slice(-4).map((el) => el.getAttribute('aria-label'))).toEqual([
+      null,
+      'Colour',
+      'Size',
+      'Alignment'
+    ])
+    fireEvent.click(screen.getByLabelText('Alignment'))
+    expect(a.onStartAlign).toHaveBeenCalled()
+  })
+
+  it('offers none over a link, as it offers no other style there', () => {
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={new Set<MarkName>(['link'])}
+        align="left"
+        {...noopHandlers()}
+        {...aligning()}
+      />
+    )
+    expect(screen.queryByLabelText('Alignment')).toBeNull()
+  })
+
+  it('lists the three sides, the one the blocks are set to pressed', () => {
+    const a = aligning()
+    render(
+      <SelectionToolbar
+        mode="align"
+        activeMarks={empty}
+        align="center"
+        {...noopHandlers()}
+        {...a}
+      />
+    )
+    const row = screen.getByRole('toolbar', { name: 'Text alignment' })
+    for (const c of POPOVER_TOOLBAR.split(' ')) expect(shellOf(row).classList).toContain(c)
+    const options = [...row.querySelectorAll('button')]
+    expect(options.map((option) => option.getAttribute('aria-label'))).toEqual([
+      'Left',
+      'Centre',
+      'Right'
+    ])
+    expect(options.map((option) => option.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'true',
+      'false'
+    ])
+    fireEvent.click(screen.getByLabelText('Right'))
+    expect(a.onPickAlign).toHaveBeenLastCalledWith('right')
+    fireEvent.click(screen.getByLabelText('Left'))
+    expect(a.onPickAlign).toHaveBeenLastCalledWith('left')
+  })
+
+  it('presses no side for blocks set to more than one', () => {
+    render(
+      <SelectionToolbar
+        mode="align"
+        activeMarks={empty}
+        align={null}
+        {...noopHandlers()}
+        {...aligning()}
+      />
+    )
+    expect(document.querySelectorAll('[role=toolbar] button[aria-pressed=true]')).toHaveLength(0)
+  })
+
+  // The button says where the words stand before it is pressed.
+  it('draws the side the blocks are set to, pressed while that is not the left', () => {
+    const sides = { left: 'Left', center: 'Centre', right: 'Right' } as const
+    const drawn = {} as Record<keyof typeof sides, string>
+    const row = render(
+      <SelectionToolbar mode="align" activeMarks={empty} {...noopHandlers()} {...aligning()} />
+    )
+    for (const side of ['left', 'center', 'right'] as const) drawn[side] = drawing(sides[side])
+    row.unmount()
+    expect(new Set(Object.values(drawn)).size).toBe(3)
+
+    for (const side of ['left', 'center', 'right'] as const) {
+      const { unmount } = render(
+        <SelectionToolbar
+          mode="format"
+          activeMarks={empty}
+          align={side}
+          {...noopHandlers()}
+          {...aligning()}
+        />
+      )
+      expect(drawing('Alignment')).toBe(drawn[side])
+      expect(screen.getByLabelText('Alignment').getAttribute('aria-pressed')).toBe(
+        String(side !== 'left')
+      )
+      unmount()
+    }
+    // Set to more than one side: the left's drawing, pressed.
+    render(
+      <SelectionToolbar
+        mode="format"
+        activeMarks={empty}
+        align={null}
+        {...noopHandlers()}
+        {...aligning()}
+      />
+    )
+    expect(drawing('Alignment')).toBe(drawn.left)
+    expect(screen.getByLabelText('Alignment').getAttribute('aria-pressed')).toBe('true')
   })
 })

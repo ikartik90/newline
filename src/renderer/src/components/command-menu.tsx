@@ -67,7 +67,7 @@ const rootStyle = 'contents [--ink-body:var(--ink-sidebar)]'
 const headerStyle =
   'flex items-center gap-2 h-10 px-3 border-b border-border-divider shrink-0 text-ink-body'
 const inputStyle =
-  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-sidebar text-ink-body placeholder:text-ink-body/50'
+  'flex-1 min-w-0 bg-transparent border-none outline-none text-style-body-sm text-ink-body placeholder:text-ink-body/50'
 const iconStyle = 'shrink-0 size-5'
 
 // The way out: named as the key that does it where there is a key, drawn as
@@ -83,12 +83,12 @@ const closeButtonStyle = '-mr-1'
 const listStyle = 'flex flex-col gap-1 py-2 max-h-96 overflow-y-auto outline-none'
 const groupStyle = 'flex flex-col px-1'
 const groupHeadingStyle = 'flex items-center h-6 px-2 text-style-caption text-ink-body/50'
-const emptyStyle = 'px-3 py-6 text-style-sidebar text-ink-body/50 text-center'
+const emptyStyle = 'px-3 py-6 text-style-body-sm text-ink-body/50 text-center'
 
 // A sidebar row: 32px on an 8px inset, cornered as the sidebar's rows are,
 // washed when highlighted — on the glass, the title ink at 6%.
 const itemStyle =
-  'flex items-center w-full gap-2 h-8 px-2 rounded-lg cursor-default text-style-sidebar text-ink-body data-[selected=true]:bg-bg-field-hover'
+  'flex items-center w-full gap-2 h-8 px-2 rounded-lg cursor-default text-style-body-sm text-ink-body data-[selected=true]:bg-bg-field-hover'
 const itemTitleStyle = 'truncate'
 const itemTimeStyle = 'ml-auto shrink-0 text-style-caption text-ink-body/50 whitespace-nowrap'
 

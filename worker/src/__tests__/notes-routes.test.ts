@@ -17,17 +17,13 @@ import { call, signedInUser, testApp, type SignedInUser } from './helpers'
 const NOTE_ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
 const NOW = Date.UTC(2026, 8, 17, 12)
 
-const DOCUMENT = JSON.stringify({
-  type: 'doc',
-  content: [{ type: 'paragraph', children: [{ type: 'text', text: 'Hello' }] }]
-})
-const EMPTY_DOCUMENT = JSON.stringify({ type: 'doc', content: [] })
+const BODY = '# Hello\n\nworld\n'
 
 /** What the app sends for a note; the clock stands still unless a test says otherwise. */
 function push(overrides: Partial<NotePush> = {}): NotePush {
   return {
     title: 'Hello',
-    body: DOCUMENT,
+    body: BODY,
     tags: ['work', 'ideas'],
     createdAt: NOW - 60_000,
     isDeleted: false,
@@ -90,7 +86,7 @@ async function seedNotes(who: SignedInUser, count: number): Promise<void> {
      VALUES (?, ?, '', ?, '[]', ?, ?, 0)`
   )
   const statements = Array.from({ length: count }, (_, i) =>
-    insert.bind(who.user.id, `n${String(i).padStart(4, '0')}`, EMPTY_DOCUMENT, NOW, NOW)
+    insert.bind(who.user.id, `n${String(i).padStart(4, '0')}`, '', NOW, NOW)
   )
   for (let i = 0; i < statements.length; i += 100) {
     await env.DB.batch(statements.slice(i, i + 100))
@@ -110,7 +106,7 @@ describe('PUT /notes/<id>', () => {
     expect(result).toEqual({ id: NOTE_ID, updatedAt: NOW })
     await expect(storedRow(who, NOTE_ID)).resolves.toEqual({
       title: 'Hello',
-      body: DOCUMENT,
+      body: BODY,
       tags: '["work","ideas"]',
       created_at: NOW - 60_000,
       updated_at: NOW,
@@ -125,12 +121,7 @@ describe('PUT /notes/<id>', () => {
     const who = await signedInUser()
     const first = await putOk(who, NOTE_ID, push(), app)
 
-    const second = await putOk(
-      who,
-      NOTE_ID,
-      push({ title: 'Renamed', body: EMPTY_DOCUMENT, tags: [] }),
-      app
-    )
+    const second = await putOk(who, NOTE_ID, push({ title: 'Renamed', body: '', tags: [] }), app)
 
     expect(second.id).toBe(NOTE_ID)
     expect(second.updatedAt).toBeGreaterThan(first.updatedAt)
@@ -139,7 +130,7 @@ describe('PUT /notes/<id>', () => {
       {
         id: NOTE_ID,
         title: 'Renamed',
-        body: EMPTY_DOCUMENT,
+        body: '',
         tags: [],
         createdAt: NOW - 60_000,
         updatedAt: second.updatedAt,
@@ -159,6 +150,22 @@ describe('PUT /notes/<id>', () => {
     expect((await storedRow(who, NOTE_ID))?.is_deleted).toBe(1)
   })
 
+  // The body is the note's MDX, and the Worker never looks inside it.
+  it.each([
+    ['its own tags', '# Hello\n\n<BlockStyle size="sm">\nsmall\n</BlockStyle>\n'],
+    ['a tag left open, which no parser would take', 'A line.\n\n<Sidenote note="'],
+    ['what reads as JSON', JSON.stringify({ hello: 'world' })],
+    ['nothing', '']
+  ])('stores a body holding %s as it is sent, and lists it back', async (_, body) => {
+    const who = await signedInUser()
+
+    await putOk(who, NOTE_ID, push({ body }))
+
+    expect(await storedRow(who, NOTE_ID)).toMatchObject({ body })
+    const { notes } = await listOk(who)
+    expect(notes.map((note) => note.body)).toEqual([body])
+  })
+
   it.each(['has.dot', 'sp ace', 'x'.repeat(65)])('is 400 invalid_id for %j', async (id) => {
     const who = await signedInUser()
 
@@ -166,23 +173,6 @@ describe('PUT /notes/<id>', () => {
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({ error: 'invalid_id' })
-  })
-
-  it.each([
-    ['markdown', '# Hello\n\nworld'],
-    ['a JSON object that is not a document', JSON.stringify({ hello: 'world' })],
-    [
-      'a document with an unknown block',
-      JSON.stringify({ type: 'doc', content: [{ type: 'nope' }] })
-    ]
-  ])('is 400 invalid_body for %s, storing nothing', async (_, body) => {
-    const who = await signedInUser()
-
-    const response = await putNote(who, NOTE_ID, push({ body }))
-
-    expect(response.status).toBe(400)
-    await expect(response.json()).resolves.toEqual({ error: 'invalid_body' })
-    await expect(storedRow(who, NOTE_ID)).resolves.toBeNull()
   })
 
   it.each(['title', 'body', 'tags', 'createdAt', 'isDeleted'] as const)(
@@ -211,7 +201,7 @@ describe('PUT /notes/<id>', () => {
     await expect(response.json()).resolves.toEqual({ error: 'bad_request' })
   })
 
-  it('is 413 too_large for a body over the limit, before looking at what it is', async () => {
+  it('is 413 too_large for a body over the limit, storing nothing', async () => {
     const who = await signedInUser()
 
     const response = await putNote(

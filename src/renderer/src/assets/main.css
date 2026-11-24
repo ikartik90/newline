@@ -322,8 +322,8 @@
   --bg-button-tertiary-pressed: var(--bg-2);
 
   --ink-body: var(--ink-1);
-  /* A note's paragraphs and list items (text-style-prose): one step softer than body ink. */
-  --ink-prose: var(--ink-2);
+  /* A note's paragraphs and list items (text-style-paragraph-md): one step softer than body ink. */
+  --ink-paragraph: var(--ink-2);
   /* The sidebar's ink, a plain grey: on the sidebar and the top bar over it it stands in for --ink-body. */
   --ink-sidebar: var(--ink-3);
   /* A list's numbers, letters, bullets and icons. */
@@ -340,10 +340,14 @@
      accent, an eyebrow, a metric and the highlight mark. */
   --ink-link-default: var(--ink-highlight);
   --ink-sidenote-marker: var(--ink-highlight);
-  --ink-code-accent: var(--ink-highlight);
-  --ink-eyebrow: var(--ink-highlight);
-  --ink-metric: var(--ink-highlight);
   --ink-mark-default: var(--ink-highlight);
+  /* The colours a note's text can be given by name (`<TextStyle>`,
+     `<BlockStyle>`), each the ink of its role. */
+  --ink-style-highlight: var(--ink-highlight);
+  --ink-style-muted: var(--ink-3);
+  --ink-style-danger: var(--ink-danger);
+  --ink-style-warning: var(--ink-warning);
+  --ink-style-success: var(--ink-success);
 
   /* An error said in words, a row's delete in its words, and the sync status in
      its state, its dot and its words. kartik.to has no status family; sync has to say which state it is in. */
@@ -375,12 +379,14 @@
   --border-field-default: var(--divider-2);
   --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
   --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
-  /* A line in the highlight: a quote's rule, a link's underline as it grows,
-     the sidebar's resize line, an upload's progress sweep. */
+  /* A line in the highlight: a quote's rule, a link's underline under the
+     pointer, the sidebar's resize line, an upload's progress sweep, the line
+     a dragged block will land on. */
   --border-quote: var(--divider-highlight);
   --border-link-hover: var(--divider-highlight);
   --border-resize-handle-hover: var(--divider-highlight);
   --border-progress: var(--divider-highlight);
+  --border-drop-line: var(--divider-highlight);
   /* A control's text is the secondary button's, ink 1; its softer shades follow it. */
   --ink-field-default: var(--ink-1);
   --ink-field-muted: var(--ink-4);
@@ -390,14 +396,17 @@
   --ink-field-focus: var(--ink-highlight);
   --ink-field-placeholder-focus: color-mix(in srgb, var(--ink-highlight) 25%, transparent);
 
-  --opacity-hairline: 0.25;
-
   /* Sizes (kartik.to `sizes.*`). Use as `w-(--size-toolbar-button)`. */
   --size-article-content: 640px;
   --size-article-showcase: 960px;
   --size-toolbar-button: 28px;
+  /* A floating toolbar's height: a button, and the 2px that stand over and under it. */
+  --size-toolbar: calc(var(--size-toolbar-button) + 2 * 2px);
+  /* What the note's pane keeps clear on either side of the note: the grip a
+     block is moved by, an icon button, 4px from its block and 4px from the wall. */
+  --size-note-inset: calc(var(--size-toolbar-button) + 2 * 4px);
   --size-list-marker: 24px;
-  /* An item's first line, text-style-prose's line: the marker box's height. */
+  /* An item's first line, text-style-paragraph-md's: the marker box's height. */
   --size-list-marker-line: 1.75rem;
   --size-list-bullet: 4px;
   /* The slot a numbered marker's period hangs in, at the marker column's end. */
@@ -405,7 +414,6 @@
   /* From the column's end to the middle of a number's ones digit, a digit
      being 1ch in the column's tabular figures. Resolved where it is used. */
   --size-list-marker-ones: calc(var(--size-list-marker-period) + 0.5ch);
-  --size-list-bullet-glyph: 20px;
   --size-tooltip-icon: 14px;
   --size-sidenote-width: 320px;
   --size-sidenote-offset: 100px;
@@ -443,8 +451,6 @@
 
   --border-field-selected: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
   --border-field-focus: color-mix(in srgb, var(--color-sky-400) 25%, transparent);
-
-  --opacity-hairline: 0.5;
 }
 
 @theme inline {
@@ -470,7 +476,7 @@
   --color-bg-avatar-default: var(--bg-avatar-default);
 
   --color-ink-body: var(--ink-body);
-  --color-ink-prose: var(--ink-prose);
+  --color-ink-paragraph: var(--ink-paragraph);
   --color-ink-title: var(--ink-title);
   --color-ink-button-primary-default: var(--ink-button-primary-default);
   --color-ink-button-secondary-default: var(--ink-button-secondary-default);
@@ -479,10 +485,12 @@
   --color-ink-tooltip-default: var(--ink-tooltip-default);
   --color-ink-link-default: var(--ink-link-default);
   --color-ink-sidenote-marker: var(--ink-sidenote-marker);
-  --color-ink-code-accent: var(--ink-code-accent);
-  --color-ink-eyebrow: var(--ink-eyebrow);
-  --color-ink-metric: var(--ink-metric);
   --color-ink-mark-default: var(--ink-mark-default);
+  --color-ink-style-highlight: var(--ink-style-highlight);
+  --color-ink-style-muted: var(--ink-style-muted);
+  --color-ink-style-danger: var(--ink-style-danger);
+  --color-ink-style-warning: var(--ink-style-warning);
+  --color-ink-style-success: var(--ink-style-success);
 
   --color-ink-error: var(--ink-error);
   --color-ink-row-delete: var(--ink-row-delete);
@@ -509,6 +517,7 @@
   --color-border-link-hover: var(--border-link-hover);
   --color-border-resize-handle-hover: var(--border-resize-handle-hover);
   --color-border-progress: var(--border-progress);
+  --color-border-drop-line: var(--border-drop-line);
   --color-ink-field-default: var(--ink-field-default);
   --color-ink-field-muted: var(--ink-field-muted);
   --color-ink-field-placeholder: var(--ink-field-placeholder);
@@ -596,77 +605,82 @@
 /* ---------------------------------------------------------------------------
    Text styles (kartik.to `textStyles`), all set with no letter spacing.
 --------------------------------------------------------------------------- */
-@utility text-style-title {
+/* The headings, a note's and the app's own, the largest first: kartik.to's
+   title is the first and its subheading the second. */
+@utility text-style-heading-1 {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 2.5rem;
+  line-height: 3rem;
+}
+@utility text-style-heading-2 {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 2rem;
-  line-height: 1.5;
+  line-height: 2.5rem;
 }
-@utility text-style-subheading {
+@utility text-style-heading-3 {
   font-family: var(--font-sans);
   font-weight: 400;
-  font-size: 1.25rem;
-  line-height: 1.8;
+  font-size: 1.625rem;
+  line-height: 2.25rem;
+}
+@utility text-style-heading-4 {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 2rem;
 }
 @utility text-style-body-lg {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 1rem;
-  line-height: 1.75;
+  line-height: 1.75rem;
 }
 @utility text-style-body-sm {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.875rem;
-  line-height: 1.72;
+  line-height: 1.5rem;
 }
-/* A note's paragraphs and list items, set in the serif. */
-@utility text-style-prose {
+/* The paragraph a size up, for a style to ask of it. */
+@utility text-style-paragraph-lg {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+/* A note's paragraphs, list items and quotes, set in the serif: the
+   paragraph's own size, between the two a style can ask of it. */
+@utility text-style-paragraph-md {
   font-family: var(--font-serif);
   font-weight: 400;
   font-size: 1.125rem;
   line-height: 1.75rem;
 }
-/* The sidebar's labels: a point smaller than body small, on its line. */
-@utility text-style-sidebar {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 0.8125rem;
-  line-height: calc(0.875rem * 1.72);
-}
-@utility text-style-quote {
+/* The paragraph a size down: its sidenotes, captions and eyebrows. */
+@utility text-style-paragraph-sm {
   font-family: var(--font-serif);
   font-weight: 400;
-  font-size: 1.375rem;
-  line-height: 2rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
 }
 @utility text-style-caption {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.75rem;
-  line-height: 2;
+  line-height: 1.5rem;
 }
 @utility text-style-sidenote {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 0.75rem;
-  line-height: 1.67;
-}
-@utility text-style-fineprint {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 0.625rem;
-  line-height: 1.6;
-}
-@utility text-style-inline-code {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1rem;
+  line-height: 1.25rem;
 }
 @utility text-style-code {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.72;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
 }
 
 /* Every radius token eases into the straight, a squircle, rather than
@@ -675,6 +689,13 @@
    circle, and a radius written by hand stays as written. */
 @utility rounded-* {
   border-radius: --value(--radius-*);
+  corner-shape: squircle;
+}
+/* A floating toolbar's corner, concentric with its buttons': theirs as it is
+   drawn, and the 2px the toolbar stands clear of them. A radius past half a
+   button's height is cut to that half, as an icon button's is. */
+@utility rounded-toolbar {
+  border-radius: calc(min(var(--radius-xl), var(--size-toolbar-button) / 2) + 2px);
   corner-shape: squircle;
 }
 @utility rounded-s-* {
@@ -759,8 +780,8 @@
 
 /* ---------------------------------------------------------------------------
    Prose marks and blocks (kartik.to's `article*` recipes). Named utilities
-   rather than inline classes because the editor embeds them in HTML strings
-   and queries them back by selector — see components/editor/inline-html.ts.
+   rather than inline classes: the note's schema writes each by name on what
+   it draws — see prose/schema.ts.
 --------------------------------------------------------------------------- */
 @utility inline-code {
   font-family: var(--font-mono);
@@ -775,44 +796,42 @@
   corner-shape: squircle;
 }
 
-/* The underline is two stacked background bars, not text-decoration, so the
-   hover can grow the highlight bar over the muted one. */
+/* A link's underline stands where an underlined word's does, 1px and muted,
+   and turns to the highlight under the pointer. */
 @utility article-link {
-  text-decoration-line: none;
   color: var(--ink-body);
-  padding-bottom: 2px;
-  background-image:
-    linear-gradient(var(--border-link-hover), var(--border-link-hover)),
-    linear-gradient(
-      color-mix(in srgb, var(--ink-body) 50%, transparent),
-      color-mix(in srgb, var(--ink-body) 50%, transparent)
-    );
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size:
-    100% 0,
-    100% 1px;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--ink-body) 50%, transparent);
+  text-underline-offset: 0.15em;
   transition:
     color 150ms ease,
-    background-size 150ms ease;
+    text-decoration-color 150ms ease;
   &:hover {
     color: var(--ink-title);
-    background-size:
-      100% 1px,
-      100% 1px;
+    text-decoration-color: var(--border-link-hover);
   }
 }
 
+/* Where every underline in a note stands: a link's and a sidenote's take this
+   offset too. */
 @utility article-underline {
   text-decoration-line: underline;
   text-decoration-style: solid;
   text-underline-offset: 0.15em;
 }
 
+/* Through the middle of the x-height. `line-through` stands a third of the
+   ascent over the baseline, near the top of a serif's x, and nothing moves
+   it: the strike is an underline raised half an ex, less half its own
+   thickness (a tenth of the size, cut to the half pixel a dense display
+   draws), crossing the ink an underline would step round. */
 @utility article-strikethrough {
-  text-decoration-line: line-through;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: none;
+  text-underline-offset: calc(-0.5ex - round(down, 0.05em, 0.25px));
 }
 
 /* The highlight's fill behind its ink. */
@@ -836,13 +855,13 @@
 }
 
 /* The dotted underline lives here, not on the wrapper, so it never runs
-   beneath the ordinal superscript. */
+   beneath the ordinal superscript; it stands where an underlined word's does. */
 @utility article-sidenote-text {
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-decoration-color: color-mix(in srgb, var(--ink-body) 50%, transparent);
   text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  text-underline-offset: 0.15em;
 }
 
 /* The digit is read from `data-sidenote-number`; a CSS counter would not
@@ -853,30 +872,13 @@
   font-size: 0.7em;
   font-weight: 500;
   user-select: none;
+  /* The sidenote's own, said here too: the number can stand outside its words. */
+  cursor: default;
   display: inline;
   &::after {
     content: attr(data-sidenote-number);
     color: var(--ink-sidenote-marker);
   }
-}
-
-@utility article-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  line-height: 2;
-  width: fit-content;
-  word-break: break-word;
-  color: var(--ink-eyebrow);
-}
-
-@utility article-metric-value {
-  font-family: var(--font-sans);
-  font-size: 2rem;
-  line-height: 1.5;
-  width: fit-content;
-  max-width: 100%;
-  word-break: break-word;
-  color: var(--ink-metric);
 }
 
 /* The column every list marker occupies: 24px wide and as tall as the item's
@@ -889,7 +891,7 @@
   height: var(--size-list-marker-line);
   min-width: var(--size-list-marker);
   width: var(--size-list-marker);
-  /* The list text's font and size (text-style-prose), figures tabular. */
+  /* The list text's font and size (text-style-paragraph-md), figures tabular. */
   font-family: var(--font-serif);
   font-size: 1.125rem;
   font-variant-numeric: tabular-nums;
@@ -904,7 +906,7 @@
   display: inline-flex;
   align-items: baseline;
   color: var(--ink-list-marker);
-  line-height: 1.72;
+  line-height: 1.75rem;
   font-weight: 400;
   white-space: nowrap;
   user-select: none;
@@ -941,64 +943,6 @@
   }
 }
 
-@utility list-bullet-icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: var(--size-list-marker-line);
-  min-width: var(--size-list-marker);
-  /* The numbered column's font, so 1ch is its digit. */
-  font-family: var(--font-serif);
-  font-size: 1.125rem;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* A check or cross in the marker ink, in a 16px box, on nothing, over a
-   numbered list's ones digit; masked from the glyph's alpha so the glyph files
-   need no fill of their own. */
-@utility list-bullet-circle {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-inline-end: calc(var(--size-list-marker-ones) - 8px);
-  &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: var(--size-list-bullet-glyph);
-    height: var(--size-list-bullet-glyph);
-    transform: translate(-50%, -50%);
-    background: var(--ink-list-marker);
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    pointer-events: none;
-  }
-}
-@utility list-bullet-circle-check {
-  &::after {
-    mask-image: var(--check-glyph);
-    -webkit-mask-image: var(--check-glyph);
-  }
-}
-@utility list-bullet-circle-cross {
-  &::after {
-    mask-image: var(--cross-glyph);
-    -webkit-mask-image: var(--cross-glyph);
-  }
-}
-
 /* An editable field's placeholder while it holds nothing. */
 @utility editor-placeholder {
   &:empty::before,
@@ -1011,7 +955,6 @@
 
 :root {
   --check-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.05994 10.1813L9.14253 12.6249L12.9396 7.62488' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --cross-glyph: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.5 7.5L7.5 12.5M12.5 12.5L7.5 7.5' stroke='white' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* A `[data-tooltip]` slid in from the window's right edge, below the cursor or,
@@ -1196,6 +1139,19 @@
     width: min(100%, var(--size-article-content));
   }
 
+  /* The note's body under ProseMirror: its blocks stand one level down, in the
+     editor's own element, and are held to the text measure as the article's
+     own children are. */
+  [data-note-body] > * {
+    width: min(100%, var(--size-article-content));
+  }
+
+  /* A list that follows a list stands half a block's gap under it, as one
+     item stands under another. */
+  [data-note-body] > :is(ul, ol) + :is(ul, ol) {
+    margin-block-start: -8px;
+  }
+
   /* An eyebrow belongs to what follows it, so it sits 4px above it, not a
      block's gap away. */
   article > [data-eyebrow] + * {
@@ -1214,6 +1170,10 @@
 
   article [data-align='center'] {
     text-align: center;
+  }
+
+  article [data-align='right'] {
+    text-align: right;
   }
 
   article :is(strong, b) {
@@ -1251,19 +1211,6 @@
     );
     background-size: 200% 100%;
     animation: var(--animate-shimmer);
-  }
-
-  /* A see-through picture on a checkerboard of the app's own two surfaces,
-     so the pattern reads in either theme without competing with the artwork. */
-  [data-checkered] {
-    background-color: var(--bg-canvas);
-    background-image: conic-gradient(
-      var(--bg-sheet) 25%,
-      transparent 0 50%,
-      var(--bg-sheet) 0 75%,
-      transparent 0
-    );
-    background-size: 16px 16px;
   }
 
   [data-field]:has([role='slider']),

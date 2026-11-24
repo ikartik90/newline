@@ -1,33 +1,47 @@
 import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { DocumentSchema, parseDocument } from '@shared/domain/document'
 import { runMigrations } from '../migrations'
 import { openMemoryDb } from './test-db'
 
-interface NoteRow {
-  id: string
-  body: string
-  plain_text: string
-}
+const columnsOf = (db: Database.Database, table: string): string[] =>
+  (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name)
 
-function seedV1(db: Database.Database): void {
-  runMigrations(db, { toVersion: 1 })
-  const insert = db.prepare(
-    `INSERT INTO notes (id, title, body, tags, created_at, updated_at, is_deleted)
-     VALUES (?, ?, ?, ?, 1, 1, ?)`
-  )
-  insert.run('a', 'First', '# Hello\n\nSome **bold** text #work', '["work"]', 0)
-  insert.run('b', '', '- [x] done\n- [ ] todo\n\n![pic](local://x.png)', '[]', 0)
-  insert.run('c', 'Empty', '', '[]', 0)
-  insert.run('d', 'Gone', 'deleted body', '[]', 1)
-  // One note is already waiting to sync; the migration must not queue it twice.
+const versions = (db: Database.Database): number[] =>
+  (
+    db.prepare('SELECT version FROM schema_version ORDER BY version').all() as { version: number }[]
+  ).map((row) => row.version)
+
+const search = (db: Database.Database, match: string): string[] =>
+  (
+    db
+      .prepare(
+        `SELECT notes.id FROM notes_fts JOIN notes ON notes.rowid = notes_fts.rowid
+         WHERE notes_fts MATCH ? ORDER BY notes.id`
+      )
+      .all(match) as { id: string }[]
+  ).map((row) => row.id)
+
+/** A note of a few words; `more` names the columns of an older shape. */
+const addNote = (
+  db: Database.Database,
+  id: string,
+  words: string,
+  more: Record<string, string | number> = {}
+): void => {
+  const row = {
+    id,
+    title: `Title ${id}`,
+    body: words,
+    plain_text: words,
+    tags: '["work"]',
+    created_at: 1,
+    updated_at: 1,
+    ...more
+  }
+  const names = Object.keys(row)
   db.prepare(
-    `INSERT INTO sync_queue (entity_type, entity_id, action, created_at) VALUES ('note', 'a', 'upsert', 1)`
-  ).run()
-  // The old image pipeline's queue rows have nothing left to consume them.
-  db.prepare(
-    `INSERT INTO sync_queue (entity_type, entity_id, action, created_at) VALUES ('image', 'x.png', 'upload_image', 1)`
-  ).run()
+    `INSERT INTO notes (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
+  ).run(...Object.values(row))
 }
 
 describe('runMigrations', () => {
@@ -37,100 +51,78 @@ describe('runMigrations', () => {
     db = openMemoryDb()
   })
 
-  it('stops at the requested version', () => {
-    runMigrations(db, { toVersion: 1 })
-    const columns = db.prepare('PRAGMA table_info(notes)').all() as { name: string }[]
-    expect(columns.map((c) => c.name)).not.toContain('plain_text')
-    expect(db.prepare('SELECT MAX(version) AS v FROM schema_version').get()).toEqual({ v: 1 })
-  })
-
-  describe('v2', () => {
+  describe('a new database', () => {
     beforeEach(() => {
-      seedV1(db)
-      runMigrations(db, { toVersion: 2 })
+      runMigrations(db)
     })
 
-    it('records the version once and is a no-op the second time', () => {
-      runMigrations(db, { toVersion: 2 })
-      const versions = db.prepare('SELECT version FROM schema_version ORDER BY version').all()
-      expect(versions).toEqual([{ version: 1 }, { version: 2 }])
+    it('is made at the current version, once', () => {
+      runMigrations(db)
+      expect(versions(db)).toEqual([7])
     })
 
-    it('converts every markdown body to a document with its plain text', () => {
-      const rows = db
-        .prepare('SELECT id, body, plain_text FROM notes ORDER BY id')
-        .all() as NoteRow[]
-      for (const row of rows) {
-        expect(() => DocumentSchema.parse(JSON.parse(row.body))).not.toThrow()
-      }
-      const [a, b, c, d] = rows
-      expect(parseDocument(a.body).content[0]).toEqual({
-        type: 'heading',
-        level: 1,
-        children: [{ type: 'text', text: 'Hello' }]
-      })
-      expect(a.plain_text).toBe('Hello\nSome bold text #work')
-      expect(parseDocument(b.body).content).toEqual([
-        { type: 'bullet_list_item', children: [{ type: 'text', text: 'done' }], marker: 'check' },
-        { type: 'bullet_list_item', children: [{ type: 'text', text: 'todo' }] },
-        { type: 'media', kind: 'image', src: 'local://x.png', alt: 'pic' }
+    it('holds a note as its MDX and the words in it', () => {
+      expect(columnsOf(db, 'notes')).toEqual([
+        'id',
+        'title',
+        'body',
+        'plain_text',
+        'tags',
+        'created_at',
+        'updated_at',
+        'last_synced_at',
+        'is_deleted'
       ])
-      expect(b.plain_text).toBe('done\ntodo')
-      expect(parseDocument(c.body)).toEqual({ type: 'doc', content: [] })
-      expect(c.plain_text).toBe('')
-      expect(d.plain_text).toBe('deleted body')
     })
 
     it('indexes title, tags and plain text for search, not the body', () => {
-      const search = (match: string): string[] =>
-        (
-          db
-            .prepare(
-              `SELECT notes.id FROM notes_fts JOIN notes ON notes.rowid = notes_fts.rowid
-               WHERE notes_fts MATCH ?`
-            )
-            .all(match) as { id: string }[]
-        ).map((r) => r.id)
-      expect(search('"bold"')).toEqual(['a'])
-      expect(search('plain_text:"todo"')).toEqual(['b'])
-      expect(search('title:"First"')).toEqual(['a'])
-      expect(search('tags:"work"')).toEqual(['a'])
-      // Nothing in the index knows the JSON body's own vocabulary.
-      expect(search('"heading"')).toEqual([])
-      expect(() => search('body:"x"')).toThrow()
+      db.exec(
+        `INSERT INTO notes (id, title, body, plain_text, tags, created_at, updated_at)
+         VALUES ('a', 'First', '# Hello **bold**', 'Hello bold', '["work"]', 1, 1)`
+      )
+      expect(search(db, '"bold"')).toEqual(['a'])
+      expect(search(db, 'plain_text:"Hello"')).toEqual(['a'])
+      expect(search(db, 'title:"First"')).toEqual(['a'])
+      expect(search(db, 'tags:"work"')).toEqual(['a'])
+      expect(() => search(db, 'body:"x"')).toThrow()
     })
 
     it('keeps the index in step with later writes', () => {
-      db.prepare("UPDATE notes SET plain_text = 'fresh words' WHERE id = 'c'").run()
-      const hits = db
-        .prepare(`SELECT rowid FROM notes_fts WHERE notes_fts MATCH '"fresh"'`)
-        .all() as { rowid: number }[]
-      expect(hits).toHaveLength(1)
-      db.prepare("DELETE FROM notes WHERE id = 'c'").run()
-      expect(
-        db.prepare(`SELECT rowid FROM notes_fts WHERE notes_fts MATCH '"fresh"'`).all()
-      ).toEqual([])
+      addNote(db, 'a', 'first words')
+      db.prepare("UPDATE notes SET plain_text = 'fresh words' WHERE id = 'a'").run()
+      expect(search(db, '"fresh"')).toEqual(['a'])
+      expect(search(db, '"first"')).toEqual([])
+      db.prepare("DELETE FROM notes WHERE id = 'a'").run()
+      expect(search(db, '"fresh"')).toEqual([])
     })
 
-    it('queues every converted note for sync, once, and drops the old image rows', () => {
+    it('queues what waits to sync, one row an entry', () => {
+      db.exec(
+        `INSERT INTO sync_queue (entity_type, entity_id, action, created_at) VALUES ('note', 'a', 'upsert', 1)`
+      )
+      expect(db.prepare('SELECT status, retries, payload FROM sync_queue').get()).toEqual({
+        status: 'pending',
+        retries: 0,
+        payload: null
+      })
+    })
+
+    it('keeps the assistant conversation per note, in order, from the two who speak', () => {
+      const insert = db.prepare(
+        `INSERT INTO assistant_messages (id, note_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)`
+      )
+      insert.run('m2', 'a', 'assistant', 'Hello', 2)
+      insert.run('m1', 'a', 'user', 'Hi', 1)
+      insert.run('m3', 'b', 'user', 'Other', 1)
       const rows = db
-        .prepare(
-          `SELECT entity_type, entity_id, action, status FROM sync_queue ORDER BY entity_type, entity_id`
-        )
+        .prepare(`SELECT id FROM assistant_messages WHERE note_id = 'a' ORDER BY created_at`)
         .all()
-      expect(rows).toEqual([
-        { entity_type: 'note', entity_id: 'a', action: 'upsert', status: 'pending' },
-        { entity_type: 'note', entity_id: 'b', action: 'upsert', status: 'pending' },
-        { entity_type: 'note', entity_id: 'c', action: 'upsert', status: 'pending' },
-        { entity_type: 'note', entity_id: 'd', action: 'upsert', status: 'pending' }
-      ])
+      expect(rows).toEqual([{ id: 'm1' }, { id: 'm2' }])
+      expect(() => insert.run('m4', 'a', 'system', 'x', 3)).toThrow()
     })
 
-    it('creates the media_assets table', () => {
-      const columns = (
-        db.prepare('PRAGMA table_info(media_assets)').all() as { name: string }[]
-      ).map((c) => c.name)
-      expect(columns).toEqual([
+    it('has the media library and the app’s own keys', () => {
+      expect(columnsOf(db, 'media_assets')).toEqual([
         'key',
         'filename',
         'content_type',
@@ -144,83 +136,69 @@ describe('runMigrations', () => {
         'created_at',
         'uploaded_at'
       ])
+      expect(columnsOf(db, 'app_meta')).toEqual(['key', 'value'])
     })
   })
 
-  describe('v3', () => {
-    /** A v2 database that had synced with Firestore: nothing queued, a last-sync stamp. */
-    function seedV2(): void {
-      seedV1(db)
-      runMigrations(db, { toVersion: 2 })
+  // The one database there is was made by the build before: its notes said how
+  // their body was written and kept a copy from before MDX, and its deleted
+  // notes were still JSON.
+  describe('the database of the build before', () => {
+    beforeEach(() => {
+      runMigrations(db)
       db.exec(`
-        DELETE FROM sync_queue;
-        INSERT INTO sync_queue (entity_type, entity_id, action, created_at)
-          VALUES ('note', 'a', 'upsert', 1);
-        INSERT INTO sync_queue (entity_type, entity_id, action, created_at, status)
-          VALUES ('note', 'b', 'upsert', 1, 'failed');
-        INSERT INTO app_meta (key, value) VALUES ('last_full_sync', '1700000000000');
-        INSERT INTO app_meta (key, value) VALUES ('session_token', 'plain:tok');
+        ALTER TABLE notes ADD COLUMN body_backup TEXT;
+        ALTER TABLE notes ADD COLUMN format TEXT NOT NULL DEFAULT 'json';
+        DELETE FROM schema_version;
+        INSERT INTO schema_version (version) VALUES (6);
       `)
-    }
-
-    beforeEach(() => {
-      seedV2()
-      runMigrations(db, { toVersion: 3 })
-    })
-
-    it('records the version', () => {
-      expect(db.prepare('SELECT MAX(version) AS v FROM schema_version').get()).toEqual({ v: 3 })
-    })
-
-    it('queues every note for the Worker once, tombstones included', () => {
-      const rows = db
-        .prepare(
-          `SELECT entity_id, action, status FROM sync_queue
-           WHERE entity_type = 'note' ORDER BY entity_id, status`
-        )
-        .all()
-      expect(rows).toEqual([
-        { entity_id: 'a', action: 'upsert', status: 'pending' },
-        // The failed row from before is not a pending one: the note is queued afresh.
-        { entity_id: 'b', action: 'upsert', status: 'failed' },
-        { entity_id: 'b', action: 'upsert', status: 'pending' },
-        { entity_id: 'c', action: 'upsert', status: 'pending' },
-        { entity_id: 'd', action: 'upsert', status: 'pending' }
-      ])
-    })
-
-    it('forgets the Firestore sync stamp and keeps everything else in app_meta', () => {
-      const keys = (
-        db.prepare('SELECT key FROM app_meta ORDER BY key').all() as { key: string }[]
-      ).map((r) => r.key)
-      expect(keys).toEqual(['session_token'])
-    })
-  })
-
-  describe('v4', () => {
-    beforeEach(() => {
-      seedV1(db)
+      addNote(db, 'live', 'kept words', { format: 'mdx', body_backup: '{"type":"doc"}' })
+      addNote(db, 'gone', 'deleted words', { is_deleted: 1 })
+      addNote(db, 'going', 'unsent words', { is_deleted: 1 })
+      db.exec(
+        `INSERT INTO sync_queue (entity_type, entity_id, action, created_at) VALUES ('note', 'going', 'delete', 1)`
+      )
       runMigrations(db)
     })
 
-    it('records the version', () => {
-      expect(db.prepare('SELECT MAX(version) AS v FROM schema_version').get()).toEqual({ v: 4 })
+    it('is brought to the current version, once', () => {
+      runMigrations(db)
+      expect(versions(db)).toEqual([6, 7])
     })
 
-    it('keeps the assistant conversation per note, in order, and queues none of it', () => {
-      const insert = db.prepare(
-        `INSERT INTO assistant_messages (id, note_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)`
-      )
-      insert.run('m2', 'a', 'assistant', 'Hello', 2)
-      insert.run('m1', 'a', 'user', 'Hi', 1)
-      insert.run('m3', 'b', 'user', 'Other', 1)
-      const rows = db
-        .prepare(`SELECT id FROM assistant_messages WHERE note_id = 'a' ORDER BY created_at`)
-        .all()
-      expect(rows).toEqual([{ id: 'm1' }, { id: 'm2' }])
-      expect(() => insert.run('m4', 'a', 'system', 'x', 3)).toThrow()
-      const queued = db.prepare(`SELECT COUNT(*) AS n FROM sync_queue WHERE entity_type != 'note'`)
-      expect(queued.get()).toEqual({ n: 0 })
+    it('loses its deleted notes for good, and their words from search', () => {
+      expect(db.prepare("SELECT id FROM notes WHERE id = 'gone'").get()).toBeUndefined()
+      expect(search(db, '"deleted"')).toEqual([])
+    })
+
+    it('keeps a deletion still to be sent, so it reaches the Worker', () => {
+      expect(db.prepare("SELECT is_deleted FROM notes WHERE id = 'going'").get()).toEqual({
+        is_deleted: 1
+      })
+      expect(db.prepare('SELECT entity_id FROM sync_queue').all()).toEqual([{ entity_id: 'going' }])
+    })
+
+    it('leaves every other note as it was, less how its body is written and the copy from before', () => {
+      expect(
+        db.prepare("SELECT title, body, plain_text, updated_at FROM notes WHERE id = 'live'").get()
+      ).toEqual({
+        title: 'Title live',
+        body: 'kept words',
+        plain_text: 'kept words',
+        updated_at: 1
+      })
+      expect(search(db, '"kept"')).toEqual(['live'])
+      expect(columnsOf(db, 'notes')).toEqual([
+        'id',
+        'title',
+        'body',
+        'plain_text',
+        'tags',
+        'created_at',
+        'updated_at',
+        'last_synced_at',
+        'is_deleted'
+      ])
     })
   })
 })

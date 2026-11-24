@@ -4,7 +4,6 @@ import { useAssistantModels } from '@/hooks/use-assistant'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { POPOVER_TOOLBAR } from '@/components/ui/popover'
 import { OptionList } from '@/components/ui/input/option-list'
 import CloseIcon from '@/assets/icons/close.svg'
 import SystemIcon from '@/assets/icons/system.svg'
@@ -37,6 +36,11 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string; Icon: FC<SVGProps<SVGS
 // control on the far edge.
 const settingRowStyle = 'flex items-center justify-between gap-2'
 const settingLabelStyle = 'text-style-body-sm text-ink-body'
+// The floating toolbar's icon buttons standing in the dialog, 1px apart as they are there,
+// with no shell round them to stand clear of: the row is as tall as its buttons, a pressed
+// one its chip alone.
+const themeRowStyle =
+  'flex items-center w-max h-(--size-toolbar-button) [&_[role=toolbar]]:gap-px [&_button[aria-pressed=true]]:after:border-0'
 const sectionStyle = 'flex flex-col gap-2'
 const modelRowStyle = 'flex items-center justify-between gap-2 min-h-8'
 const modelTextStyle = 'flex flex-col min-w-0'
@@ -67,8 +71,7 @@ export function SettingsDialog({ open, onClose, theme, onThemeChange }: Settings
       <div className="flex flex-col gap-4 p-3">
         <div className={settingRowStyle}>
           <span className={settingLabelStyle}>Theme</span>
-          {/* The floating toolbar's row of icon buttons, standing in the dialog. */}
-          <div className={POPOVER_TOOLBAR}>
+          <div className={themeRowStyle}>
             <OptionList direction="inline">
               <OptionList.Toolbar aria-label="Theme">
                 {THEME_OPTIONS.map(({ value, label, Icon }) => (

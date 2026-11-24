@@ -1,4 +1,4 @@
-import { useEffect, useId, type RefObject } from 'react'
+import { useEffect, useId, useRef, type RefObject } from 'react'
 
 // The open dismissable surfaces, in the order they opened. Escape closes ONE
 // thing — the one on top — and every surface listens at the document, so
@@ -96,10 +96,18 @@ export function useDismiss({
   enabled = true
 }: UseDismissOptions): void {
   // This surface's place in the stack above. An identity, nothing more, and
-  // registered in an effect of its OWN so that a re-render (which re-runs the
-  // Escape effect, `onDismiss` being an inline arrow at every call site) cannot
-  // pop this surface and push it back on top of the ones opened after it.
+  // registered in an effect of its OWN so that nothing the listeners below are
+  // put back for can pop this surface and push it back on top of the ones
+  // opened after it.
   const layer = useId()
+  // Every call site hands over a new `onDismiss` at each render. The listeners
+  // call the latest and stay where they are: one taken off and put back while a
+  // press is being dispatched (the first key after the mouse renders the page
+  // again) is not asked about that press.
+  const dismiss = useRef(onDismiss)
+  useEffect(() => {
+    dismiss.current = onDismiss
+  })
   useEffect(() => {
     if (!enabled) return
     layers.push(layer)
@@ -124,11 +132,11 @@ export function useDismiss({
       if (dialogAtPress && !dialogAtPress.contains(ref.current)) return
       e.preventDefault()
       e.stopPropagation()
-      onDismiss()
+      dismiss.current()
     }
     document.addEventListener('keydown', handleKeyDown, { capture: true })
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true })
-  }, [enabled, onDismiss, layer, ref])
+  }, [enabled, layer, ref])
 
   // Dismiss when a pointer goes down outside the container.
   useEffect(() => {
@@ -140,18 +148,18 @@ export function useDismiss({
       // the popover still open — see `ignoreSelector`.
       const target = e.target as Element | null
       if (ignoreSelector && target?.closest?.(ignoreSelector)) return
-      onDismiss()
+      dismiss.current()
     }
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [enabled, dismissOnOutsidePointer, onDismiss, ref, ignoreSelector])
+  }, [enabled, dismissOnOutsidePointer, ref, ignoreSelector])
 
   // A click-captured anchor rect goes stale on scroll/resize — dismiss rather
   // than let the popover drift from its target.
   useEffect(() => {
     if (!enabled || !dismissOnReflow) return
     function handleReflow() {
-      onDismiss()
+      dismiss.current()
     }
     window.addEventListener('scroll', handleReflow, true)
     window.addEventListener('resize', handleReflow)
@@ -159,5 +167,5 @@ export function useDismiss({
       window.removeEventListener('scroll', handleReflow, true)
       window.removeEventListener('resize', handleReflow)
     }
-  }, [enabled, dismissOnReflow, onDismiss])
+  }, [enabled, dismissOnReflow])
 }

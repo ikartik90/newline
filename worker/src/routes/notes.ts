@@ -23,20 +23,16 @@ function validId(id: string | undefined): string {
 }
 
 /**
- * The note a PUT carries. A body over the limit is refused before anything
- * looks inside it; a body that is a string but not a document is
- * `invalid_body`, which the app can act on; anything else malformed is
- * `bad_request`.
+ * The note a PUT carries. A body over the limit is `too_large`; anything
+ * malformed is `bad_request`. The body is never looked inside.
  */
 function parsePush(input: Record<string, unknown>): NotePush {
-  const isString = typeof input.body === 'string'
-  if (isString && (input.body as string).length > MAX_NOTE_BODY_LENGTH) {
+  if (typeof input.body === 'string' && input.body.length > MAX_NOTE_BODY_LENGTH) {
     throw new HttpError(413, 'too_large')
   }
   const parsed = NotePushSchema.safeParse(input)
-  if (parsed.success) return parsed.data
-  const onlyBody = isString && parsed.error.issues.every((issue) => issue.path[0] === 'body')
-  throw new HttpError(400, onlyBody ? 'invalid_body' : 'bad_request')
+  if (!parsed.success) throw new HttpError(400, 'bad_request')
+  return parsed.data
 }
 
 /** `?cursor=`: absent means from the beginning; one that does not decode is `bad_request`. */

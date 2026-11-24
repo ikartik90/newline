@@ -17,7 +17,7 @@ function makeNote(id: string, title: string, overrides: Partial<Note> = {}): Not
   return {
     id,
     title,
-    body: '{"type":"doc","content":[]}',
+    body: '',
     plainText: '',
     tags: [],
     createdAt: 1,

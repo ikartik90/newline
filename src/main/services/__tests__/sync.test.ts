@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { serializeDocument } from '@shared/domain/document'
 import { getDb } from '../../db/database'
 import { flushPending } from '../media'
 import * as notes from '../notes'
@@ -39,11 +38,8 @@ vi.mock('../session', () => ({
 
 vi.mock('../media', () => ({ flushPending: vi.fn(async () => 0) }))
 
-const paragraph = (text: string): string =>
-  serializeDocument({
-    type: 'doc',
-    content: [{ type: 'paragraph', children: [{ type: 'text', text }] }]
-  })
+/** A note's body of one line. */
+const paragraph = (text: string): string => `${text}\n`
 
 /** A note as another device would have pushed it. */
 function remote(id: string, title: string, updatedAt?: number) {
@@ -110,6 +106,24 @@ describe('pushNote', () => {
     const synced = notes.getNote(note.id)!
     expect(synced.lastSyncedAt).not.toBeNull()
     expect(synced.updatedAt).toBe(store.get(note.id)!.updatedAt)
+  })
+
+  it("PUTs a note's body as it is stored", async () => {
+    const mdx = '# Heading\n\n<BlockStyle size="sm">\nsmall\n</BlockStyle>\n'
+    notes.upsertFromRemote('m1', {
+      title: 'In MDX',
+      body: mdx,
+      tags: [],
+      createdAt: 1,
+      updatedAt: 2,
+      isDeleted: false
+    })
+    notes.updateNote('m1', { tags: ['t'] })
+
+    expect(await sync.pushNote('m1')).toBe(true)
+
+    expect(requests[0].body).toMatchObject({ body: mdx, tags: ['t'] })
+    expect(store.get('m1')).toMatchObject({ body: mdx })
   })
 
   it('pushes a deletion as a tombstone', async () => {
@@ -180,6 +194,26 @@ describe('pullNotes', () => {
       isDeleted: false
     })
     expect(note.lastSyncedAt).not.toBeNull()
+    expect(dirtyIds()).toEqual([])
+  })
+
+  it('takes a note another device wrote with its body as it was sent', async () => {
+    const mdx = 'Some <mark>marked</mark> words.\n'
+    seed({
+      id: 'm1',
+      title: 'In MDX',
+      body: mdx,
+      tags: [],
+      createdAt: 1,
+      isDeleted: false
+    })
+
+    expect(await sync.pullNotes()).toBe(1)
+
+    expect(notes.getNote('m1')).toMatchObject({
+      body: mdx,
+      plainText: 'Some marked words.'
+    })
     expect(dirtyIds()).toEqual([])
   })
 

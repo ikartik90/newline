@@ -109,19 +109,20 @@ export interface PopoverProps {
 }
 
 // The `selectionPopover` recipe: the elevation and a clip, on the surface: a sheet, so its
-// fields stand a step up, on surface 2. No edge of its own; cornered as a text button is. Layout
-// is the caller's — a rail and a column list want different things from the same shell.
+// fields stand a step up, on surface 2. No edge of its own; cornered round the buttons it holds
+// 2px in, concentric with them. Layout is the caller's — a rail and a column list want different
+// things from the same shell.
 const chromeStyle =
-  'bg-bg-sheet bg-level-1 rounded-lg overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_var(--shadow-sheet)] outline-none'
+  'bg-bg-sheet bg-level-1 rounded-toolbar overflow-hidden max-w-[min(100vw,var(--size-article-content))] shadow-[0_4px_16px_var(--shadow-sheet)] outline-none'
 
 /**
- * A toolbar floating in the shell, as tall as a button: no inset and no gap, its options
- * cornered as an icon button is, the shell clipping the row's ends. A pressed option is its
- * chip alone, with no edge.
+ * A toolbar floating in the shell: 2px clear of its options all round, which makes its height,
+ * its options 1px apart and cornered as an icon button is. A pressed option is its chip alone,
+ * with no edge.
  */
 export const POPOVER_TOOLBAR =
-  'flex items-center w-max h-(--size-toolbar-button) gap-0 px-0 ' +
-  '[&_[role=toolbar]]:gap-0 [&_button[aria-pressed=true]]:after:border-0'
+  'flex items-center w-max h-(--size-toolbar) p-0.5 ' +
+  '[&_[role=toolbar]]:gap-px [&_button[aria-pressed=true]]:after:border-0'
 
 /** The space between a popover and its anchor (`[data-popover]`'s margin in main.css). */
 const POPOVER_GAP = 4

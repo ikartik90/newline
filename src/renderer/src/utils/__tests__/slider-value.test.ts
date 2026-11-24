@@ -5,7 +5,6 @@ import {
   ratioOfValue,
   snapToStep,
   tickRatios,
-  valueAtRatio,
   type SliderScale
 } from '../slider-value'
 
@@ -55,29 +54,6 @@ describe('snapToStep', () => {
 
   it('falls back to min for a value that is not a number', () => {
     expect(snapToStep(Number.NaN, scale)).toBe(0)
-  })
-})
-
-describe('valueAtRatio', () => {
-  const scale = { min: 0, max: 100, step: 10 }
-
-  it('maps the track ends to the range ends', () => {
-    expect(valueAtRatio(0, scale)).toBe(0)
-    expect(valueAtRatio(1, scale)).toBe(100)
-  })
-
-  it('snaps the value under the pointer to the step grid', () => {
-    expect(valueAtRatio(0.44, scale)).toBe(40)
-    expect(valueAtRatio(0.46, scale)).toBe(50)
-  })
-
-  it('clamps a pointer dragged past either end', () => {
-    expect(valueAtRatio(-0.5, scale)).toBe(0)
-    expect(valueAtRatio(1.5, scale)).toBe(100)
-  })
-
-  it('maps through a negative range', () => {
-    expect(valueAtRatio(0.5, { min: -10, max: 10, step: 1 })).toBe(0)
   })
 })
 

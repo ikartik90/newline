@@ -37,8 +37,23 @@ export default defineConfig({
     build: {
       externalizeDeps: {
         // ESM-only packages must be bundled: the main process is CommonJS
-        // and cannot `require()` them.
-        exclude: ['uuid', 'marked']
+        // and cannot `require()` them. All but the first read a note's MDX.
+        exclude: [
+          'uuid',
+          'mdast-util-from-markdown',
+          'mdast-util-gfm-autolink-literal',
+          'mdast-util-gfm-footnote',
+          'mdast-util-gfm-strikethrough',
+          'mdast-util-gfm-task-list-item',
+          'mdast-util-mdx-jsx',
+          'mdast-util-to-markdown',
+          'micromark-extension-gfm-autolink-literal',
+          'micromark-extension-gfm-footnote',
+          'micromark-extension-gfm-strikethrough',
+          'micromark-extension-gfm-task-list-item',
+          'micromark-extension-mdx-jsx',
+          'micromark-extension-mdx-md'
+        ]
       }
     }
   },

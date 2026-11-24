@@ -22,17 +22,6 @@ export const PANEL_INSET_ATTR = 'data-properties-panel'
 export const PANEL_INSET_INSTANT_ATTR = 'data-properties-panel-instant'
 
 /**
- * The attribute a page puts on its own root to reserve the inset in its first
- * markup, for the width its panel is about to take — for a page that opens
- * with a panel already up, so the first paint is already inset:
- *
- * ```tsx
- * <main data-properties-panel-reserved={open || undefined}>
- * ```
- */
-export const PANEL_RESERVED_ATTR = 'data-properties-panel-reserved'
-
-/**
  * How long after a press a panel still counts as having been OPENED by it.
  *
  * 500ms because that is the window the layout-shift metric itself forgives

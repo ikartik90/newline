@@ -6,7 +6,7 @@ function makeNote(id: string, title: string): Note {
   return {
     id,
     title,
-    body: '{"type":"doc","content":[]}',
+    body: '',
     plainText: '',
     tags: [],
     createdAt: 1,

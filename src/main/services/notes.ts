@@ -1,12 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
-import { documentPlainText, serializeDocument } from '@shared/domain/document'
-import { bodyToDocument } from '@shared/markdown/markdown-to-document'
+import { mdxPlainText } from '@shared/mdx/plain-text'
 import { getDb } from '../db/database'
 
 export interface Note {
   id: string
   title: string
+  /** The note's MDX, kept as it came. */
   body: string
+  /** The words in it, read from the body on every write, for search. */
   plainText: string
   tags: string[]
   createdAt: number
@@ -41,34 +42,24 @@ function rowToNote(row: NoteRow): Note {
   }
 }
 
-/**
- * A body as it is stored: the document's JSON and the words in it. The
- * renderer sends JSON; a legacy markdown body (an old remote, an old caller)
- * is converted on the way in, so nothing below this line meets markdown.
- */
-function storedBody(body: string): { body: string; plainText: string } {
-  const doc = bodyToDocument(body)
-  return { body: serializeDocument(doc), plainText: documentPlainText(doc) }
-}
-
 export function createNote(title = '', body = ''): Note {
   const db = getDb()
   const now = Date.now()
   const id = uuidv4()
-  const stored = storedBody(body)
+  const plainText = mdxPlainText(body)
 
   db.prepare(
     `INSERT INTO notes (id, title, body, plain_text, tags, created_at, updated_at, is_deleted)
      VALUES (?, ?, ?, ?, '[]', ?, ?, 0)`
-  ).run(id, title, stored.body, stored.plainText, now, now)
+  ).run(id, title, body, plainText, now, now)
 
   enqueueSyncAction(id, 'upsert')
 
   return {
     id,
     title,
-    body: stored.body,
-    plainText: stored.plainText,
+    body,
+    plainText,
     tags: [],
     createdAt: now,
     updatedAt: now,
@@ -92,9 +83,8 @@ export function updateNote(
     values.push(fields.title)
   }
   if (fields.body !== undefined) {
-    const stored = storedBody(fields.body)
     sets.push('body = ?', 'plain_text = ?')
-    values.push(stored.body, stored.plainText)
+    values.push(fields.body, mdxPlainText(fields.body))
   }
   if (fields.tags !== undefined) {
     sets.push('tags = ?')
@@ -192,7 +182,9 @@ export function upsertFromRemote(
 ): void {
   const db = getDb()
   const now = Date.now()
-  const stored = storedBody(fields.body)
+  const plainText = mdxPlainText(fields.body)
+  const tags = JSON.stringify(fields.tags)
+  const isDeleted = fields.isDeleted ? 1 : 0
 
   const existing = db.prepare('SELECT id FROM notes WHERE id = ?').get(id) as
     | { id: string }
@@ -203,16 +195,7 @@ export function upsertFromRemote(
       `UPDATE notes SET title = ?, body = ?, plain_text = ?, tags = ?, is_deleted = ?,
          updated_at = ?, last_synced_at = ?
        WHERE id = ?`
-    ).run(
-      fields.title,
-      stored.body,
-      stored.plainText,
-      JSON.stringify(fields.tags),
-      fields.isDeleted ? 1 : 0,
-      fields.updatedAt,
-      now,
-      id
-    )
+    ).run(fields.title, fields.body, plainText, tags, isDeleted, fields.updatedAt, now, id)
   } else {
     db.prepare(
       `INSERT INTO notes (id, title, body, plain_text, tags, created_at, updated_at, last_synced_at, is_deleted)
@@ -220,13 +203,13 @@ export function upsertFromRemote(
     ).run(
       id,
       fields.title,
-      stored.body,
-      stored.plainText,
-      JSON.stringify(fields.tags),
+      fields.body,
+      plainText,
+      tags,
       fields.createdAt,
       fields.updatedAt,
       now,
-      fields.isDeleted ? 1 : 0
+      isDeleted
     )
   }
 }

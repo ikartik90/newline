@@ -1,7 +1,7 @@
 import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { Document } from '@shared/domain/document'
-import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
+import { mdxDestination } from '@shared/mdx/dialect'
+import { MdxNoteEditor, type MdxNoteSnapshot } from '@/prose/note-editor'
 import { useKeyboardFocus } from '@/hooks/use-keyboard-focus'
 import { useInputModality } from '@/hooks/use-input-modality'
 import { useTheme } from '@/hooks/useTheme'
@@ -20,68 +20,48 @@ const PIXEL =
     '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFAB6F"/><stop offset="1" stop-color="#FF4D97"/></linearGradient></defs><rect width="1600" height="900" fill="url(#g)"/></svg>'
   )
 
-const SAMPLE: Document = {
-  type: 'doc',
-  content: [
-    { type: 'eyebrow', children: [{ type: 'text', text: 'Chapter one' }] },
-    { type: 'heading', level: 2, children: [{ type: 'text', text: 'A subheading' }] },
-    {
-      type: 'paragraph',
-      children: [
-        { type: 'text', text: 'Body text with ' },
-        { type: 'text', text: 'bold', marks: [{ type: 'bold' }] },
-        { type: 'text', text: ', ' },
-        { type: 'text', text: 'italic', marks: [{ type: 'italic' }] },
-        { type: 'text', text: ', ' },
-        { type: 'text', text: 'code', marks: [{ type: 'code' }] },
-        { type: 'text', text: ', a ' },
-        { type: 'text', text: 'link', marks: [{ type: 'link', href: 'https://example.com' }] },
-        { type: 'text', text: ', a ' },
-        { type: 'text', text: 'highlight', marks: [{ type: 'highlight' }] },
-        { type: 'text', text: ' and a ' },
-        {
-          type: 'text',
-          text: 'sidenote',
-          marks: [{ type: 'sidenote', id: 'sn-1', text: 'A margin note beside the prose.' }]
-        },
-        { type: 'text', text: '.' }
-      ]
-    },
-    { type: 'list_item', children: [{ type: 'text', text: 'First numbered item' }] },
-    { type: 'list_item', children: [{ type: 'text', text: 'Second numbered item' }] },
-    { type: 'bullet_list_item', marker: 'check', children: [{ type: 'text', text: 'Done' }] },
-    { type: 'bullet_list_item', children: [{ type: 'text', text: 'A plain bullet' }] },
-    {
-      type: 'blockquote',
-      caption: 'Someone, somewhere',
-      children: [{ type: 'text', text: 'A quote worth keeping.' }]
-    },
-    {
-      type: 'metric',
-      caption: 'Revenue',
-      children: [{ type: 'text', text: '$377k' }],
-      subtext: 'in the first year'
-    },
-    {
-      type: 'code_block',
-      language: 'typescript',
-      children: [{ type: 'text', text: 'const answer: number = 42\nconsole.log(answer)' }]
-    },
-    { type: 'horizontal_rule' },
-    {
-      type: 'media',
-      kind: 'image',
-      src: PIXEL,
-      width: 1600,
-      height: 900,
-      caption: 'A picture with a caption'
-    },
-    {
-      type: 'paragraph',
-      children: [{ type: 'text', text: 'Type / on an empty line for the menu.' }]
-    }
-  ]
-}
+const SAMPLE = `<BlockStyle size="sm" color="highlight">
+  Chapter one
+</BlockStyle>
+
+## A subheading
+
+Body text with **bold**, *italic*, \`code\`, a [link](https://example.com), a <mark>highlight</mark> and a <Sidenote note="A margin note beside the prose.">sidenote</Sidenote>.
+
+<BlockStyle align="center">
+  A line set to the centre.
+</BlockStyle>
+
+1. First numbered item
+2. Second numbered item
+
+- [x] A task that is done
+- [ ] A task still to do
+- A plain bullet
+
+> A quote worth keeping.
+>
+> Someone, somewhere
+
+Revenue
+
+<BlockStyle color="highlight">
+  ## $377k
+</BlockStyle>
+
+in the first year
+
+\`\`\`typescript
+const answer: number = 42
+console.log(answer)
+\`\`\`
+
+---
+
+![](${mdxDestination(PIXEL)} "A picture with a caption")
+
+Type / on an empty line for the menu.
+`
 
 // The Electron bridge, as much of it as the editor reaches for.
 Object.defineProperty(window, 'api', {
@@ -92,7 +72,18 @@ Object.defineProperty(window, 'api', {
       setSource: async () => {}
     },
     media: {
-      list: async () => [],
+      // The library knows the sample picture's shape, as it knows an upload's.
+      list: async () => [
+        {
+          key: 'sample',
+          url: PIXEL,
+          filename: 'sample.svg',
+          contentType: 'image/svg+xml',
+          size: PIXEL.length,
+          width: 1600,
+          height: 900
+        }
+      ],
       upload: async () => {
         throw new Error('No uploads in the harness')
       },
@@ -116,12 +107,12 @@ function Harness() {
   // The harness is the documented way to look at the editor, so it has to be
   // able to show either theme — it followed neither the OS nor a choice.
   const { effectiveTheme, setTheme } = useTheme()
-  const [snapshot, setSnapshot] = useState<EditorSnapshot | null>(null)
+  const [snapshot, setSnapshot] = useState<MdxNoteSnapshot | null>(null)
   return (
     <div className="h-screen flex flex-col bg-bg-canvas text-ink-body">
       <div className="h-12 flex items-center px-4 text-style-caption text-ink-body/50 shrink-0">
         Harness · last change:{' '}
-        {snapshot ? `${snapshot.document.content.length} blocks` : 'none yet'}
+        {snapshot ? `${snapshot.mdx.split('\n').length} lines of MDX` : 'none yet'}
         <button
           type="button"
           onClick={() => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')}
@@ -130,12 +121,12 @@ function Harness() {
           {effectiveTheme === 'dark' ? 'Light theme' : 'Dark theme'}
         </button>
       </div>
-      <main className="flex-1 overflow-y-auto px-5 pt-8 pb-20">
+      <main className="flex-1 overflow-y-auto px-(--size-note-inset) pt-8 pb-20">
         <article>
-          <ArticleEditor
+          <MdxNoteEditor
             noteId="harness"
             initialTitle="Harness note"
-            initialDocument={SAMPLE}
+            initialMdx={SAMPLE}
             onChange={setSnapshot}
           />
         </article>

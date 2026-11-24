@@ -1,14 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Typography, typographyStyles } from '../typography'
-import { editorListItemContentStyle } from '@/components/editor/styles'
 
 const classes = (cls: string) => cls.split(/\s+/).filter(Boolean)
 
 describe('typographyStyles', () => {
-  it('gives a title its own text style, ink and balanced wrapping', () => {
-    const cls = classes(typographyStyles({ type: 'title' }))
-    expect(cls).toContain('text-style-title')
+  it('gives a first heading its own text style, the title ink and balanced wrapping', () => {
+    const cls = classes(typographyStyles({ type: 'heading1' }))
+    expect(cls).toContain('text-style-heading-1')
     expect(cls).toContain('text-ink-title')
     expect(cls).toContain('[text-wrap:balance]')
     // One colour and one wrap — the base's are replaced, not stacked beside.
@@ -27,23 +26,15 @@ describe('typographyStyles', () => {
     expect(small).toContain('text-ink-body')
   })
 
-  it("sets a note's prose in the prose style, the prose ink and pretty wrapping", () => {
-    const cls = classes(typographyStyles({ type: 'prose' }))
-    expect(cls).toEqual(['text-style-prose', 'text-ink-prose', '[text-wrap:pretty]'])
+  it("sets a note's paragraph in the paragraph style, the paragraph ink and pretty wrapping", () => {
+    const cls = classes(typographyStyles({ type: 'paragraph' }))
+    expect(cls).toEqual(['text-style-paragraph-md', 'text-ink-paragraph', '[text-wrap:pretty]'])
   })
 
-  it("inks a list item's text as the prose it is set in", () => {
-    const cls = classes(editorListItemContentStyle)
-    expect(cls).toContain('text-ink-prose')
-    expect(cls).not.toContain('text-ink-body')
-  })
-
-  it('balances a caption and a subheading, keeps a quote and a sidenote pretty', () => {
+  it('balances a caption and a second heading, keeps a sidenote pretty', () => {
     expect(classes(typographyStyles({ type: 'caption' }))).toContain('[text-wrap:balance]')
-    expect(classes(typographyStyles({ type: 'subheading' }))).toContain('[text-wrap:balance]')
-    expect(classes(typographyStyles({ type: 'quote' }))).toContain('[text-wrap:pretty]')
+    expect(classes(typographyStyles({ type: 'heading2' }))).toContain('[text-wrap:balance]')
     expect(classes(typographyStyles({ type: 'sidenote' }))).toContain('[text-wrap:pretty]')
-    expect(classes(typographyStyles({ type: 'quote' }))).toContain('text-ink-body')
   })
 
   it('lets a caller ask for balanced lines on a type that wraps pretty', () => {
@@ -56,12 +47,12 @@ describe('typographyStyles', () => {
 describe('Typography', () => {
   it('renders the requested tag with the type styles and a merged className', () => {
     render(
-      <Typography tag="h2" type="subheading" className="custom" id="heading">
+      <Typography tag="h2" type="heading2" className="custom" id="heading">
         Section
       </Typography>
     )
     const heading = screen.getByRole('heading', { level: 2, name: 'Section' })
-    expect(heading.className).toContain('text-style-subheading')
+    expect(heading.className).toContain('text-style-heading-2')
     expect(heading.className).toContain('custom')
     expect(heading.id).toBe('heading')
   })

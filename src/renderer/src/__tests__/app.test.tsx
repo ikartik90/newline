@@ -3,7 +3,6 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AssistantMessage, AssistantModelStatus } from '@shared/domain/assistant'
-import { serializeDocument } from '@shared/domain/document'
 import App from '../App'
 import css from '@/assets/main.css?raw'
 
@@ -28,10 +27,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
   return {
     id: 'n1',
     title: 'First note',
-    body: serializeDocument({
-      type: 'doc',
-      content: [{ type: 'paragraph', children: [{ type: 'text', text: 'Hello there' }] }]
-    }),
+    body: 'Hello there\n',
     plainText: 'Hello there',
     tags: ['work'],
     createdAt: 1,
@@ -53,8 +49,15 @@ function installApi(notes: Note[]) {
       list: vi.fn(async () => [...notes]),
       search: vi.fn(async (_query: string) => [...notes]),
       get: vi.fn(async (id: string) => notes.find((n) => n.id === id) ?? null),
-      create: vi.fn(async (title = '', body = '') => {
-        const note = makeNote({ id: `n${notes.length + 1}`, title, body, tags: [], plainText: '' })
+      // Main starts a note handed no body in MDX, empty.
+      create: vi.fn(async (title = '') => {
+        const note = makeNote({
+          id: `n${notes.length + 1}`,
+          title,
+          body: '',
+          tags: [],
+          plainText: ''
+        })
         notes.push(note)
         return note
       }),
@@ -188,6 +191,35 @@ describe('App', () => {
     expect(screen.getByText('Hello there')).toBeTruthy()
   })
 
+  it('opens the note in the ProseMirror editor: one body, its blocks in it', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    const body = await screen.findByRole('textbox', { name: 'Note' })
+    expect(body.hasAttribute('data-note-body')).toBe(true)
+    expect(within(body).getByText('Hello there').tagName).toBe('P')
+    expect(body.closest('article')).not.toBeNull()
+  })
+
+  // Reading a note in the new form is no change to it.
+  it('saves nothing for a note that is only opened, or opened and left', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const other = makeNote({ id: 'n2', title: 'Second note' })
+      const { api } = installApi([makeNote(), other])
+      render(<App />)
+      await userEvent.click(await screen.findByText('First note'))
+      await screen.findByRole('textbox', { name: 'Note' })
+      await userEvent.click(await screen.findByText('Second note'))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+      expect(api.notes.update).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('puts a Gemma reply into the open note and saves it', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
@@ -210,13 +242,13 @@ describe('App', () => {
 
       await waitFor(() => expect(api.notes.update).toHaveBeenCalled())
       const [, fields] = api.notes.update.mock.calls.at(-1) as [string, Partial<Note>]
-      expect(fields.body).toContain('"new"')
+      expect(fields.body).toBe('Hello there\n\nA **new** line\n')
     } finally {
       vi.useRealTimers()
     }
   })
 
-  it('writes an edit to the note and has main push it, reporting the save', async () => {
+  it('writes an edit to the note as MDX and has main push it, reporting the save', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       const { api } = installApi([makeNote()])
@@ -234,12 +266,51 @@ describe('App', () => {
       })
 
       await waitFor(() => expect(api.notes.update).toHaveBeenCalled())
-      const [id, fields] = api.notes.update.mock.calls[0] as [string, Partial<Note>]
-      expect(id).toBe('n1')
-      expect(fields.title).toBe('Renamed')
-      expect(JSON.parse(fields.body as string).type).toBe('doc')
+      expect(api.notes.update.mock.calls[0]).toEqual([
+        'n1',
+        { title: 'Renamed', body: 'Hello there\n' }
+      ])
       await waitFor(() => expect(api.sync.pushNote).toHaveBeenCalledWith('n1'))
       expect(await screen.findByText('Saved')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // What only MDX holds (a colour, a list under an item) is there when the
+  // note opens and still in the text a save writes.
+  it('opens a note on its MDX as it is written, and saves it as it came', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const mdx = [
+        'Plain and <TextStyle color="danger">red</TextStyle> words.',
+        '',
+        '- One',
+        '',
+        '  - Under one',
+        ''
+      ].join('\n')
+      const { api } = installApi([
+        makeNote({ body: mdx, plainText: 'Plain and red words.\nOne\nUnder one' })
+      ])
+      render(<App />)
+      await userEvent.click(await screen.findByText('First note'))
+      const body = await screen.findByRole('textbox', { name: 'Note' })
+      expect(within(body).getByText('red').className).toContain('text-ink-style-danger')
+      expect(body.querySelector('ul ul')?.textContent).toBe('Under one')
+
+      const title = await screen.findByRole('heading', { name: 'Title' })
+      await act(async () => {
+        title.textContent = 'Renamed'
+        title.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      await waitFor(() => expect(api.notes.update).toHaveBeenCalled())
+      expect(api.notes.update.mock.calls[0]).toEqual(['n1', { title: 'Renamed', body: mdx }])
+      await waitFor(() => expect(api.sync.pushNote).toHaveBeenCalledWith('n1'))
     } finally {
       vi.useRealTimers()
     }
@@ -264,8 +335,32 @@ describe('App', () => {
     // The sidebar has a "New note" icon button too; the empty state's is last.
     const buttons = await screen.findAllByRole('button', { name: 'New note' })
     await userEvent.click(buttons[buttons.length - 1])
-    expect(api.notes.create).toHaveBeenCalled()
+    // No body is sent: main starts the note, in MDX.
+    expect(api.notes.create.mock.calls).toEqual([[]])
     expect(await screen.findByRole('heading', { name: 'Title' })).toBeTruthy()
+  })
+
+  it('saves what is typed into a new note as MDX', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const { api } = installApi([])
+      render(<App />)
+      const buttons = await screen.findAllByRole('button', { name: 'New note' })
+      await userEvent.click(buttons[buttons.length - 1])
+      const title = await screen.findByRole('heading', { name: 'Title' })
+      await act(async () => {
+        title.textContent = 'Fresh'
+        title.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      await waitFor(() => expect(api.notes.update).toHaveBeenCalled())
+      expect(api.notes.update.mock.calls[0]).toEqual(['n1', { title: 'Fresh', body: '' }])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
@@ -424,6 +519,15 @@ describe('App chrome', () => {
     const main = screen.getByRole('main')
     expect(classesOf(main)).toContain('overflow-y-auto')
     expect(bar.contains(main)).toBe(false)
+  })
+
+  // The grip beside a block needs the room, in a window the note fills from side to side.
+  it('keeps the note its safe space from either side of the pane', async () => {
+    installApi([makeNote()])
+    render(<App />)
+    await userEvent.click(await screen.findByText('First note'))
+    const inline = classesOf(screen.getByRole('main')).filter((name) => /^p[xlrse]-/.test(name))
+    expect(inline).toEqual(['px-(--size-note-inset)'])
   })
 
   it('rules off the bar over the note once the note scrolls under it', async () => {

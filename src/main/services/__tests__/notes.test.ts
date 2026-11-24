@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EMPTY_DOCUMENT, parseDocument, serializeDocument } from '@shared/domain/document'
 import { getDb } from '../../db/database'
 import * as notes from '../notes'
 
@@ -9,37 +8,36 @@ vi.mock('../../db/database', async () => {
   return { getDb: () => db, initDatabase: () => db, closeDatabase: () => {} }
 })
 
-const paragraph = (text: string) =>
-  serializeDocument({
-    type: 'doc',
-    content: [{ type: 'paragraph', children: [{ type: 'text', text }] }]
-  })
+/** A note's body of one line. */
+const paragraph = (text: string): string => `${text}\n`
+
+const MDX = [
+  '# Heading',
+  '',
+  'Some <mark>marked</mark> words <Sidenote note="an aside">here</Sidenote>.',
+  '',
+  '<BlockStyle size="sm" color="muted">',
+  'A small line.',
+  '</BlockStyle>',
+  ''
+].join('\n')
 
 beforeEach(() => {
   getDb().exec('DELETE FROM notes; DELETE FROM sync_queue; DELETE FROM app_meta')
 })
 
 describe('createNote', () => {
-  it('stores a document body and derives its plain text', () => {
-    const note = notes.createNote('Title', paragraph('Hello there'))
-    expect(note.body).toBe(paragraph('Hello there'))
-    expect(note.plainText).toBe('Hello there')
+  it('starts a note empty', () => {
+    const note = notes.createNote('New')
+    expect(note).toMatchObject({ title: 'New', body: '', plainText: '' })
     expect(notes.getNote(note.id)).toEqual(note)
   })
 
-  it('converts a legacy markdown body', () => {
-    const note = notes.createNote('', '# Heading\n\nwords')
-    expect(parseDocument(note.body).content).toEqual([
-      { type: 'heading', level: 1, children: [{ type: 'text', text: 'Heading' }] },
-      { type: 'paragraph', children: [{ type: 'text', text: 'words' }] }
-    ])
-    expect(note.plainText).toBe('Heading\nwords')
-  })
-
-  it('stores the empty document for no body', () => {
-    const note = notes.createNote()
-    expect(note.body).toBe(serializeDocument(EMPTY_DOCUMENT))
-    expect(note.plainText).toBe('')
+  it('keeps a body as it is handed in, and reads its words for search', () => {
+    const note = notes.createNote('Title', MDX)
+    expect(note.body).toBe(MDX)
+    expect(note.plainText).toBe('Heading\nSome marked words here.\nan aside\nA small line.')
+    expect(notes.getNote(note.id)).toEqual(note)
   })
 
   it('queues the note for sync', () => {
@@ -51,33 +49,35 @@ describe('createNote', () => {
 describe('updateNote', () => {
   it('re-derives plain text when the body changes, and only then', () => {
     const note = notes.createNote('T', paragraph('one'))
-    const renamed = notes.updateNote(note.id, { title: 'Renamed' })
+    const renamed = notes.updateNote(note.id, { title: 'Renamed', tags: ['t'] })
     expect(renamed?.plainText).toBe('one')
+    expect(renamed?.body).toBe(paragraph('one'))
 
-    const edited = notes.updateNote(note.id, { body: paragraph('two') })
-    expect(edited?.plainText).toBe('two')
-    expect(edited?.body).toBe(paragraph('two'))
+    const edited = notes.updateNote(note.id, { body: 'Edited *here*.\n' })
+    expect(edited?.plainText).toBe('Edited here.')
+    expect(edited?.body).toBe('Edited *here*.\n')
   })
 
-  it('tolerates markdown handed in as a body', () => {
+  it('keeps a body it cannot read as it came, and still finds its words', () => {
+    const broken = 'A line.\n\n<Sidenote note="'
     const note = notes.createNote()
-    const edited = notes.updateNote(note.id, { body: '- item' })
-    expect(parseDocument(edited!.body).content).toEqual([
-      { type: 'bullet_list_item', children: [{ type: 'text', text: 'item' }] }
-    ])
+    expect(notes.updateNote(note.id, { body: broken })?.body).toBe(broken)
+    expect(notes.searchNotes('line').map((n) => n.id)).toEqual([note.id])
   })
 })
 
 describe('searchNotes', () => {
-  it('matches title, tags and plain text but never the JSON vocabulary', () => {
-    const a = notes.createNote('Groceries', paragraph('buy milk'))
+  it("matches title, tags and plain text but never the MDX's own signs", () => {
+    const a = notes.createNote('Groceries', MDX)
     const b = notes.createNote('Work', paragraph('quarterly review'))
     notes.updateNote(b.id, { tags: ['office'] })
 
-    expect(notes.searchNotes('milk').map((n) => n.id)).toEqual([a.id])
+    expect(notes.searchNotes('marked').map((n) => n.id)).toEqual([a.id])
+    expect(notes.searchNotes('aside').map((n) => n.id)).toEqual([a.id])
     expect(notes.searchNotes('Groc').map((n) => n.id)).toEqual([a.id])
     expect(notes.searchNotes('office').map((n) => n.id)).toEqual([b.id])
-    expect(notes.searchNotes('paragraph')).toEqual([])
+    expect(notes.searchNotes('BlockStyle')).toEqual([])
+    expect(notes.searchNotes('Sidenote')).toEqual([])
     expect(notes.searchNotes('   ')).toHaveLength(2)
   })
 })
@@ -99,7 +99,7 @@ describe('deleteNote / getNoteIncludingDeleted', () => {
 })
 
 describe('upsertFromRemote', () => {
-  it('inserts a document body with its plain text, stamped as the Worker stamped it', () => {
+  it('inserts a body with its plain text, stamped as the Worker stamped it', () => {
     notes.upsertFromRemote('r1', {
       title: 'Remote',
       body: paragraph('from the cloud'),
@@ -109,13 +109,14 @@ describe('upsertFromRemote', () => {
       isDeleted: false
     })
     const note = notes.getNote('r1')
+    expect(note?.body).toBe(paragraph('from the cloud'))
     expect(note?.plainText).toBe('from the cloud')
     expect(note?.createdAt).toBe(5)
     expect(note?.updatedAt).toBe(7)
     expect(note?.lastSyncedAt).not.toBeNull()
   })
 
-  it('converts a legacy markdown body and updates an existing row', () => {
+  it('updates an existing row', () => {
     notes.createNote('Local', paragraph('local words'))
     const existing = notes.listNotes()[0]
     notes.upsertFromRemote(existing.id, {
@@ -188,5 +189,22 @@ describe('getDirtyNotes', () => {
     const dirty = notes.getDirtyNotes()
     expect(dirty.map((n) => n.id)).toEqual([gone.id])
     expect(dirty[0].isDeleted).toBe(true)
+  })
+})
+
+describe('a note as the app is handed it', () => {
+  it('is these fields and no others', () => {
+    const note = notes.createNote('T', paragraph('one'))
+    expect(Object.keys(notes.getNote(note.id)!).sort()).toEqual([
+      'body',
+      'createdAt',
+      'id',
+      'isDeleted',
+      'lastSyncedAt',
+      'plainText',
+      'tags',
+      'title',
+      'updatedAt'
+    ])
   })
 })

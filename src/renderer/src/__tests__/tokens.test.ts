@@ -68,9 +68,6 @@ describe('the accent', () => {
       '--bg-field-focus': 'var(--bg-highlight)',
       '--ink-link-default': 'var(--ink-highlight)',
       '--ink-sidenote-marker': 'var(--ink-highlight)',
-      '--ink-code-accent': 'var(--ink-highlight)',
-      '--ink-eyebrow': 'var(--ink-highlight)',
-      '--ink-metric': 'var(--ink-highlight)',
       '--ink-mark-default': 'var(--ink-highlight)',
       '--ink-field-selected': 'var(--ink-highlight)',
       '--ink-field-focus': 'var(--ink-highlight)',
@@ -78,9 +75,27 @@ describe('the accent', () => {
       '--border-link-hover': 'var(--divider-highlight)',
       '--border-resize-handle-hover': 'var(--divider-highlight)',
       '--border-progress': 'var(--divider-highlight)',
+      '--border-drop-line': 'var(--divider-highlight)',
       '--outline-focus': 'var(--divider-highlight)'
     }
     for (const [name, primitive] of Object.entries(built)) {
+      expect(value(tokens.light, name)).toBe(primitive)
+      expect(value(tokens.dark, name)).toBeUndefined()
+      expect(value(tokens.inline, `--color-${name.slice(2)}`)).toBe(`var(${name})`)
+    }
+  })
+
+  // `<TextStyle>` and `<BlockStyle>` say a colour by name: each name is the
+  // ink of its role, so a note follows the theme.
+  it("names the colours a note's text can be given, each on the ink of its role", () => {
+    const named = {
+      '--ink-style-highlight': 'var(--ink-highlight)',
+      '--ink-style-muted': 'var(--ink-3)',
+      '--ink-style-danger': 'var(--ink-danger)',
+      '--ink-style-warning': 'var(--ink-warning)',
+      '--ink-style-success': 'var(--ink-success)'
+    }
+    for (const [name, primitive] of Object.entries(named)) {
       expect(value(tokens.light, name)).toBe(primitive)
       expect(value(tokens.dark, name)).toBeUndefined()
       expect(value(tokens.inline, `--color-${name.slice(2)}`)).toBe(`var(${name})`)
@@ -91,27 +106,18 @@ describe('the accent', () => {
     expect(css).toMatch(/box-shadow: 0 0 0 1\.5px var\(--outline-focus\);/)
   })
 
-  it('inks a sidenote’s number, an eyebrow and a metric, and underlines a link, in their own tokens', () => {
+  it('inks a sidenote’s number and a mark, and underlines a link, in their own tokens', () => {
     const rule = (name: string) => css.slice(css.indexOf(`@utility ${name} {`)).split(/\n}\n/)[0]
     expect(rule('article-sidenote-ref')).toMatch(/color: var\(--ink-sidenote-marker\)/)
-    expect(rule('article-eyebrow')).toMatch(/color: var\(--ink-eyebrow\)/)
-    expect(rule('article-metric-value')).toMatch(/color: var\(--ink-metric\)/)
     expect(rule('article-highlight')).toMatch(/background-color: var\(--bg-mark-default\)/)
     expect(rule('article-highlight')).toMatch(/color: var\(--ink-mark-default\)/)
-    expect(rule('article-link')).toMatch(
-      /linear-gradient\(var\(--border-link-hover\), var\(--border-link-hover\)\)/
-    )
+    expect(rule('article-link')).toMatch(/text-decoration-color: var\(--border-link-hover\)/)
   })
 
   it('selects text as the prose highlight is marked', () => {
     const selection = css.slice(css.indexOf('::selection {')).split('}')[0]
     expect(selection).toMatch(/background-color: var\(--bg-mark-default\)/)
     expect(selection).toMatch(/color: var\(--ink-mark-default\)/)
-  })
-
-  it('gives code the one accent, with no second of its own', () => {
-    expect(value(tokens.light, '--ink-code-accent')).toBe('var(--ink-highlight)')
-    expect(css).not.toMatch(/syntax-secondary/)
   })
 
   // What was the info ink is the highlight: one sky accent, not two.
@@ -337,10 +343,10 @@ describe('the surface scale', () => {
   })
 
   // A note's paragraphs and list items sit one step back from body ink.
-  it("inks a note's prose one step softer than body ink, ink 2", () => {
-    expect(value(tokens.light, '--ink-prose')).toBe('var(--ink-2)')
-    expect(css.match(/--ink-prose:/g)).toHaveLength(1)
-    expect(value(tokens.inline, '--color-ink-prose')).toBe('var(--ink-prose)')
+  it("inks a note's paragraphs one step softer than body ink, ink 2", () => {
+    expect(value(tokens.light, '--ink-paragraph')).toBe('var(--ink-2)')
+    expect(css.match(/--ink-paragraph:/g)).toHaveLength(1)
+    expect(value(tokens.inline, '--color-ink-paragraph')).toBe('var(--ink-paragraph)')
   })
 
   it('stands text on the ink scale: titles on ink 0, everything else on ink 1', () => {

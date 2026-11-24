@@ -33,11 +33,10 @@ describe('AccountMenu', () => {
     expect(chevron).toContain('text-ink-body')
   })
 
-  it('sets its name in the sidebar’s type', () => {
+  it('sets its name as the sidebar’s rows are set, in body small', () => {
     render(<AccountMenu user={{ id: 'u', email: 'k@example.com' }} onSignOut={vi.fn()} />)
     const classes = screen.getByRole('button', { name: 'Account' }).className.split(/\s+/)
-    expect(classes).toContain('text-style-sidebar')
-    expect(classes).not.toContain('text-style-body-sm')
+    expect(classes).toContain('text-style-body-sm')
   })
 
   it('names the account by its name when Google gave one', () => {

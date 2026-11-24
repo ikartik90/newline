@@ -57,12 +57,6 @@ export function snapToStep(value: number, scale: SliderScale): number {
   return clamp(toPrecision(snapped, decimals), min, max)
 }
 
-/** The value at a 0–1 position along the track, snapped to the step grid. */
-export function valueAtRatio(ratio: number, scale: SliderScale): number {
-  const { min, max } = scale
-  return snapToStep(min + clamp(ratio, 0, 1) * (max - min), scale)
-}
-
 /**
  * Where a value sits along the track, as a 0–1 fraction — the thumb's offset
  * and the filled portion both read from this. A degenerate range collapses to

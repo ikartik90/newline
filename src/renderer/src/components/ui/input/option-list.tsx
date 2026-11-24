@@ -117,10 +117,11 @@ export function optionListClasses({ tone, direction, fit, size }: Variants) {
         ? 'flex flex-row items-center gap-0.5 p-0 w-max max-h-none overflow-visible'
         : menu
           ? cx(
-              'flex flex-col gap-0 p-0 overflow-x-hidden overflow-y-auto',
+              // Inset and spaced as the popover toolbar is: 2px round the rows, 1px between them.
+              'flex flex-col gap-px p-0.5 overflow-x-hidden overflow-y-auto',
               fit === 'content'
                 ? 'max-h-[calc(100dvh-80px)]'
-                : 'max-h-[calc(7.5*var(--size-toolbar-button))]'
+                : 'max-h-[calc(7.5*var(--size-toolbar-button)+7*1px+2px)]'
             )
           : cx(
               'flex flex-col overflow-x-hidden overflow-y-auto',
@@ -306,7 +307,7 @@ export interface OptionListProps extends Omit<
    * Retint for the surface it sits on. `default` = standalone self-framed
    * surface; `plain` = a list whose container owns the surface (the Combobox's popover); `menu` = a
    * floating menu whose popover owns it (the slash menu), its rows as tall as
-   * the popover toolbar's buttons, cornered as they are and laid edge to edge.
+   * the popover toolbar's buttons, cornered and spaced as they are.
    */
   tone?: Tone
   /**
@@ -606,9 +607,9 @@ function OptionListListbox({
   // externalKeys: arrow/enter arrive at the document (focus is in the editor).
   // Capture them so they drive the highlight and commit before the editor
   // reacts. Escape is owned by the Popover shell, so it isn't handled here.
+  const onExternalKey = useRef<(event: globalThis.KeyboardEvent) => void>(() => {})
   useEffect(() => {
-    if (!externalKeys) return
-    function handle(event: globalThis.KeyboardEvent) {
+    onExternalKey.current = (event) => {
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault()
@@ -627,9 +628,16 @@ function OptionListListbox({
           break
       }
     }
+  })
+  // The listener stays where it is and calls the latest handler: one taken off
+  // and put back while a key is being dispatched (the first key after the mouse
+  // renders the page again) is not asked about that key.
+  useEffect(() => {
+    if (!externalKeys) return
+    const handle = (event: globalThis.KeyboardEvent): void => onExternalKey.current(event)
     document.addEventListener('keydown', handle, { capture: true })
     return () => document.removeEventListener('keydown', handle, { capture: true })
-  }, [externalKeys, loop, moveActive, activeValue, select])
+  }, [externalKeys])
 
   // The context is rebuilt every render, so `setActiveValue` cannot be a
   // dependency below — depending on it re-ran the preselect on EVERY render,

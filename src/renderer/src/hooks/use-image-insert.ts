@@ -14,7 +14,7 @@ import {
   mediaKindOf,
   type MediaAsset
 } from '@shared/domain/media'
-import type { MediaKind } from '@shared/domain/nodes'
+import type { MediaKind } from '@shared/domain/media-node'
 import { capturePoster } from '@/utils/capture-poster'
 import { measureMediaFile } from '@/utils/measure-media'
 

@@ -72,6 +72,17 @@ describe('SettingsDialog', () => {
     expect(screen.queryByRole('listbox')).toBeNull()
   })
 
+  // There is no shell round them to stand clear of: the row is as tall as its buttons, which
+  // stand 1px apart, as a floating toolbar's do.
+  it('stands the theme icons 1px apart, with no inset round them', () => {
+    renderDialog()
+    const row = screen.getByRole('toolbar', { name: 'Theme' }).parentElement!.parentElement!
+    const classes = row.className.split(/\s+/)
+    expect(classes).toContain('h-(--size-toolbar-button)')
+    expect(classes.filter((c) => c.includes('gap-'))).toEqual(['[&_[role=toolbar]]:gap-px'])
+    expect(classes.filter((c) => /^(p|px|py)-/.test(c))).toEqual([])
+  })
+
   // The label stands on the toolbar's row, before it, not over it.
   it('labels the theme inline, beside its toolbar', () => {
     renderDialog()
