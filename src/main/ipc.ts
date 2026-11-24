@@ -9,9 +9,7 @@ import { getSyncStatus } from './services/sync-status'
 import { showRailGlass, showSidebarGlass, type SidebarGlassAddon } from './sidebar-glass'
 
 export function registerIpcHandlers(sidebarGlass: SidebarGlassAddon | null): void {
-  ipcMain.handle('notes:create', (_event, title?: string, body?: string) => {
-    return notesService.createNote(title, body)
-  })
+  ipcMain.handle('notes:create', () => notesService.createNote())
 
   ipcMain.handle(
     'notes:update',

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import css from '@/assets/main.css?raw'
 import { Popover, POPOVER_TOOLBAR } from '../popover'
 
 const rect = { left: 10, top: 20, width: 30, height: 40 }
@@ -37,33 +38,31 @@ describe('Popover', () => {
     expect(anchor?.style.getPropertyValue('anchor-name')).toBe('--test-anchor')
   })
 
-  // Cornered and stood as a button is: no edge of its own, the shadow parts it.
-  it('corners the shell at a text button’s 12px, with no border', () => {
+  // Cornered round the buttons it holds, concentric with them: no edge of its own, the shadow parts it.
+  it('corners the shell round its buttons, with no border', () => {
     render(
       <Popover rect={rect} role="toolbar" ariaLabel="Test menu" onDismiss={vi.fn()}>
         <button>Item</button>
       </Popover>
     )
     const classes = screen.getByRole('toolbar', { name: 'Test menu' }).className.split(/\s+/)
-    expect(classes).toContain('rounded-lg')
-    expect(classes).not.toContain('rounded-md')
+    expect(classes.filter((c) => /^rounded-/.test(c))).toEqual(['rounded-toolbar'])
     expect(classes.filter((c) => /^border/.test(c))).toEqual([])
   })
 
   // Its options keep their own corner, an icon button's, rather than going square.
-  it('stands a floating toolbar at a button’s height, its options flush and unedged', () => {
+  it('stands a floating toolbar 2px clear of its options all round, its options 1px apart and unedged', () => {
     const classes = POPOVER_TOOLBAR.split(/\s+/)
-    expect(classes).toEqual(
-      expect.arrayContaining([
-        'h-(--size-toolbar-button)',
-        'px-0',
-        'gap-0',
-        '[&_[role=toolbar]]:gap-0',
-        '[&_button[aria-pressed=true]]:after:border-0'
-      ])
-    )
-    expect(classes).not.toContain('h-10')
+    expect(classes).toContain('[&_button[aria-pressed=true]]:after:border-0')
+    // One inset, one gap and one height: a second of any would win or lose by stylesheet order.
+    expect(classes.filter((c) => /^(p|px|py)-/.test(c))).toEqual(['p-0.5'])
+    expect(classes.filter((c) => c.includes('gap-'))).toEqual(['[&_[role=toolbar]]:gap-px'])
+    expect(classes.filter((c) => /^h-/.test(c))).toEqual(['h-(--size-toolbar)'])
     expect(classes.some((c) => c.includes('rounded-none'))).toBe(false)
+  })
+
+  it('is as tall as a button and the 2px over and under it', () => {
+    expect(css).toContain('--size-toolbar: calc(var(--size-toolbar-button) + 2 * 2px);')
   })
 
   it('omits the synthesized anchor when element-anchored (no rect)', () => {

@@ -3,7 +3,6 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GEMMA_MODEL } from '@shared/domain/assistant'
-import { serializeDocument } from '@shared/domain/document'
 
 vi.mock('electron', () => ({ app: { getPath: () => '/tmp' } }))
 
@@ -42,11 +41,8 @@ type Notes = typeof import('../notes')
 let assistant: Assistant
 let notes: Notes
 
-const body = (text: string) =>
-  serializeDocument({
-    type: 'doc',
-    content: [{ type: 'paragraph', children: [{ type: 'text', text }] }]
-  })
+/** A note's body of one line. */
+const body = (text: string): string => `${text}\n`
 
 beforeEach(async () => {
   vi.resetModules()

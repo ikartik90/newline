@@ -42,7 +42,7 @@ function note(tags: string[]): Note {
   return {
     id: 'n1',
     title: 'A note',
-    body: '{"type":"doc","content":[]}',
+    body: '',
     plainText: '',
     tags,
     createdAt: 1,

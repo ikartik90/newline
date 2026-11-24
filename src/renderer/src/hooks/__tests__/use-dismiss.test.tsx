@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useDismiss } from '../use-dismiss'
 
 afterEach(() => {
@@ -56,7 +57,53 @@ function openModalDialog(): HTMLInputElement {
   return field
 }
 
+/**
+ * A surface whose owner hands it a new `onDismiss` at every render, as every
+ * call site does, and that can be rendered again from outside.
+ */
+function Rerendered(props: { onDismiss: () => void; again: { current: () => void } }) {
+  const [, setRenders] = useState(0)
+  props.again.current = () => setRenders((renders) => renders + 1)
+  return <Harness onDismiss={() => props.onDismiss()} />
+}
+
 describe('useDismiss', () => {
+  // The first key after the mouse turns the input modality over, and the page
+  // renders again before the press has reached every listener.
+  it('dismisses on an Escape during which it is rendered again', () => {
+    const onDismiss = vi.fn()
+    const again = { current: () => {} }
+    const stir = (): void => flushSync(() => again.current())
+    document.addEventListener('keydown', stir, { capture: true })
+    try {
+      render(<Rerendered onDismiss={onDismiss} again={again} />)
+      act(() => {
+        document.body.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+        )
+      })
+      expect(onDismiss).toHaveBeenCalledTimes(1)
+    } finally {
+      document.removeEventListener('keydown', stir, { capture: true })
+    }
+  })
+
+  it('dismisses on a press outside during which it is rendered again', () => {
+    const onDismiss = vi.fn()
+    const again = { current: () => {} }
+    const stir = (): void => flushSync(() => again.current())
+    document.addEventListener('pointerdown', stir)
+    try {
+      render(<Rerendered onDismiss={onDismiss} again={again} />)
+      act(() => {
+        screen.getByTestId('outside').dispatchEvent(new Event('pointerdown', { bubbles: true }))
+      })
+      expect(onDismiss).toHaveBeenCalledTimes(1)
+    } finally {
+      document.removeEventListener('pointerdown', stir)
+    }
+  })
+
   it('dismisses on Escape', () => {
     const onDismiss = vi.fn()
     render(<Harness onDismiss={onDismiss} />)

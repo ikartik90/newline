@@ -28,16 +28,16 @@ Google is the identity provider, through the OAuth 2.0 flow for native apps. The
 
 The store behind sync. Every note belongs to one user; the app is the source of truth for its own edits, the Worker stamps the order. Shapes and limits are the zod schemas in `src/shared/domain/sync.ts`, which both sides import.
 
-| Route                             | Auth   | Body / query                                  | Response                                                                                    |
-| --------------------------------- | ------ | --------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `PUT /notes/<id>`                 | Bearer | `{ title, body, tags, createdAt, isDeleted }` | `200 { id, updatedAt }`, `400 bad_request` / `invalid_id` / `invalid_body`, `413 too_large` |
-| `GET /notes?cursor=<c>&limit=<n>` | Bearer | both optional                                 | `200 { notes: NoteRecord[], cursor: string \| null, hasMore: boolean }`                     |
+| Route                             | Auth   | Body / query                                  | Response                                                                   |
+| --------------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------- |
+| `PUT /notes/<id>`                 | Bearer | `{ title, body, tags, createdAt, isDeleted }` | `200 { id, updatedAt }`, `400 bad_request` / `invalid_id`, `413 too_large` |
+| `GET /notes?cursor=<c>&limit=<n>` | Bearer | both optional                                 | `200 { notes: NoteRecord[], cursor: string \| null, hasMore: boolean }`    |
 
 ```ts
 type NoteRecord = {
   id: string // the app's uuid
   title: string
-  body: string // the Document as JSON text, exactly as the app stores it
+  body: string // the note's MDX text, exactly as the app stores it
   tags: string[]
   createdAt: number // ms, the app's
   updatedAt: number // ms, stamped by the Worker on every PUT
@@ -45,10 +45,10 @@ type NoteRecord = {
 }
 ```
 
-- A PUT creates or replaces the note and stamps `updatedAt` with the Worker's clock. `body` must parse as a `Document` (`DocumentSchema`), otherwise `400 invalid_body`; a body over the limit is `413 too_large`. `id` must match `NOTE_ID_PATTERN`.
+- A PUT creates or replaces the note and stamps `updatedAt` with the Worker's clock. A body over the limit is `413 too_large`. `id` must match `NOTE_ID_PATTERN`.
+- `body` is stored as it is sent and never read: the Worker checks its size and nothing else, so a note costs it no parsing.
 - `GET /notes` lists the user's notes changed after the cursor, tombstones included, ordered by `updatedAt` then `id`, at most `limit` (default 500, max 1000). The answer's `cursor` is the position after the last note returned, which the app stores and sends next time; on an empty page it is the cursor that was sent, or null when none was. `hasMore` is true when a further page exists now, and the app keeps requesting until it is false. A cursor is opaque (`base64url(updatedAt:id)`) and keyset-based, so two notes stamped in the same millisecond are never skipped; one that does not decode is `400 bad_request`. No cursor means from the beginning.
 - There is no delete route: a deletion is a PUT with `isDeleted: true`, so it reaches every device.
-- The Worker must be deployed before an app version that writes a new block type, since it validates bodies with the same schema.
 
 ## Media
 

@@ -1,5 +1,6 @@
 import { Scanner } from '@tailwindcss/oxide'
 import { describe, expect, it } from 'vitest'
+import css from '@/assets/main.css?raw'
 
 // ---------------------------------------------------------------------------
 // Two token spellings compile happily and paint the wrong thing, so only a
@@ -57,6 +58,17 @@ function candidates(): string[] {
 }
 
 describe('token usage', () => {
+  // A class with no utility behind it compiles to nothing, and the text falls
+  // back to whatever it inherits.
+  it('writes no text style that main.css does not declare', () => {
+    const declared = new Set(
+      [...css.matchAll(/^@utility (text-style-[a-z0-9-]+) \{/gm)].map((match) => match[1])
+    )
+    const written = candidates().filter((c) => /^text-style-[a-z0-9-]+$/.test(c))
+    expect(written.length).toBeGreaterThan(0)
+    expect([...new Set(written)].filter((c) => !declared.has(c))).toEqual([])
+  })
+
   it('draws every border in a border or outline colour', () => {
     const trap = /(^|:)border(-[btlrxyse])?-(bg|ink)-/
 
@@ -92,9 +104,9 @@ describe('token usage', () => {
 
   // The block is a sheet, so the picker, a shell on it, steps a level above it.
   it('stands the code block’s language picker, a shell on the block, a step above it', () => {
-    const styles = SOURCES['../components/editor/styles.ts']
-    expect(styles).toMatch(/editorCodeBlockWrapperStyle = 'relative group\/code bg-level-1'/)
-    expect(styles).toMatch(/bg-bg-shell-default bg-level-2/)
+    const block = SOURCES['../prose/code-block.ts']
+    expect(block).toMatch(/className = 'relative group\/code bg-level-1'/)
+    expect(block).toMatch(/bg-bg-shell-default bg-level-2/)
   })
 
   it('never writes a surface primitive in a component, only the system tokens over it', () => {
@@ -210,5 +222,32 @@ describe('token usage', () => {
     const shadowed = /(^|:)(max-w|min-w)-(3xs|2xs|xs|sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl)$/
 
     expect(candidates().filter((c) => shadowed.test(c))).toEqual([])
+  })
+
+  // A style nothing draws is left over from what the app no longer has. A
+  // corner's sides are steps of the radius scale, kept whole.
+  it('keeps no utility of its own that nothing writes', () => {
+    const scanner = new Scanner({
+      sources: [
+        { base: RENDERER_SRC, pattern: '**/*.tsx', negated: false },
+        { base: RENDERER_SRC, pattern: '**/*.ts', negated: false },
+        { base: RENDERER_SRC, pattern: '**/__tests__/**', negated: true },
+        // The design system page is not the app: a style only it shows is unused.
+        { base: RENDERER_SRC, pattern: 'design-system/**', negated: true }
+      ]
+    })
+    const written = new Set(
+      scanner.scan().map((candidate) => candidate.slice(candidate.lastIndexOf(':') + 1))
+    )
+    const unwritten = [...css.matchAll(/@utility ([\w-]+?)(-\*)? \{/g)]
+      .filter(([, name]) => !/^rounded-[a-z]{1,2}$/.test(name))
+      .filter(([, name, functional]) =>
+        functional
+          ? ![...written].some((candidate) => candidate.startsWith(`${name}-`))
+          : !written.has(name)
+      )
+      .map(([, name]) => name)
+
+    expect(unwritten).toEqual([])
   })
 })

@@ -14,14 +14,16 @@ function setSlashAnchorOnBody() {
 }
 
 const ALL_LABELS = [
-  'Subheading',
-  'Eyebrow',
+  'Heading 1',
+  'Heading 2',
+  'Heading 3',
+  'Heading 4',
   'Paragraph',
   'Image or video',
   'Quote',
   'Numbered list',
   'Bulleted list',
-  'Metric',
+  'Task list',
   'Code',
   'Divider'
 ]
@@ -43,10 +45,10 @@ describe('SlashMenu', () => {
     // key in one test would otherwise suppress the next one's hover.
     resetInputModality()
   })
-  it('stands its rows on the menu tone: toolbar-tall, edge to edge', () => {
+  it('stands its rows on the menu tone: toolbar-tall, 2px clear of the shell and 1px apart', () => {
     render(<SlashMenu onSelect={onSelect} onDismiss={onDismiss} />)
     const listbox = screen.getByRole('listbox')
-    expect(listbox.className.split(/\s+/)).toContain('p-0')
+    expect(listbox.className.split(/\s+/)).toEqual(expect.arrayContaining(['p-0.5', 'gap-px']))
     for (const option of screen.getAllByRole('option')) {
       expect(option.className.split(/\s+/)).toContain('h-(--size-toolbar-button)')
     }
@@ -70,11 +72,10 @@ describe('SlashMenu', () => {
   // Rendering
   // -------------------------------------------------------------------------
 
-  it('renders all ten menu items when query is empty', () => {
+  it('renders every menu item, in order, when query is empty', () => {
     renderMenu()
-    for (const label of ALL_LABELS) expect(screen.getByText(label)).toBeDefined()
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(ALL_LABELS)
     expect(screen.queryByText('Link card')).toBeNull()
-    expect(screen.getAllByRole('option')).toHaveLength(10)
   })
 
   it('highlights the first item by default', () => {
@@ -93,7 +94,7 @@ describe('SlashMenu', () => {
   it('filters items by query (case-insensitive)', () => {
     renderMenu({ query: 'PARA' })
     expect(screen.getByText('Paragraph')).toBeDefined()
-    expect(screen.queryByText('Subheading')).toBeNull()
+    expect(screen.queryByText('Heading 2')).toBeNull()
     expect(screen.queryByText('Image or video')).toBeNull()
   })
 
@@ -103,21 +104,43 @@ describe('SlashMenu', () => {
     expect(screen.queryByText('Paragraph')).toBeNull()
   })
 
+  it('finds a heading by its level, said the short way', () => {
+    renderMenu({ query: 'h3' })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Heading 3'])
+  })
+
+  it('finds a task list by what it is often called', () => {
+    renderMenu({ query: 'todo' })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Task list'])
+  })
+
+  it('offers every level for the word they share', () => {
+    renderMenu({ query: 'head' })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Heading 1',
+      'Heading 2',
+      'Heading 3',
+      'Heading 4'
+    ])
+  })
+
   it('renders no items when the query matches nothing', () => {
     renderMenu({ query: 'zzz' })
     expect(screen.queryAllByRole('option')).toHaveLength(0)
   })
 
-  it('hides everything outside allowedTypes and the excluded type', () => {
-    renderMenu({ allowedTypes: ['heading', 'paragraph', 'blockquote'], excludeType: 'paragraph' })
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Subheading', 'Quote'])
+  it('leaves out the kind of block the caret is already in', () => {
+    renderMenu({ excludeType: 'paragraph' })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(
+      ALL_LABELS.filter((label) => label !== 'Paragraph')
+    )
   })
 
   it('slashMenuHasResults mirrors the rendered filter', () => {
     expect(slashMenuHasResults('')).toBe(true)
     expect(slashMenuHasResults('zzz')).toBe(false)
-    expect(slashMenuHasResults('quote', ['heading'])).toBe(false)
-    expect(slashMenuHasResults('quote', ['blockquote'], 'blockquote')).toBe(false)
+    expect(slashMenuHasResults('quote')).toBe(true)
+    expect(slashMenuHasResults('quote', 'blockquote')).toBe(false)
   })
 
   // -------------------------------------------------------------------------
@@ -125,14 +148,16 @@ describe('SlashMenu', () => {
   // -------------------------------------------------------------------------
 
   it.each<[string, SlashMenuBlockType]>([
-    ['Subheading', 'heading'],
-    ['Eyebrow', 'eyebrow'],
+    ['Heading 1', 'heading_1'],
+    ['Heading 2', 'heading_2'],
+    ['Heading 3', 'heading_3'],
+    ['Heading 4', 'heading_4'],
     ['Paragraph', 'paragraph'],
     ['Image or video', 'media'],
     ['Quote', 'blockquote'],
     ['Numbered list', 'list_item'],
     ['Bulleted list', 'bullet_list_item'],
-    ['Metric', 'metric'],
+    ['Task list', 'task_list_item'],
     ['Code', 'code_block'],
     ['Divider', 'horizontal_rule']
   ])("calls onSelect with the block type when '%s' is clicked", (label, type) => {
@@ -186,7 +211,7 @@ describe('SlashMenu', () => {
     renderMenu()
     fireEvent.pointerEnter(screen.getByText('Image or video'))
     const items = screen.getAllByRole('option')
-    expect(items[3].hasAttribute('data-active')).toBe(true)
+    expect(items[5].hasAttribute('data-active')).toBe(true)
     expect(items[0].hasAttribute('data-active')).toBe(false)
   })
 
@@ -200,7 +225,7 @@ describe('SlashMenu', () => {
     const items = () => screen.getAllByRole('option')
 
     fireEvent.pointerEnter(screen.getByText('Image or video'))
-    expect(items()[3].hasAttribute('data-active')).toBe(false)
+    expect(items()[5].hasAttribute('data-active')).toBe(false)
     expect(items()[0].hasAttribute('data-active')).toBe(true)
 
     fireEvent.keyDown(document, { key: 'ArrowDown' })
@@ -211,7 +236,7 @@ describe('SlashMenu', () => {
     // Reaching for the mouse hands control straight back.
     fireEvent.pointerMove(document, { clientX: 120, clientY: 64 })
     fireEvent.pointerEnter(screen.getByText('Image or video'))
-    expect(items()[3].hasAttribute('data-active')).toBe(true)
+    expect(items()[5].hasAttribute('data-active')).toBe(true)
   })
 
   it('keyboard arrow navigation takes over from the pointer-entered position', () => {
@@ -219,20 +244,20 @@ describe('SlashMenu', () => {
     fireEvent.pointerEnter(screen.getByText('Image or video'))
     fireEvent.keyDown(document, { key: 'ArrowDown' })
     const items = screen.getAllByRole('option')
-    expect(items[4].hasAttribute('data-active')).toBe(true)
+    expect(items[6].hasAttribute('data-active')).toBe(true)
   })
 
   it('selects the active item on Enter', () => {
     renderMenu()
     fireEvent.keyDown(document, { key: 'ArrowDown' })
     fireEvent.keyDown(document, { key: 'Enter' })
-    expect(onSelect).toHaveBeenCalledWith('eyebrow')
+    expect(onSelect).toHaveBeenCalledWith('heading_2')
   })
 
   it('selects the first item on Enter with no navigation', () => {
     renderMenu()
     fireEvent.keyDown(document, { key: 'Enter' })
-    expect(onSelect).toHaveBeenCalledWith('heading')
+    expect(onSelect).toHaveBeenCalledWith('heading_1')
   })
 
   it('does not select on Enter when the query leaves nothing', () => {

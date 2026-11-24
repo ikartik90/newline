@@ -1,6 +1,8 @@
 import { Scanner } from '@tailwindcss/oxide'
 import { describe, expect, it } from 'vitest'
 import css from '@/assets/main.css?raw'
+import { optionListClasses } from '@/components/ui/input/option-list'
+import { POPOVER_TOOLBAR } from '@/components/ui/popover'
 import { parseTokens, utilityRules } from './support/css-tokens'
 import { buildMainCss as build, declarationsOf, RENDERER_SRC } from './support/tailwind-build'
 
@@ -90,5 +92,34 @@ describe('corner radius', () => {
 
   it('has no squircle of its own beside the tokens', () => {
     expect(utilityRules(css).map((rule) => rule.name)).not.toContain('squircle')
+  })
+})
+
+// Two corners are concentric when the outer one's radius is the inner one's and
+// the space between them: a toolbar's shell round the buttons it holds 2px in.
+describe("a floating toolbar's corner", () => {
+  const classesOf = (list: string): string[] => list.split(/\s+/)
+  const row = optionListClasses({ tone: 'default', direction: 'inline', fit: 'scroll', size: 'md' })
+  const menu = optionListClasses({ tone: 'menu', direction: 'block', fit: 'content', size: 'md' })
+
+  // A button's corner is as it is drawn, not as it is asked: a radius past half the button's
+  // height is cut to that half, and an icon button's 16px on its 28px is.
+  it('is its buttons’ corner as drawn and the inset it keeps round them, a squircle as theirs is', async () => {
+    // What it is concentric with: an icon button's corner, 2px (`p-0.5`) inside it.
+    expect(classesOf(row.option)).toContain('rounded-xl')
+    expect(classesOf(menu.option)).toContain('rounded-xl')
+    expect(classesOf(menu.option)).toContain('h-(--size-toolbar-button)')
+    expect(classesOf(POPOVER_TOOLBAR)).toContain('p-0.5')
+    expect(classesOf(menu.list)).toContain('p-0.5')
+    const corner = declarationsOf(await build(['rounded-toolbar']), 'rounded-toolbar')
+    expect(corner).toContain(
+      'border-radius: calc(min(var(--radius-xl), var(--size-toolbar-button) / 2) + 2px);'
+    )
+    expect(corner).toMatch(/corner-shape: squircle;/)
+  })
+
+  // Written on the buttons' own tokens, it follows them where corner-shape is unknown too.
+  it('is no step of the scale', () => {
+    expect(STEPS).not.toContain('toolbar')
   })
 })

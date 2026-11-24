@@ -47,11 +47,3 @@ export function parseStoredRailWidth(raw: string | null, rail: RailBounds): numb
   const width = raw ? Number(raw) : NaN
   return Number.isFinite(width) ? width : rail.min
 }
-
-export function clampSidebarWidth(width: number): number {
-  return clampRailWidth(width, NOTES_RAIL)
-}
-
-export function parseStoredSidebarWidth(raw: string | null): number {
-  return parseStoredRailWidth(raw, NOTES_RAIL)
-}

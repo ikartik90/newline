@@ -30,7 +30,7 @@ export function Avatar({ name, picture }: { name: string; picture?: string }) {
 
 // The account button's box (account-menu's trigger): its height, inset and gap.
 const nameRowStyle = 'flex items-center gap-2 h-8 px-[6.5px] min-w-0'
-const nameStyle = 'truncate text-style-sidebar text-ink-body'
+const nameStyle = 'truncate text-style-body-sm text-ink-body'
 // Under the name: past the avatar and the gap (6.5 + 20 + 8px), drawn up into
 // the row's foot so the two lines read as one block.
 const emailStyle = '-mt-1.5 pl-[34.5px] pr-2 truncate text-style-caption text-ink-body/50'

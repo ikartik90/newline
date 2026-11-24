@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   // clear page (main/sidebar-glass.ts's isFrostedWindow).
   frosted: process.argv.includes('--frosted-window'),
   notes: {
-    create: (title?: string, body?: string) => ipcRenderer.invoke('notes:create', title, body),
+    create: () => ipcRenderer.invoke('notes:create'),
     update: (id: string, fields: { title?: string; body?: string; tags?: string[] }) =>
       ipcRenderer.invoke('notes:update', id, fields),
     delete: (id: string) => ipcRenderer.invoke('notes:delete', id),

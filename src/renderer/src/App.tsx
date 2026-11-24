@@ -4,7 +4,9 @@ import { AccountMenu } from '@/components/account-menu'
 import { SettingsDialog } from '@/components/settings-dialog'
 import SyncIndicator, { type SaveState } from '@/components/SyncIndicator'
 import AuthScreen from '@/components/auth/AuthScreen'
-import { ArticleEditor, type EditorSnapshot } from '@/components/article-editor'
+import type { EditorView } from 'prosemirror-view'
+import { MdxNoteEditor, type MdxNoteSnapshot } from '@/prose/note-editor'
+import { insertReply } from '@/prose/insert-reply'
 import { NotePropertiesPanel } from '@/components/note-properties-panel'
 import { CommandMenu } from '@/components/command-menu'
 import { commandMenuActions, type CommandId } from '@/components/command-menu-actions'
@@ -24,10 +26,7 @@ import { useSidebarGlass } from '@/hooks/use-sidebar-glass'
 import { useSidebarPeek } from '@/hooks/use-sidebar-peek'
 import { useWindowGlassHeld } from '@/hooks/use-window-glass'
 import { useScrolled } from '@/hooks/use-scrolled'
-import { parseDocument, serializeDocument } from '@shared/domain/document'
 import { noteDisplayTitle } from '@/utils/note-display'
-import { insertReply } from '@/utils/insert-reply'
-import { useEditorStore } from '@/store/editor'
 import SettingsIcon from '@/assets/icons/settings.svg'
 import LeftSidebarIcon from '@/assets/icons/left-sidebar.svg'
 import NoteSparkleIcon from '@/assets/icons/note-sparkle.svg'
@@ -184,13 +183,10 @@ function App() {
     }
   }, [userId])
 
-  // The editor seeds itself from these once per note; later saves must not
-  // re-seed it, so they are keyed on the id alone.
+  // The editor seeds itself from the note once; later saves must not re-seed
+  // it, so what it opens on is keyed on the id alone.
   const activeNoteId = activeNote?.id ?? null
-  const initialDocument = useMemo(
-    () => (activeNote ? parseDocument(activeNote.body) : null),
-    [activeNoteId]
-  )
+  const openedMdx = useMemo(() => activeNote?.body ?? null, [activeNoteId])
 
   /** Write a change to SQLite, then have main push it to the Worker, reporting each step. */
   const persist = useCallback(
@@ -212,23 +208,24 @@ function App() {
     [updateNote]
   )
 
-  const handleEditorChange = useCallback(
-    ({ title, document }: EditorSnapshot) => {
+  const handleChange = useCallback(
+    ({ title, mdx }: MdxNoteSnapshot) => {
       if (!activeNoteId) return
-      void persist(activeNoteId, { title, body: serializeDocument(document) })
+      void persist(activeNoteId, { title, body: mdx })
     },
     [activeNoteId, persist]
   )
 
-  // A reply goes in through the editor's own store, so it is one undo step
-  // and saves as any edit does.
+  // The open note's editor, for what works on the note from outside it.
+  const noteView = useRef<{ noteId: string; view: EditorView } | null>(null)
+
+  // A reply goes in through the editor itself, so it is one undo step and
+  // saves as any edit does.
   const handleInsertReply = useCallback(
     (markdown: string) => {
-      const editor = useEditorStore.getState()
-      if (!activeNoteId || editor.noteId !== activeNoteId) return
-      const document = insertReply(editor.document, markdown)
-      editor.setDocument(document)
-      editor.pushHistory({ title: editor.title, document })
+      const editor = noteView.current
+      if (!activeNoteId || editor?.noteId !== activeNoteId) return
+      insertReply(editor.view, markdown)
     },
     [activeNoteId]
   )
@@ -398,26 +395,29 @@ function App() {
 
       <div className={notePane}>
         <div className="relative flex-1 flex flex-col min-w-0">
-          {activeNote && initialDocument ? (
+          {activeNote && openedMdx !== null ? (
             <main
               ref={noteScroll.ref}
               onScroll={noteScroll.onScroll}
-              className="flex-1 overflow-y-auto px-5 pt-4 pb-20"
+              className="flex-1 overflow-y-auto px-(--size-note-inset) pt-4 pb-20"
             >
               <article>
-                <ArticleEditor
+                <MdxNoteEditor
                   key={activeNote.id}
                   noteId={activeNote.id}
                   initialTitle={activeNote.title}
-                  initialDocument={initialDocument}
-                  onChange={handleEditorChange}
+                  initialMdx={openedMdx}
+                  onChange={handleChange}
+                  onReady={(view) => {
+                    noteView.current = { noteId: activeNote.id, view }
+                  }}
                 />
               </article>
             </main>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <h2 className="text-style-subheading text-ink-body">Newline</h2>
+                <h2 className="text-style-heading-2 text-ink-body">Newline</h2>
                 <p className="mt-2 text-style-body-sm text-ink-body/50">
                   Select a note or create a new one
                 </p>

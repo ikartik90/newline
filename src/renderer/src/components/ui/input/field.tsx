@@ -27,21 +27,14 @@ export type FieldSize = 'sm' | 'md' | 'lg'
  * part from the field's size-derived default; reach for `className` only to go
  * outside the scale.
  */
-export type FieldTextStyle =
-  | 'fineprint'
-  | 'caption'
-  | 'sidenote'
-  | 'bodySmall'
-  | 'bodyLarge'
-  | 'subheading'
+export type FieldTextStyle = 'caption' | 'sidenote' | 'bodySmall' | 'bodyLarge' | 'heading2'
 
 const TEXT_STYLE: Record<FieldTextStyle, string> = {
-  fineprint: 'text-style-fineprint',
   caption: 'text-style-caption',
   sidenote: 'text-style-sidenote',
   bodySmall: 'text-style-body-sm',
   bodyLarge: 'text-style-body-lg',
-  subheading: 'text-style-subheading'
+  heading2: 'text-style-heading-2'
 }
 
 // ---------------------------------------------------------------------------
@@ -91,12 +84,13 @@ export const FIELD_FOCUS = {
 // field" rather than a mismatched label over a normal input. A label beside
 // its control, not over it, is no longer a caption: it takes `control`. `md` is the
 // design default; `lg` steps each part up one text style and the frame up 8px;
-// `sm` steps every part down one into a 28px frame.
+// `sm` steps every part down one into a 28px frame, but for its hint, which
+// stays in the smallest style there is, the label's.
 const SIZE = {
   sm: {
     label: 'text-style-sidenote',
     control: 'text-style-body-sm',
-    hint: 'text-style-fineprint',
+    hint: 'text-style-sidenote',
     frame: 'h-7 has-[textarea]:h-auto',
     toggle: 'gap-x-1'
   },
@@ -109,7 +103,7 @@ const SIZE = {
   },
   lg: {
     label: 'text-style-body-lg',
-    control: 'text-style-subheading',
+    control: 'text-style-heading-2',
     hint: 'text-style-body-sm',
     frame: 'h-12 has-[textarea]:h-auto',
     toggle: ''

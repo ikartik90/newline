@@ -55,7 +55,7 @@ export default function AuthScreen() {
   return (
     <div className="h-screen flex items-center justify-center bg-bg-canvas text-ink-body">
       <div className="w-full max-w-(--container-sm) px-8 flex flex-col items-center text-center">
-        <h1 className="text-style-title text-ink-title">Newline</h1>
+        <h1 className="text-style-heading-1 text-ink-title">Newline</h1>
         <p className="text-style-body-sm text-ink-body/50">A minimal place for your thoughts.</p>
 
         <div className="mt-8 min-h-10 flex items-center justify-center">

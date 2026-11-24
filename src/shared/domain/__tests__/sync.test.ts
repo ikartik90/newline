@@ -1,41 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_DOCUMENT, serializeDocument } from '../document'
 import {
   MAX_NOTE_BODY_LENGTH,
-  NoteBodySchema,
   NoteIdSchema,
   NotePushSchema,
   NoteRecordSchema,
-  NotesPageSchema,
-  isDocumentJson
+  NotesPageSchema
 } from '../sync'
 
-const body = serializeDocument({
-  type: 'doc',
-  content: [{ type: 'paragraph', children: [{ type: 'text', text: 'hello' }] }]
-})
-
-describe('isDocumentJson', () => {
-  it('accepts a serialized document, empty or not', () => {
-    expect(isDocumentJson(body)).toBe(true)
-    expect(isDocumentJson(serializeDocument(EMPTY_DOCUMENT))).toBe(true)
-  })
-
-  it('refuses markdown, other JSON and broken JSON', () => {
-    expect(isDocumentJson('# A heading')).toBe(false)
-    expect(isDocumentJson('{"type":"note"}')).toBe(false)
-    expect(isDocumentJson('{"type":"doc","content":[{"type":"mystery"}]}')).toBe(false)
-    expect(isDocumentJson('{')).toBe(false)
-  })
-})
-
-describe('NoteBodySchema', () => {
-  it('is a document within the size limit', () => {
-    expect(NoteBodySchema.safeParse(body).success).toBe(true)
-    expect(NoteBodySchema.safeParse('plain text').success).toBe(false)
-    expect(NoteBodySchema.safeParse('x'.repeat(MAX_NOTE_BODY_LENGTH + 1)).success).toBe(false)
-  })
-})
+const body = '# A heading\n\nhello\n'
 
 describe('NoteIdSchema', () => {
   it('takes a uuid and refuses path characters', () => {
@@ -53,11 +25,21 @@ describe('NotePushSchema', () => {
     expect(NotePushSchema.parse(push)).toEqual(push)
   })
 
-  it('refuses an updatedAt from the client, empty tags and a bad body', () => {
+  it('leaves out an updatedAt from the client, and refuses empty tags and a bad date', () => {
     expect(NotePushSchema.parse({ ...push, updatedAt: 5 })).toEqual(push)
     expect(NotePushSchema.safeParse({ ...push, tags: [''] }).success).toBe(false)
-    expect(NotePushSchema.safeParse({ ...push, body: 'nope' }).success).toBe(false)
     expect(NotePushSchema.safeParse({ ...push, createdAt: -1 }).success).toBe(false)
+  })
+
+  // No one who carries a body reads it.
+  it('takes a body as text, whatever it holds, within the size limit', () => {
+    const odd = { ...push, body: '# A heading\n\n<Unknown tag' }
+    expect(NotePushSchema.parse(odd)).toEqual(odd)
+    expect(NotePushSchema.parse({ ...push, body: '' }).body).toBe('')
+    expect(
+      NotePushSchema.safeParse({ ...push, body: 'x'.repeat(MAX_NOTE_BODY_LENGTH + 1) }).success
+    ).toBe(false)
+    expect(NotePushSchema.safeParse({ ...push, body: undefined }).success).toBe(false)
   })
 })
 

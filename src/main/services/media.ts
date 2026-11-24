@@ -10,6 +10,7 @@ import {
   sanitizeMediaFilename,
   type MediaAsset
 } from '@shared/domain/media'
+import { mdxDestination } from '@shared/mdx/dialect'
 import { getDb } from '../db/database'
 import { enqueueSyncAction } from './notes'
 import {
@@ -164,18 +165,26 @@ function metadataFor(row: MediaRow): MediaMetadata {
 
 /**
  * Point every note at an asset's new address, and queue those notes so the
- * change reaches Firestore. `instr` rather than LIKE: a URL is a literal.
+ * change reaches the Worker. `instr` rather than LIKE: a URL is a literal. A
+ * note spells an address bare, or as markdown escapes it (a file name's
+ * brackets), so both spellings are replaced.
  */
 function rewriteNoteSources(from: string, to: string): void {
   const db = getDb()
-  const ids = db.prepare('SELECT id FROM notes WHERE instr(body, ?) > 0').all(from) as {
-    id: string
-  }[]
-  if (!ids.length) return
-  db.prepare(
-    'UPDATE notes SET body = replace(body, ?, ?), updated_at = ? WHERE instr(body, ?) > 0'
-  ).run(from, to, Date.now(), from)
-  for (const { id } of ids) enqueueSyncAction(id, 'upsert')
+  const spellings = new Map([
+    [from, to],
+    [mdxDestination(from), mdxDestination(to)]
+  ])
+  for (const [was, is] of spellings) {
+    const ids = db.prepare('SELECT id FROM notes WHERE instr(body, ?) > 0').all(was) as {
+      id: string
+    }[]
+    if (!ids.length) continue
+    db.prepare(
+      'UPDATE notes SET body = replace(body, ?, ?), updated_at = ? WHERE instr(body, ?) > 0'
+    ).run(was, is, Date.now(), was)
+    for (const { id } of ids) enqueueSyncAction(id, 'upsert')
+  }
 }
 
 /**

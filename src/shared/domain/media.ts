@@ -72,26 +72,6 @@ export function mediaKindOf(contentType: string): MediaKind {
   return isVideoContentType(contentType) ? 'video' : 'image'
 }
 
-const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/gif': 'gif',
-  'image/webp': 'webp',
-  'image/svg+xml': 'svg',
-  'video/mp4': 'mp4',
-  'application/pdf': 'pdf'
-}
-
-/** The extension a local copy of a file of this type is saved under. */
-export function extensionForContentType(contentType: string): string {
-  return EXTENSION_BY_CONTENT_TYPE[contentType] ?? 'bin'
-}
-
-const mediaDimensionFields = {
-  width: z.number().int().positive().optional(),
-  height: z.number().int().positive().optional()
-}
-
 /** A stored object as the library lists it. */
 export const MediaAssetSchema = z.object({
   key: z.string(),
@@ -100,7 +80,8 @@ export const MediaAssetSchema = z.object({
   contentType: z.string(),
   size: z.number(),
   alt: z.string().optional(),
-  ...mediaDimensionFields,
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
   /** A clip's still, where one was taken. */
   poster: z.string().optional()
 })
@@ -117,17 +98,6 @@ export const CreateMediaUploadInputSchema = z
     message: 'File is too large',
     path: ['size']
   })
-
-export type CreateMediaUploadInput = z.infer<typeof CreateMediaUploadInputSchema>
-
-/** What the renderer reports about a file once it is stored. */
-export const FinalizeMediaUploadInputSchema = z.object({
-  key: z.string().min(1),
-  ...mediaDimensionFields,
-  poster: z.boolean().optional()
-})
-
-export type FinalizeMediaUploadInput = z.infer<typeof FinalizeMediaUploadInputSchema>
 
 const MAX_MEDIA_NAME_LENGTH = 120
 
@@ -156,11 +126,4 @@ const MEDIA_KEY_UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 export function filenameFromMediaKey(key: string, prefix = 'media/'): string {
   const segment = key.startsWith(prefix) ? key.slice(prefix.length) : key
   return segment.replace(MEDIA_KEY_UUID_PREFIX, '')
-}
-
-/** The same recovery, from the public URL a document node actually stores. */
-export function filenameFromMediaUrl(url: string): string {
-  const path = url.split(/[?#]/)[0]
-  const segment = path.split('/').pop() ?? ''
-  return filenameFromMediaKey(decodeURIComponent(segment), '')
 }

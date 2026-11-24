@@ -66,18 +66,18 @@ const composer =
 // palette's 40px field in its type; growing upward with what is typed to five
 // lines, then scrolling.
 const composerInput =
-  'flex-1 min-w-0 field-sizing-content max-h-[calc(4lh+var(--size-toolbar-button))] overflow-y-auto px-1.5 py-[calc((var(--size-toolbar-button)-1lh)/2)] resize-none bg-transparent outline-none text-style-sidebar text-ink-field-default placeholder:text-ink-field-placeholder focus:text-ink-field-focus focus:placeholder:text-ink-field-placeholder-focus disabled:opacity-50'
+  'flex-1 min-w-0 field-sizing-content max-h-[calc(4lh+var(--size-toolbar-button))] overflow-y-auto px-1.5 py-[calc((var(--size-toolbar-button)-1lh)/2)] resize-none bg-transparent outline-none text-style-body-sm text-ink-field-default placeholder:text-ink-field-placeholder focus:text-ink-field-focus focus:placeholder:text-ink-field-placeholder-focus disabled:opacity-50'
 // Under the box, as a chat app sets it: the context, then the model and the
 // effort at the right, in the account button's size.
 const footer = 'shrink-0 flex items-center gap-1 h-10 pl-4 pr-3'
-const modelName = 'ml-auto text-style-sidebar text-ink-body/50 whitespace-nowrap'
+const modelName = 'ml-auto text-style-body-sm text-ink-body/50 whitespace-nowrap'
 const meterStyle = 'flex items-center'
 // The account button's, opening its menu as that one does: on AppKit's glass
 // over the button, which hides under it; else above it, frosted or solid.
 const effortTrigger =
-  'flex items-center gap-1 h-8 px-[6.5px] rounded-xl text-style-sidebar text-ink-body hover:bg-bg-field-hover data-[popup-open]:bg-bg-field-hover transition-colors outline-none'
+  'flex items-center gap-1 h-8 px-[6.5px] rounded-xl text-style-body-sm text-ink-body hover:bg-bg-field-hover data-[popup-open]:bg-bg-field-hover transition-colors outline-none'
 const effortTriggerUnderGlass =
-  'flex items-center gap-1 h-8 px-[6.5px] rounded-xl text-style-sidebar text-ink-body hover:bg-bg-field-hover data-[popup-open]:opacity-0 transition-colors outline-none'
+  'flex items-center gap-1 h-8 px-[6.5px] rounded-xl text-style-body-sm text-ink-body hover:bg-bg-field-hover data-[popup-open]:opacity-0 transition-colors outline-none'
 const effortPopup = `${menuPopupFrame} bg-bg-sheet rounded-lg`
 const effortPopupFrosted = `${menuPopupFrame} frosted-sheet rounded-lg`
 const effortRow = `${menuItemStyle} justify-between`

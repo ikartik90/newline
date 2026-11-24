@@ -16,6 +16,25 @@ export interface CheckboxProps extends Omit<
 }
 
 /**
+ * The box itself, for a native checkbox drawn outside React too (a task in a
+ * note is one). Every class whole, for Tailwind to find.
+ */
+export const CHECKBOX_BOX = cx(
+  'relative shrink-0 block size-5 p-0 m-0 border-none bg-transparent appearance-none cursor-pointer',
+  'disabled:cursor-not-allowed disabled:opacity-50',
+  // The 16px box centred in the 20px frame, the 2px surround keeping it
+  // optically centred on the label's cap-height. Off = neutral, on = the
+  // field family's active accent.
+  'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-sm before:bg-bg-field-default',
+  'before:shadow-[inset_0_0_0_0.5px_var(--border-field-default)] before:transition-[background-color,box-shadow] before:duration-150',
+  'checked:before:bg-bg-field-selected checked:before:shadow-[inset_0_0_0_0.5px_var(--border-field-selected)]',
+  // The 20px tick over the whole frame, hanging 2px off every side of the
+  // box, revealed by opacity so it fades rather than pops.
+  'after:absolute after:inset-0 after:bg-ink-field-selected after:mask-(--check-glyph) after:opacity-0 after:transition-opacity after:duration-150',
+  'checked:after:opacity-100'
+)
+
+/**
  * Checkbox — the control slot of a `<Field>`, and the Switch's sibling. A
  * native checkbox, reading the field context for its id, label association and
  * `aria-describedby` wiring, so `Field.Label` and `Field.Hint` work with it
@@ -52,22 +71,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
       defaultChecked={defaultChecked}
       onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
       aria-describedby={hasHint ? hintId : undefined}
-      className={cx(
-        'relative shrink-0 block size-5 p-0 m-0 border-none bg-transparent appearance-none cursor-pointer',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        // The 16px box centred in the 20px frame, the 2px surround keeping it
-        // optically centred on the label's cap-height. Off = neutral, on = the
-        // field family's active accent.
-        'before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-sm before:bg-bg-field-default',
-        'before:shadow-[inset_0_0_0_0.5px_var(--border-field-default)] before:transition-[background-color,box-shadow] before:duration-150',
-        'checked:before:bg-bg-field-selected checked:before:shadow-[inset_0_0_0_0.5px_var(--border-field-selected)]',
-        // The 20px tick over the whole frame, hanging 2px off every side of the
-        // box, revealed by opacity so it fades rather than pops.
-        'after:absolute after:inset-0 after:bg-ink-field-selected after:mask-(--check-glyph) after:opacity-0 after:transition-opacity after:duration-150',
-        'checked:after:opacity-100',
-        toggleControlClass(field),
-        className
-      )}
+      className={cx(CHECKBOX_BOX, toggleControlClass(field), className)}
       {...rest}
     />
   )

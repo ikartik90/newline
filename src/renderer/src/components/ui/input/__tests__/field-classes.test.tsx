@@ -2,7 +2,6 @@ import { render } from '@testing-library/react'
 import { Scanner } from '@tailwindcss/oxide'
 import { describe, expect, it } from 'vitest'
 import { Field } from '../field'
-import { ImageInput } from '../image-input'
 import { Slider } from '../slider'
 
 // Tailwind emits a rule only for a class its scanner reads whole out of the
@@ -35,16 +34,6 @@ describe('a field’s classes are ones Tailwind can see in the source', () => {
         <Field.Frame>
           <Field.Control placeholder="Untitled" />
         </Field.Frame>
-      </Field>
-    )
-    expect(unscanned(container)).toEqual([])
-  })
-
-  it('an image input', () => {
-    const { container } = render(
-      <Field size="sm">
-        <Field.Label>Image</Field.Label>
-        <ImageInput noun="picture" onPick={() => {}} />
       </Field>
     )
     expect(unscanned(container)).toEqual([])

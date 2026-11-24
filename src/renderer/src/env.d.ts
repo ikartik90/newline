@@ -23,9 +23,8 @@ declare global {
   }
 
   /**
-   * A note as the renderer sees it. `body` is the JSON-serialised Document
-   * (see `@shared/domain/document`); parse it with `parseDocument`. The main
-   * process derives `plainText` from the body for search and previews.
+   * A note as the renderer sees it. `body` is its MDX text; the main process
+   * derives `plainText` from it for search and previews.
    */
   interface Note {
     id: string
@@ -83,7 +82,8 @@ declare global {
       /** Whether the window is the OS's own blur under a clear page: macOS, or Windows 11's acrylic. */
       frosted: boolean
       notes: {
-        create: (title?: string, body?: string) => Promise<Note>
+        /** A new note, empty. */
+        create: () => Promise<Note>
         update: (
           id: string,
           fields: { title?: string; body?: string; tags?: string[] }

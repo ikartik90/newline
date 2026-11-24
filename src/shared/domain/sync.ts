@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { DocumentSchema } from './document'
 
 // ---------------------------------------------------------------------------
 // What crosses between the app and the Worker's `/notes` routes
@@ -13,30 +12,19 @@ export const NOTE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 export const MAX_NOTE_TITLE_LENGTH = 1000
 export const MAX_NOTE_TAGS = 100
 export const MAX_NOTE_TAG_LENGTH = 64
-/** Characters of body JSON. Media are URLs, so a real note is far smaller. */
+/** Characters of body text. Media are URLs, so a real note is far smaller. */
 export const MAX_NOTE_BODY_LENGTH = 1_000_000
-
-/** True when a stored body is a document the editor can open. */
-export function isDocumentJson(body: string): boolean {
-  try {
-    return DocumentSchema.safeParse(JSON.parse(body)).success
-  } catch {
-    return false
-  }
-}
 
 export const NoteIdSchema = z.string().regex(NOTE_ID_PATTERN)
 
-/** A body as it travels: the Document's JSON text, checked to be one. */
-export const NoteBodySchema = z
-  .string()
-  .max(MAX_NOTE_BODY_LENGTH)
-  .refine(isDocumentJson, 'body must be a document')
-
-/** What a PUT carries; the Worker stamps `updatedAt` itself. */
+/**
+ * What a PUT carries; the Worker stamps `updatedAt` itself. The body is the
+ * note's MDX, text within the limit and nothing more: no one who carries it
+ * reads it.
+ */
 export const NotePushSchema = z.object({
   title: z.string().max(MAX_NOTE_TITLE_LENGTH),
-  body: NoteBodySchema,
+  body: z.string().max(MAX_NOTE_BODY_LENGTH),
   tags: z.array(z.string().min(1).max(MAX_NOTE_TAG_LENGTH)).max(MAX_NOTE_TAGS),
   createdAt: z.number().int().nonnegative(),
   isDeleted: z.boolean()

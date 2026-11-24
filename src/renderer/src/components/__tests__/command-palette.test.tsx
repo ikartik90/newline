@@ -12,7 +12,7 @@ import { CommandPalette } from '../command-palette'
 const note: Note = {
   id: 'n1',
   title: 'Apples',
-  body: '{"type":"doc","content":[]}',
+  body: '',
   plainText: '',
   tags: [],
   createdAt: 1,

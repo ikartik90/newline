@@ -182,7 +182,7 @@ describe('a toolbar row', () => {
 })
 
 // A floating menu is the toolbar stood on end: rows as tall as a toolbar
-// button and cornered as one, filling the shell with no inset and no gap.
+// button and cornered as one, 2px clear of the shell and 1px apart, as a toolbar's are.
 describe('a menu column', () => {
   const menu = optionListClasses({ tone: 'menu', direction: 'block', fit: 'content', size: 'md' })
 
@@ -193,10 +193,23 @@ describe('a menu column', () => {
     expect(option).not.toContain('p-1')
   })
 
-  it('lays its rows edge to edge, with no inset', () => {
+  it('lays its rows 2px clear of the shell and 1px apart', () => {
     const list = menu.list.split(/\s+/)
-    expect(list).toEqual(expect.arrayContaining(['p-0', 'gap-0']))
-    expect(list.filter((c) => /^(p|px|py)-/.test(c))).toEqual(['p-0'])
+    expect(list.filter((c) => /^(p|px|py)-/.test(c))).toEqual(['p-0.5'])
+    expect(list.filter((c) => /^gap-/.test(c))).toEqual(['gap-px'])
     expect(list.filter((c) => /^max-h-/.test(c))).toHaveLength(1)
+  })
+
+  // Seven rows and half of the next, to say there is more: their gaps and the inset over them counted.
+  it('caps a menu that scrolls at seven and a half rows', () => {
+    const scrolling = optionListClasses({
+      tone: 'menu',
+      direction: 'block',
+      fit: 'scroll',
+      size: 'md'
+    })
+    expect(scrolling.list.split(/\s+/)).toContain(
+      'max-h-[calc(7.5*var(--size-toolbar-button)+7*1px+2px)]'
+    )
   })
 })

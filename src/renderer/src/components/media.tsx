@@ -1,37 +1,18 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FocusEventHandler,
-  type KeyboardEventHandler
-} from 'react'
-import { MediaTransport } from '@/components/media-transport'
-import {
-  mediaBoxStyle,
-  mediaFrameStyle,
-  mediaObjectStyle,
-  mediaReservationStyle,
-  type MediaKind,
-  type MediaLayout
-} from '@shared/domain/nodes'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { mediaReservedAspect, type MediaKind } from '@shared/domain/media-node'
 
 // ---------------------------------------------------------------------------
 // Media — one source, shown with whichever element can show it.
 //
 // The library takes clips as well as pictures, and every surface that renders
-// one — the editor's block, the lightbox, the library's preview — faces the
-// same fork. It is settled here, once, and settled by `kind`
-// rather than guessed from the filename: every caller holds a node or an
-// upload that already states what it is, so there is no fallback to forget
-// into.
+// one — the note's block, the library's thumbnail and its preview — faces the
+// same fork. It is settled here, once, and settled by `kind` rather than
+// guessed from the filename: every caller holds a node or an upload that
+// already states what it is.
 //
-// The two elements are interchangeable on purpose: same className, same box,
-// same `object-fit`, and one `onMeasure` in place of `naturalWidth` and
-// `videoWidth`. A clip plays ITSELF — muted, looping, inline — with either the
-// browser's strip (`controls`, where a clip is read) or the house chip
-// (`transport`, where it is looked at), and neither by default.
+// The two elements are interchangeable on purpose: same className, same box.
+// A clip plays ITSELF — muted, looping, inline — with the browser's strip
+// (`controls`) only where a clip is read.
 // ---------------------------------------------------------------------------
 
 /**
@@ -47,13 +28,6 @@ export interface MediaProps {
   /** Which element to render with. Required: the src is never consulted. */
   kind: MediaKind
   className?: string
-  style?: CSSProperties
-  /**
-   * How the picture sits in its box — fit, inset, corner. Takes TWO elements
-   * (a frame for the inset, the object for fit and corner); both collapse to
-   * `display: contents` when there is nothing to apply.
-   */
-  layout?: MediaLayout
   /**
    * The source's own pixel size, when the document recorded it — the shape
    * the box is HELD at until the source can size itself. Only the ratio is
@@ -61,46 +35,15 @@ export interface MediaProps {
    */
   width?: number
   height?: number
-  draggable?: boolean
-  /** Pictures only — a clip decides its own fetching through `preload`. */
-  loading?: 'lazy' | 'eager'
   /** Clips only — the still stored for this clip, shown until it has a frame. */
   poster?: string
   /** Clips only — the browser's own strip. */
   controls?: boolean
   /**
-   * Clips only — ONE play/pause chip in the corner of the surface. Absolute
-   * against the surface's own positioned box, so nothing in the media's
-   * layout moves when it is turned on.
-   */
-  transport?: boolean
-  /**
    * Clips only — does this one start itself? Withheld, not stopped: the clip
-   * is never asked to play, so nothing flickers and the transport can start
-   * it on request.
+   * is never asked to play, so nothing flickers.
    */
   autoPlay?: boolean
-  /** The checkerboard hook for a see-through picture. */
-  'data-checkered'?: string
-  /**
-   * The surface's own interaction contract, handed through untouched to
-   * whichever element the fork produced. The editor's media block is
-   * FOCUSABLE, and the element itself is its tab stop.
-   */
-  tabIndex?: number
-  onFocus?: FocusEventHandler<HTMLElement>
-  onBlur?: FocusEventHandler<HTMLElement>
-  onKeyDown?: KeyboardEventHandler<HTMLElement>
-  /** The editor's block-focus hook; see `tabIndex` above. */
-  'data-showcase-media'?: string
-  /** The source's intrinsic size once it is known — both dimensions, one callback. */
-  onMeasure?: (width: number, height: number) => void
-  /**
-   * The element itself, for a caller that has to MEASURE what it came out at.
-   * A callback so the caller can hold it in state; must be stable, or a clip
-   * is torn down and stood back up on every render and loses its playhead.
-   */
-  elementRef?: (node: HTMLElement | null) => void
 }
 
 /**
@@ -123,30 +66,12 @@ export function Media({
   alt,
   kind,
   className,
-  style,
-  layout,
   width,
   height,
-  draggable,
-  loading = 'lazy',
   poster,
   controls,
-  transport,
-  autoPlay = true,
-  onMeasure,
-  elementRef,
-  tabIndex,
-  onFocus,
-  onBlur,
-  onKeyDown,
-  'data-checkered': checkered,
-  'data-showcase-media': showcaseMedia
+  autoPlay = true
 }: MediaProps) {
-  // The element as STATE rather than a ref, because the transport has to
-  // re-render when it arrives — and arrive again it does, since the lightbox
-  // keys its clip by index.
-  const [clip, setClip] = useState<HTMLVideoElement | null>(null)
-
   // Which source has actually PAINTED — the src rather than a boolean, so
   // swapping the source takes the reserved box back with no effect to reset
   // it. Settled by the PROP, never `currentSrc`, which the browser resolves
@@ -155,18 +80,13 @@ export function Media({
   const pending = paintedSrc !== src
   const settle = useCallback(() => setPaintedSrc(src), [src])
 
-  // The caller's ref, which takes whichever element this turned out to be. It
-  // also settles a source that had ALREADY painted by the time the element
-  // reached us — a cached picture is `complete` before React hears a `load`.
-  // The src comes off the ATTRIBUTE so the callback's identity owes nothing
-  // to the current render.
-  const hold = useCallback(
-    (node: HTMLElement | null) => {
-      if (hasSomethingToShow(node)) setPaintedSrc(node.getAttribute('src'))
-      elementRef?.(node)
-    },
-    [elementRef]
-  )
+  // Settles a source that had ALREADY painted by the time the element reached
+  // us — a cached picture is `complete` before React hears a `load`. The src
+  // comes off the ATTRIBUTE so the callback's identity owes nothing to the
+  // current render.
+  const hold = useCallback((node: HTMLElement | null) => {
+    if (hasSomethingToShow(node)) setPaintedSrc(node.getAttribute('src'))
+  }, [])
 
   // Read through a ref so changing it never re-runs the ref callback below.
   const autoPlayRef = useRef(autoPlay)
@@ -182,7 +102,6 @@ export function Media({
    */
   const startPlaying = useCallback(
     (node: HTMLVideoElement | null) => {
-      setClip(node)
       hold(node)
       if (!node) return
       node.muted = true
@@ -199,41 +118,28 @@ export function Media({
     [hold]
   )
 
-  // The caller's own style wins. The reservation sits between the two, only
-  // while the source has nothing to paint.
-  const objectStyle = {
-    ...(layout ? mediaObjectStyle(layout) : {}),
-    ...(pending ? mediaReservationStyle({ width, height }, layout) : {}),
-    ...style
+  // The box is held at the source's shape only while it has nothing to paint.
+  const objectStyle = pending ? { aspectRatio: mediaReservedAspect({ width, height }) } : undefined
+
+  if (kind !== 'video') {
+    return (
+      <img
+        ref={hold}
+        src={src}
+        alt={alt}
+        className={className}
+        style={objectStyle}
+        loading="lazy"
+        // The box's own answer to "is there anything here yet".
+        data-media-pending={pending ? '' : undefined}
+        onLoad={settle}
+        // A source that will never arrive is a FINISHED state, not a pending one.
+        onError={settle}
+      />
+    )
   }
 
-  const isClip = kind === 'video'
-
-  const element = !isClip ? (
-    <img
-      ref={hold}
-      src={src}
-      alt={alt}
-      className={className}
-      style={objectStyle}
-      draggable={draggable}
-      loading={loading}
-      tabIndex={tabIndex}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      data-checkered={checkered}
-      data-showcase-media={showcaseMedia}
-      // The box's own answer to "is there anything here yet".
-      data-media-pending={pending ? '' : undefined}
-      onLoad={(event) => {
-        settle()
-        onMeasure?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)
-      }}
-      // A source that will never arrive is a FINISHED state, not a pending one.
-      onError={settle}
-    />
-  ) : (
+  return (
     <video
       ref={startPlaying}
       src={src}
@@ -242,7 +148,6 @@ export function Media({
       aria-label={alt || undefined}
       className={className}
       style={objectStyle}
-      draggable={draggable}
       controls={controls}
       autoPlay={autoPlay}
       loop
@@ -250,12 +155,6 @@ export function Media({
       playsInline
       poster={poster}
       preload="metadata"
-      tabIndex={tabIndex}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      data-checkered={checkered}
-      data-showcase-media={showcaseMedia}
       data-media-pending={pending ? '' : undefined}
       // `loadeddata`, not `loadedmetadata`: a <video> with no frame decoded
       // still paints nothing at all.
@@ -263,7 +162,6 @@ export function Media({
       onError={settle}
       onLoadedMetadata={(event) => {
         const node = event.currentTarget
-        onMeasure?.(node.videoWidth, node.videoHeight)
         // A HELD clip has to be given something to show: `preload="metadata"`
         // fetches no frames, so seeking a hair past the start asks for the
         // first one. Not where a still is already painting.
@@ -272,31 +170,5 @@ export function Media({
         }
       }}
     />
-  )
-
-  // Two boxes: the OUTER is the query container the corner is a share of, so
-  // it spans the full width; the inset lives on the INNER one. Both collapse
-  // to `display: contents` when there is nothing to apply.
-  const media = !layout ? (
-    element
-  ) : (
-    <span data-media-frame="" style={mediaFrameStyle(layout)}>
-      <span data-media-box="" style={mediaBoxStyle(layout)}>
-        {element}
-      </span>
-    </span>
-  )
-
-  // A picture has nothing to play, so a transport over one is a no-op rather
-  // than a dead button.
-  if (!transport || !isClip) return media
-
-  // A SIBLING of the media, never a box around it — the chip is out of flow
-  // and pins itself to the surface's corner.
-  return (
-    <>
-      {media}
-      <MediaTransport clip={clip} />
-    </>
   )
 }

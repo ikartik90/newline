@@ -1,12 +1,11 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
 export type TypographyType =
-  | 'title'
-  | 'subheading'
+  | 'heading1'
+  | 'heading2'
   | 'bodyLarge'
   | 'bodySmall'
-  | 'prose'
-  | 'quote'
+  | 'paragraph'
   | 'caption'
   | 'sidenote'
 
@@ -33,17 +32,16 @@ type Wrap = 'pretty' | 'balance'
 // stylesheet order, not by this table.
 //
 // `pretty` is right for prose that runs on — it guards the last line and leaves
-// the rest alone. A title, a subheading and a caption are a line or two set on
+// the rest alone. A heading and a caption are a line or two set on
 // their own (a caption centred under something), where what matters is that the
 // lines come out even, so those balance.
 const TYPE_STYLES: Record<TypographyType, { style: string; color: string; wrap: Wrap }> = {
-  title: { style: 'text-style-title', color: 'text-ink-title', wrap: 'balance' },
-  subheading: { style: 'text-style-subheading', color: 'text-ink-body', wrap: 'balance' },
+  heading1: { style: 'text-style-heading-1', color: 'text-ink-title', wrap: 'balance' },
+  heading2: { style: 'text-style-heading-2', color: 'text-ink-body', wrap: 'balance' },
   bodyLarge: { style: 'text-style-body-lg', color: 'text-ink-body', wrap: 'pretty' },
   bodySmall: { style: 'text-style-body-sm', color: 'text-ink-body', wrap: 'pretty' },
-  // A note's paragraphs: body small in the serif.
-  prose: { style: 'text-style-prose', color: 'text-ink-prose', wrap: 'pretty' },
-  quote: { style: 'text-style-quote', color: 'text-ink-body', wrap: 'pretty' },
+  // A note's paragraphs, in the serif.
+  paragraph: { style: 'text-style-paragraph-md', color: 'text-ink-paragraph', wrap: 'pretty' },
   caption: { style: 'text-style-caption', color: 'text-ink-body', wrap: 'balance' },
   sidenote: { style: 'text-style-sidenote', color: 'text-ink-body', wrap: 'pretty' }
 }

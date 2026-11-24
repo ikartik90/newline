@@ -13,7 +13,7 @@ function makeNote(id: string, title: string): Note {
   return {
     id,
     title,
-    body: '{"type":"doc","content":[]}',
+    body: '',
     plainText: '',
     tags: [],
     createdAt: 1,
@@ -87,11 +87,8 @@ describe('Sidebar', () => {
     expect(classes(newNote.querySelector('svg')!)).toContain('size-5')
   })
 
-  it('sets its labels at 13px on body small’s line', () => {
-    const rule = (name: string) => css.match(new RegExp(`@utility ${name} \\{([^}]*)\\}`))![1]
-    expect(rule('text-style-sidebar')).toContain('font-size: 0.8125rem;')
-    expect(rule('text-style-sidebar')).toContain('line-height: calc(0.875rem * 1.72);')
-    expect(rule('text-style-body-sm')).toContain('line-height: 1.72;')
+  it('sets its labels in body small, the interface’s own text', () => {
+    expect(css).not.toContain('@utility text-style-sidebar ')
     renderSidebar()
     const classes = (el: Element) => (el.getAttribute('class') ?? '').split(/\s+/)
     for (const el of [
@@ -99,8 +96,7 @@ describe('Sidebar', () => {
       screen.getByRole('button', { name: 'Search' }),
       row('Apples').querySelector('span')!
     ]) {
-      expect(classes(el)).toContain('text-style-sidebar')
-      expect(classes(el)).not.toContain('text-style-body-sm')
+      expect(classes(el)).toContain('text-style-body-sm')
     }
   })
 

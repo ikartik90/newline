@@ -2,14 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   ALLOWED_MEDIA_CONTENT_TYPES,
   CreateMediaUploadInputSchema,
-  FinalizeMediaUploadInputSchema,
   MAX_DOCUMENT_UPLOAD_BYTES,
   MAX_IMAGE_UPLOAD_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
   MediaAssetSchema,
-  extensionForContentType,
   filenameFromMediaKey,
-  filenameFromMediaUrl,
   isAllowedMediaContentType,
   isAllowedUploadContentType,
   isDocumentContentType,
@@ -59,21 +56,6 @@ describe('MediaAssetSchema', () => {
       })
     ).toThrow()
   })
-
-  it("carries the source's measured shape, and does without it", () => {
-    expect(
-      FinalizeMediaUploadInputSchema.parse({ key: 'media/abc-photo.png', width: 1600, height: 900 })
-    ).toMatchObject({ width: 1600, height: 900 })
-    expect(
-      FinalizeMediaUploadInputSchema.parse({ key: 'media/abc-photo.png' }).width
-    ).toBeUndefined()
-  })
-
-  it('refuses a dimension no source could have', () => {
-    expect(() =>
-      FinalizeMediaUploadInputSchema.parse({ key: 'media/abc-photo.png', width: 0, height: 900 })
-    ).toThrow()
-  })
 })
 
 describe('content types', () => {
@@ -108,15 +90,6 @@ describe('content types', () => {
     expect(isAllowedMediaContentType('application/pdf')).toBe(false)
     expect(isAllowedUploadContentType('application/pdf')).toBe(true)
     expect(isAllowedUploadContentType('application/zip')).toBe(false)
-  })
-
-  it('knows the extension a local file of each type is saved under', () => {
-    expect(extensionForContentType('image/png')).toBe('png')
-    expect(extensionForContentType('image/jpeg')).toBe('jpg')
-    expect(extensionForContentType('image/svg+xml')).toBe('svg')
-    expect(extensionForContentType('video/mp4')).toBe('mp4')
-    expect(extensionForContentType('application/pdf')).toBe('pdf')
-    expect(extensionForContentType('application/octet-stream')).toBe('bin')
   })
 })
 
@@ -159,25 +132,5 @@ describe('filenameFromMediaKey', () => {
 
   it('falls back to the whole segment when there is no uuid prefix', () => {
     expect(filenameFromMediaKey('media/legacy.png')).toBe('legacy.png')
-  })
-})
-
-describe('filenameFromMediaUrl', () => {
-  it("recovers the name a node's src was uploaded under", () => {
-    expect(
-      filenameFromMediaUrl(
-        'https://cdn.example.com/media/123e4567-e89b-12d3-a456-426614174000-cv.pdf'
-      )
-    ).toBe('cv.pdf')
-  })
-
-  it('ignores a query and a fragment', () => {
-    expect(filenameFromMediaUrl('https://cdn.example.com/media/photo.png?sig=abc#x')).toBe(
-      'photo.png'
-    )
-  })
-
-  it('falls back to whatever the last segment is', () => {
-    expect(filenameFromMediaUrl('https://cdn.example.com/abc123')).toBe('abc123')
   })
 })

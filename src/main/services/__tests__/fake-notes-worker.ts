@@ -134,7 +134,7 @@ function putNote(id: string, body: unknown): Response {
   const refused = refusedNotes.get(id)
   if (refused) return json({ error: refused.code }, refused.status)
   const parsed = NotePushSchema.safeParse(body)
-  if (!parsed.success) return json({ error: 'invalid_body' }, 400)
+  if (!parsed.success) return json({ error: 'bad_request' }, 400)
   const updatedAt = tick()
   store.set(id, { id, ...parsed.data, updatedAt })
   return json({ id, updatedAt })

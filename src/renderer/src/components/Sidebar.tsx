@@ -83,7 +83,7 @@ const railEdge = 'absolute inset-y-0 right-0 w-px bg-border-divider pointer-even
 // 20px glyph is centred at 23px — under macOS's red window button.
 const headStyle = 'flex flex-col gap-0.5 px-[6.5px] pb-2 shrink-0'
 const headRowStyle =
-  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-xl text-left text-style-sidebar text-ink-body hover:bg-bg-field-hover transition-colors'
+  'flex items-center gap-2 w-full h-8 px-[6.5px] rounded-xl text-left text-style-body-sm text-ink-body hover:bg-bg-field-hover transition-colors'
 const headGlyphStyle = 'shrink-0 size-5 text-ink-body'
 const headShortcutStyle = 'ml-auto text-style-caption text-ink-body/40'
 
@@ -297,7 +297,7 @@ export default function Sidebar({
           <div className={railBody}>
             <div ref={listRef} className={listInset}>
               {notes.length === 0 ? (
-                <p className="px-3 py-6 text-style-sidebar text-ink-body/50 text-center">
+                <p className="px-3 py-6 text-style-body-sm text-ink-body/50 text-center">
                   No notes yet
                 </p>
               ) : notes.length < VIRTUALISE_FROM ? (
@@ -362,7 +362,7 @@ function NoteRow({ index, style, ...rowProps }: RowComponentProps<NoteRowProps>)
 // The action the row uncovers: a danger block the height of the row, the glyph
 // beside its name (a 32px row has no room to stack them).
 const deleteActionStyle =
-  'flex items-center justify-center gap-1 w-full h-full bg-bg-row-delete text-ink-row-delete text-style-fineprint font-medium'
+  'flex items-center justify-center gap-1 w-full h-full bg-bg-row-delete text-ink-row-delete text-style-sidenote font-medium'
 
 // One line per note — its title alone — as tall as the head's rows.
 const noteRow = 'flex items-center w-full h-8 px-[6.5px] rounded-xl text-left transition-colors'
@@ -406,7 +406,7 @@ function NoteItem({
         aria-current={isActive ? 'true' : undefined}
         className={isActive ? noteRowActive : noteRowIdle}
       >
-        <span className="min-w-0 flex-1 text-style-sidebar truncate text-ink-body">
+        <span className="min-w-0 flex-1 text-style-body-sm truncate text-ink-body">
           {noteDisplayTitle(note)}
         </span>
       </button>
